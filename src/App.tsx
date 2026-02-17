@@ -8,6 +8,7 @@ import PlaylistPanel from "./components/PlaylistPanel";
 import KeyboardShortcuts from "./components/KeyboardShortcuts";
 import TopBar from "./components/TopBar";
 import SearchModal from "./components/SearchModal";
+import SpeedIndicator from "./components/SpeedIndicator";
 import { usePlaylist } from "./hooks/usePlaylist";
 import { usePlayer } from "./hooks/usePlayer";
 import { keyboardRegistry } from "./services/ui/keyboardRegistry";
@@ -58,6 +59,8 @@ const App: React.FC = () => {
   const [showVolumePopup, setShowVolumePopup] = useState(false);
   const [showSettingsPopup, setShowSettingsPopup] = useState(false);
   const [volume, setVolume] = useState(1);
+  const [showSpeedIndicator, setShowSpeedIndicator] = useState(false);
+  const speedIndicatorTimerRef = useRef<number | null>(null);
 
   const [isMobileLayout, setIsMobileLayout] = useState(false);
   const [activePanel, setActivePanel] = useState<"controls" | "lyrics">(
@@ -72,6 +75,33 @@ const App: React.FC = () => {
     return window.innerWidth;
   });
   const [lyricsFontSize, setLyricsFontSize] = useState(48);
+
+  // Speed change handler with indicator
+  const handleSpeedChange = (newSpeed: number) => {
+    player.setSpeed(newSpeed);
+    
+    // Show speed indicator
+    setShowSpeedIndicator(true);
+    
+    // Clear existing timer
+    if (speedIndicatorTimerRef.current) {
+      window.clearTimeout(speedIndicatorTimerRef.current);
+    }
+    
+    // Hide after 1.5 seconds
+    speedIndicatorTimerRef.current = window.setTimeout(() => {
+      setShowSpeedIndicator(false);
+    }, 1500);
+  };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (speedIndicatorTimerRef.current) {
+        window.clearTimeout(speedIndicatorTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -261,7 +291,7 @@ const App: React.FC = () => {
           onVolumeChange={setVolume}
           speed={player.speed}
           preservesPitch={player.preservesPitch}
-          onSpeedChange={player.setSpeed}
+          onSpeedChange={handleSpeedChange}
           onTogglePreservesPitch={player.togglePreservesPitch}
           coverUrl={currentSong?.coverUrl}
           isBuffering={isBuffering}
@@ -342,10 +372,12 @@ const App: React.FC = () => {
         onToggleMode={toggleMode}
         onTogglePlaylist={() => setShowPlaylist((prev) => !prev)}
         speed={player.speed}
-        onSpeedChange={player.setSpeed}
+        onSpeedChange={handleSpeedChange}
         onToggleVolumeDialog={() => setShowVolumePopup((prev) => !prev)}
         onToggleSpeedDialog={() => setShowSettingsPopup((prev) => !prev)}
       />
+
+      <SpeedIndicator speed={player.speed} show={showSpeedIndicator} />
 
       <MediaSessionController
         currentSong={currentSong ?? null}

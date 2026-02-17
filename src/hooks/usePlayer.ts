@@ -535,11 +535,46 @@ export const usePlayer = ({
   }, []);
 
   // Ensure playback rate is applied when song changes or play state changes
+  // Performance optimization: use requestAnimationFrame for smooth rate changes
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.preservesPitch = preservesPitch;
-      audioRef.current.playbackRate = speed;
+    if (!audioRef.current) return;
+    
+    const audio = audioRef.current;
+    const targetSpeed = speed;
+    const targetPreservesPitch = preservesPitch;
+    
+    // For high speed changes (>2x), apply immediately for better responsiveness
+    if (Math.abs(targetSpeed - audio.playbackRate) > 0.5 || targetSpeed > 2) {
+      audio.preservesPitch = targetPreservesPitch;
+      audio.playbackRate = targetSpeed;
+      return;
     }
+    
+    // For small changes, smooth transition
+    let animationId: number;
+    const smoothTransition = () => {
+      if (!audio) return;
+      
+      const currentRate = audio.playbackRate;
+      const diff = targetSpeed - currentRate;
+      
+      if (Math.abs(diff) < 0.001) {
+        audio.playbackRate = targetSpeed;
+        audio.preservesPitch = targetPreservesPitch;
+        return;
+      }
+      
+      // Smooth interpolation
+      audio.playbackRate = currentRate + diff * 0.15;
+      audio.preservesPitch = targetPreservesPitch;
+      animationId = requestAnimationFrame(smoothTransition);
+    };
+    
+    animationId = requestAnimationFrame(smoothTransition);
+    
+    return () => {
+      if (animationId) cancelAnimationFrame(animationId);
+    };
   }, [currentSong, playState, speed, preservesPitch]);
 
   useEffect(() => {

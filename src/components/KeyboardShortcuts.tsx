@@ -105,11 +105,40 @@ const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = ({
           return true;
         case "ArrowUp":
           e.preventDefault();
-          onVolumeChange(Math.min(volume + 0.1, 1));
+          if (e.shiftKey) {
+            // Shift + Up: Increase speed
+            onSpeedChange(Math.min(speed + 0.25, 3));
+          } else {
+            onVolumeChange(Math.min(volume + 0.1, 1));
+          }
           return true;
         case "ArrowDown":
           e.preventDefault();
-          onVolumeChange(Math.max(volume - 0.1, 0));
+          if (e.shiftKey) {
+            // Shift + Down: Decrease speed
+            onSpeedChange(Math.max(speed - 0.25, 0.5));
+          } else {
+            onVolumeChange(Math.max(volume - 0.1, 0));
+          }
+          return true;
+        case "0":
+        case "1":
+        case "2":
+        case "3":
+          // Quick speed presets: 0=1x, 1=1.5x, 2=2x, 3=3x
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            const presets = [1, 1.5, 2, 3];
+            const index = parseInt(e.key);
+            onSpeedChange(presets[index]);
+            return true;
+          }
+          return false;
+        case "r":
+        case "R":
+          // Reset speed to 1x
+          e.preventDefault();
+          onSpeedChange(1);
           return true;
         case "l":
         case "L":
@@ -211,6 +240,9 @@ return createPortal(
             <ShortcutItem keys={["←", "→"]} label="Seek ±5s" />
             <ShortcutItem keys={["Ctrl", "←/→"]} label="Prev / Next Song" />
             <ShortcutItem keys={["↑", "↓"]} label="Volume Control" />
+            <ShortcutItem keys={["Shift", "↑/↓"]} label="Speed ±0.25x" />
+            <ShortcutItem keys={["Ctrl", "0-3"]} label="Speed Preset" />
+            <ShortcutItem keys={["R"]} label="Reset Speed (1x)" />
             <ShortcutItem keys={["V"]} label="Volume Dialog" />
             <ShortcutItem keys={["S"]} label="Speed Dialog" />
             <ShortcutItem keys={["Ctrl", "K"]} label="Search" />

@@ -299,7 +299,7 @@ const Controls: React.FC<ControlsProps> = ({
         onVolumeChange(Number(newVolume.toFixed(2)));
       } else if (showSettingsPopup) {
         const step = 0.01;
-        const newSpeed = Math.min(Math.max(speed + delta * step, 0.5), 2);
+        const newSpeed = Math.min(Math.max(speed + delta * step, 0.5), 3);
         onSpeedChange(Number(newSpeed.toFixed(2)));
       }
     };
@@ -779,11 +779,40 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
   onSpeedChange,
 }) => {
   const { speedH } = useSpring({
-    speedH: ((speed - 0.5) / 1.5) * 100,
+    speedH: ((speed - 0.5) / 2.5) * 100,
     config: { tension: 210, friction: 20 },
   });
 
   const [audioEffect, setAudioEffect] = React.useState<'none' | 'reverb' | 'echo' | 'bass'>('none');
+
+  // Quick speed presets
+  const speedPresets = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
+  const [showPresets, setShowPresets] = React.useState(false);
+  
+  // Mobile touch optimization
+  const [isTouching, setIsTouching] = React.useState(false);
+  const touchStartY = React.useRef(0);
+  const touchStartSpeed = React.useRef(speed);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsTouching(true);
+    touchStartY.current = e.touches[0].clientY;
+    touchStartSpeed.current = speed;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isTouching) return;
+    
+    const deltaY = touchStartY.current - e.touches[0].clientY;
+    const speedDelta = (deltaY / 150) * 2.5; // 150px = full range (0.5-3)
+    const newSpeed = Math.min(Math.max(touchStartSpeed.current + speedDelta, 0.5), 3);
+    
+    onSpeedChange(Number(newSpeed.toFixed(2)));
+  };
+
+  const handleTouchEnd = () => {
+    setIsTouching(false);
+  };
 
   return (
     <animated.div
@@ -791,8 +820,13 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
       className="absolute bottom-full left-1/2 -translate-x-1/2 mb-8 z-50 p-4 rounded-[26px] bg-black/10 backdrop-blur-[100px] saturate-150 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/5 flex gap-4 cursor-auto"
     >
       {/* Speed Control */}
-      <div className="flex flex-col items-center gap-2 w-12">
-        <div className="h-[150px] w-full relative rounded-[20px] bg-white/20 overflow-hidden backdrop-blur-[28px]">
+      <div className="flex flex-col items-center gap-2 w-12 relative">
+        <div 
+          className="h-[150px] w-full relative rounded-[20px] bg-white/20 overflow-hidden backdrop-blur-[28px]"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <animated.div
             className="absolute bottom-0 w-full bg-white"
             style={{
@@ -802,7 +836,7 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
           <input
             type="range"
             min="0.5"
-            max="2"
+            max="3"
             step="0.01"
             value={speed}
             onChange={(e) => onSpeedChange(parseFloat(e.target.value))}
@@ -816,7 +850,34 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
             {speed.toFixed(2)}x
           </div>
         </div>
-        <span className="text-[10px] font-medium text-white/60">Speed</span>
+        <button
+          onClick={() => setShowPresets(!showPresets)}
+          className="text-[10px] font-medium text-white/60 hover:text-white/90 transition-colors"
+        >
+          Speed
+        </button>
+        
+        {/* Speed Presets Popup */}
+        {showPresets && (
+          <div className="absolute top-0 left-full ml-2 p-2 rounded-2xl bg-black/10 backdrop-blur-[100px] saturate-150 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/5 flex flex-col gap-1 max-h-[200px] overflow-y-auto">
+            {speedPresets.map((preset) => (
+              <button
+                key={preset}
+                onClick={() => {
+                  onSpeedChange(preset);
+                  setShowPresets(false);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-colors whitespace-nowrap ${
+                  Math.abs(speed - preset) < 0.01
+                    ? "bg-white text-black"
+                    : "bg-white/10 text-white hover:bg-white/20"
+                }`}
+              >
+                {preset}x
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Toggle Preserves Pitch */}
