@@ -48,6 +48,22 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
   const colorsRef = useRef<string[] | undefined>(colors);
   const [canvasInstanceKey, setCanvasInstanceKey] = useState(0);
   const previousModeRef = useRef(isMobileLayout);
+  
+  // Theme transition state
+  const themeRef = useRef(theme);
+  const themeTransitionRef = useRef({ progress: 1, startTime: 0 });
+  const previousThemeRef = useRef(theme);
+
+  useEffect(() => {
+    if (themeRef.current !== theme) {
+      previousThemeRef.current = themeRef.current;
+      themeRef.current = theme;
+      themeTransitionRef.current = {
+        progress: 0,
+        startTime: performance.now(),
+      };
+    }
+  }, [theme]);
 
   const normalizedColors = useMemo(
     () => (colors && colors.length > 0 ? colors : mobileDefaultColors),
@@ -152,7 +168,31 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     return `rgb(${r}, ${g}, ${b})`;
   }, []);
 
-  const renderGradientFrame = useCallback((ctx: CanvasRenderingContext2D) => {
+  const interpolateColor = useCallback((color1: string, color2: string, progress: number): string => {
+    const match1 = color1.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    const match2 = color2.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    
+    if (!match1 || !match2) return color2;
+    
+    const r1 = parseInt(match1[1]);
+    const g1 = parseInt(match1[2]);
+    const b1 = parseInt(match1[3]);
+    
+    const r2 = parseInt(match2[1]);
+    const g2 = parseInt(match2[2]);
+    const b2 = parseInt(match2[3]);
+    
+    // Ease out cubic for smoother transition
+    const eased = 1 - Math.pow(1 - progress, 3);
+    
+    const r = Math.round(r1 + (r2 - r1) * eased);
+    const g = Math.round(g1 + (g2 - g1) * eased);
+    const b = Math.round(b1 + (b2 - b1) * eased);
+    
+    return `rgb(${r}, ${g}, ${b})`;
+  }, []);
+
+  const renderGradientFrame = useCallback((ctx: CanvasRenderingContext2D, currentTime?: number) => {
     const width = ctx.canvas.width;
     const height = ctx.canvas.height;
     let palette =
@@ -160,18 +200,35 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
         ? colorsRef.current
         : desktopGradientDefaults;
     
-    // Invert colors for light theme
-    if (theme === 'light') {
-      palette = palette.map(invertColor);
+    // Update theme transition progress
+    if (currentTime && themeTransitionRef.current.progress < 1) {
+      const elapsed = currentTime - themeTransitionRef.current.startTime;
+      const duration = 1200; // 1.2 seconds to match CSS transition
+      themeTransitionRef.current.progress = Math.min(1, elapsed / duration);
     }
     
+    // Get colors for both themes
+    const darkPalette = palette;
+    const lightPalette = palette.map(invertColor);
+    
+    // Determine source and target palettes based on theme
+    const sourcePalette = previousThemeRef.current === 'light' ? lightPalette : darkPalette;
+    const targetPalette = themeRef.current === 'light' ? lightPalette : darkPalette;
+    
+    // Interpolate colors if transition is in progress
+    const finalPalette = themeTransitionRef.current.progress < 1
+      ? sourcePalette.map((color, index) => 
+          interpolateColor(color, targetPalette[index], themeTransitionRef.current.progress)
+        )
+      : targetPalette;
+    
     const gradient = ctx.createLinearGradient(0, 0, width, height);
-    palette.forEach((color, index) => {
-      gradient.addColorStop(index / Math.max(1, palette.length - 1), color);
+    finalPalette.forEach((color, index) => {
+      gradient.addColorStop(index / Math.max(1, finalPalette.length - 1), color);
     });
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
-  }, [theme, invertColor]);
+  }, [invertColor, interpolateColor]);
 
   useEffect(() => {
     const resize = () => {

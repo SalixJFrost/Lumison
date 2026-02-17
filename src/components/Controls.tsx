@@ -501,6 +501,7 @@ const Controls: React.FC<ControlsProps> = ({
             style={{
               width: bufferedWidthPercent + "%",
               backgroundColor: theme === 'light' ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.4)",
+              transition: 'background-color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1), height 0.2s ease-out',
             }}
           ></div>
 
@@ -510,6 +511,7 @@ const Controls: React.FC<ControlsProps> = ({
             style={{
               width: `${(displayTime / (duration || 1)) * 100}%`,
               backgroundColor: theme === 'light' ? "rgba(0,0,0,1)" : "rgba(255,255,255,1)",
+              transition: 'background-color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1), height 0.2s ease-out',
             }}
           ></div>
 
@@ -604,9 +606,12 @@ const Controls: React.FC<ControlsProps> = ({
           {/* 3. Previous */}
           <button
             onClick={onPrev}
-            className={`transition-colors active:scale-90 duration-200 ${
+            className={`active:scale-90 duration-200 ${
               theme === 'light' ? 'text-black hover:text-black/70' : 'text-white hover:text-white/70'
             }`}
+            style={{
+              transition: 'color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.2s'
+            }}
             aria-label="Previous"
           >
             <PrevIcon className="w-10 h-10" />
@@ -615,11 +620,14 @@ const Controls: React.FC<ControlsProps> = ({
           {/* 4. Play/Pause (Center) */}
           <button
             onClick={onPlayPause}
-            className={`w-16 h-16 flex items-center justify-center rounded-full hover:scale-105 active:scale-95 transition-transform duration-200 shadow-lg ${
+            className={`w-16 h-16 flex items-center justify-center rounded-full hover:scale-105 active:scale-95 shadow-lg ${
               theme === 'light' 
                 ? 'bg-black text-white shadow-black/10' 
                 : 'bg-white text-black shadow-white/10'
             }`}
+            style={{
+              transition: 'background-color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1), color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.2s'
+            }}
           >
             <div className="relative w-7 h-7">
               {/* Pause Icon */}
@@ -642,9 +650,12 @@ const Controls: React.FC<ControlsProps> = ({
           {/* 5. Next */}
           <button
             onClick={onNext}
-            className={`transition-colors active:scale-90 duration-200 ${
+            className={`active:scale-90 duration-200 ${
               theme === 'light' ? 'text-black hover:text-black/70' : 'text-white hover:text-white/70'
             }`}
+            style={{
+              transition: 'color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.2s'
+            }}
             aria-label="Next"
           >
             <NextIcon className="w-10 h-10" />
