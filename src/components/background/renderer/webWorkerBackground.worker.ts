@@ -78,7 +78,7 @@ const fragmentShaderSource = `
   }
 `;
 
-const FRAME_INTERVAL = 1000 / 30; // 降低到 30 FPS，更优雅流畅
+const FRAME_INTERVAL = 1000 / 60; // 保持 60 FPS
 
 interface WorkerCommand {
   type: "init" | "resize" | "colors" | "play" | "pause";
