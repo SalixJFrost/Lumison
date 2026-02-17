@@ -168,6 +168,99 @@ const parseJsonMetadata = (line: string) => {
   return line.trim();
 };
 
+// 专门的歌词API列表
+const DEDICATED_LYRICS_APIS = [
+  {
+    name: "LrcLib",
+    search: async (title: string, artist: string) => {
+      const url = `https://lrclib.net/api/search?track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artist)}`;
+      const response = await fetchViaProxy(url);
+      if (Array.isArray(response) && response.length > 0) {
+        const result = response[0];
+        return {
+          lrc: result.syncedLyrics || result.plainLyrics,
+          source: "LrcLib",
+        };
+      }
+      return null;
+    },
+  },
+  {
+    name: "Lyrics.ovh",
+    search: async (title: string, artist: string) => {
+      const url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
+      const response = await fetchViaProxy(url);
+      if (response && response.lyrics) {
+        // Convert plain text to LRC format with simple timestamps
+        const lines = response.lyrics.split('\n').filter((line: string) => line.trim());
+        const lrc = lines.map((line: string, index: number) => {
+          const time = index * 3; // 3 seconds per line as placeholder
+          const minutes = Math.floor(time / 60);
+          const seconds = time % 60;
+          return `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.00]${line}`;
+        }).join('\n');
+        return {
+          lrc,
+          source: "Lyrics.ovh",
+        };
+      }
+      return null;
+    },
+  },
+  {
+    name: "LRCAPI",
+    search: async (title: string, artist: string) => {
+      const url = `https://lrc.xms.mx/search?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`;
+      const response = await fetchViaProxy(url);
+      if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
+        const result = response.data[0];
+        if (result.lrc) {
+          return {
+            lrc: result.lrc,
+            source: "LRCAPI",
+          };
+        }
+      }
+      return null;
+    },
+  },
+];
+
+// 搜索专门的歌词API
+const searchDedicatedLyricsAPIs = async (
+  title: string,
+  artist: string,
+): Promise<{ lrc: string; metadata: string[]; source: string } | null> => {
+  // 并发请求所有API
+  const promises = DEDICATED_LYRICS_APIS.map(async (api) => {
+    try {
+      console.log(`Trying ${api.name}...`);
+      const result = await api.search(title, artist);
+      if (result && result.lrc) {
+        return {
+          lrc: result.lrc,
+          metadata: [],
+          source: result.source,
+        };
+      }
+    } catch (error) {
+      console.warn(`${api.name} failed:`, error);
+    }
+    return null;
+  });
+
+  const results = await Promise.allSettled(promises);
+  
+  // 返回第一个成功的结果
+  for (const result of results) {
+    if (result.status === 'fulfilled' && result.value) {
+      return result.value;
+    }
+  }
+
+  return null;
+};
+
 const extractMetadataLines = (content: string) => {
   const metadataSet = new Set<string>();
   const bodyLines: string[] = [];
@@ -284,7 +377,8 @@ export const searchAndMatchLyrics = async (
   artist: string,
 ): Promise<{ lrc: string; yrc?: string; tLrc?: string; metadata: string[] } | null> => {
   try {
-    // 优先使用多平台搜索（QQ音乐 > 酷狗音乐 > 网易云音乐）
+    // 优先使用多平台搜索（网易云音乐 > QQ音乐 > 酷狗音乐）
+    // 网易云音乐优先是因为支持逐字歌词(YRC)和翻译
     console.log("Using multi-platform lyrics search...");
     const multiPlatformResult = await multiPlatformSearch(title, artist);
     
@@ -301,20 +395,23 @@ export const searchAndMatchLyrics = async (
       };
     }
 
-    // 如果多平台搜索失败，回退到原来的网易云搜索
-    console.log("Multi-platform search failed, falling back to Netease...");
-    const songs = await searchNetEase(`${title} ${artist}`, { limit: 5 });
-
-    if (songs.length === 0) {
-      console.warn("No songs found on any platform");
-      return null;
+    // 如果多平台搜索失败，尝试专门的歌词API
+    console.log("Multi-platform search failed, trying dedicated lyrics APIs...");
+    const dedicatedResult = await searchDedicatedLyricsAPIs(title, artist);
+    
+    if (dedicatedResult) {
+      console.log(`✓ Found lyrics from dedicated API: ${dedicatedResult.source}`);
+      return {
+        lrc: dedicatedResult.lrc,
+        metadata: [
+          ...dedicatedResult.metadata,
+          `来源: ${dedicatedResult.source}`,
+        ],
+      };
     }
 
-    const songId = songs[0].id;
-    console.log(`Found Song ID on Netease: ${songId}`);
-
-    const lyricsResult = await fetchLyricsById(songId);
-    return lyricsResult;
+    console.warn("No lyrics found on any platform");
+    return null;
   } catch (error) {
     console.error("All lyrics search methods failed:", error);
     return null;
