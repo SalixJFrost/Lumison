@@ -48,15 +48,26 @@ usePlayer.ts
 usePlayer.ts
   └─> searchAndMatchLyrics(title, artist)
        └─> lyricsService.ts: searchAndMatchLyrics()
-            ├─> 1. searchNetEase(`${title} ${artist}`, { limit: 5 })
-            │    └─> fetchWithFallback(`${API}/cloudsearch?keywords=...`)
-            │         ├─> 尝试 API 1: https://163api.qijieya.cn
-            │         ├─> 尝试 API 2: https://netease-cloud-music-api-psi-ten.vercel.app
-            │         └─> 尝试 API 3: https://music-api.heheda.top
-            │
-            └─> 2. fetchLyricsById(songs[0].id)
-                 └─> (同上面的 fetchLyricsById 流程)
+            └─> multiPlatformLyrics.ts: searchAndFetchLyrics()
+                 ├─> 1. 尝试 QQ 音乐（优先）
+                 │    ├─> searchQQMusic(keyword)
+                 │    └─> fetchQQMusicLyrics(songmid)
+                 │
+                 ├─> 2. 尝试酷狗音乐
+                 │    ├─> searchKugouMusic(keyword)
+                 │    └─> fetchKugouMusicLyrics(hash)
+                 │
+                 ├─> 3. 尝试网易云音乐（备用）
+                 │    ├─> searchNeteaseMusic(keyword)
+                 │    └─> fetchNeteaseMusicLyrics(songId)
+                 │
+                 └─> 4. 如果都失败，返回 null
 ```
+
+**平台优先级**:
+1. QQ 音乐（优先）
+2. 酷狗音乐
+3. 网易云音乐（备用）
 
 ### 3. 网络请求层 (utils.ts)
 
@@ -118,3 +129,35 @@ parseLyrics(lrc, tLrc, { yrcContent })
 ## 缓存机制
 - 歌词获取成功后会保存到歌曲对象的 `lyrics` 字段
 - 下次播放同一首歌时直接使用缓存，不再请求 API
+
+
+## 多平台支持 (新增)
+
+### 支持的音乐平台
+
+#### 1. QQ 音乐（优先）
+- 搜索 API: `https://c.y.qq.com/soso/fcgi-bin/client_search_cp`
+- 歌词 API: `https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg`
+- 特点: 歌词库丰富，响应速度快
+
+#### 2. 酷狗音乐
+- 搜索 API: `https://complexsearch.kugou.com/v2/search/song`
+- 歌词 API: `https://krcs.kugou.com/search`
+- 特点: 覆盖面广，包含大量独家歌词
+
+#### 3. 网易云音乐（备用）
+- 搜索 API: `https://163api.qijieya.cn/cloudsearch`
+- 歌词 API: `https://163api.qijieya.cn/lyric/new`
+- 特点: 支持逐字歌词（YRC 格式），翻译质量高
+
+### 搜索策略
+1. 首先尝试 QQ 音乐搜索和获取歌词
+2. 如果失败，尝试酷狗音乐
+3. 如果仍然失败，尝试网易云音乐
+4. 所有平台都失败后，显示"纯音乐，请欣赏"
+
+### 歌词来源标识
+获取到的歌词会在元数据中标注来源：
+- `来源: QQ音乐`
+- `来源: 酷狗音乐`
+- `来源: 网易云音乐`

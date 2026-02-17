@@ -1,4 +1,5 @@
 import { fetchViaProxy } from "../utils";
+import { searchAndFetchLyrics as multiPlatformSearch } from "./multiPlatformLyrics";
 
 const LYRIC_API_BASE = "https://163api.qijieya.cn";
 const METING_API = "https://api.qijieya.cn/meting/";
@@ -283,20 +284,39 @@ export const searchAndMatchLyrics = async (
   artist: string,
 ): Promise<{ lrc: string; yrc?: string; tLrc?: string; metadata: string[] } | null> => {
   try {
+    // 优先使用多平台搜索（QQ音乐 > 酷狗音乐 > 网易云音乐）
+    console.log("Using multi-platform lyrics search...");
+    const multiPlatformResult = await multiPlatformSearch(title, artist);
+    
+    if (multiPlatformResult) {
+      console.log(`✓ Found lyrics from ${multiPlatformResult.source}`);
+      return {
+        lrc: multiPlatformResult.lrc,
+        yrc: multiPlatformResult.yrc,
+        tLrc: multiPlatformResult.tLrc,
+        metadata: [
+          ...multiPlatformResult.metadata,
+          `来源: ${multiPlatformResult.source === 'qq' ? 'QQ音乐' : multiPlatformResult.source === 'kugou' ? '酷狗音乐' : '网易云音乐'}`,
+        ],
+      };
+    }
+
+    // 如果多平台搜索失败，回退到原来的网易云搜索
+    console.log("Multi-platform search failed, falling back to Netease...");
     const songs = await searchNetEase(`${title} ${artist}`, { limit: 5 });
 
     if (songs.length === 0) {
-      console.warn("No songs found on Cloud");
+      console.warn("No songs found on any platform");
       return null;
     }
 
     const songId = songs[0].id;
-    console.log(`Found Song ID: ${songId}`);
+    console.log(`Found Song ID on Netease: ${songId}`);
 
     const lyricsResult = await fetchLyricsById(songId);
     return lyricsResult;
   } catch (error) {
-    console.error("Cloud lyrics match failed:", error);
+    console.error("All lyrics search methods failed:", error);
     return null;
   }
 };
