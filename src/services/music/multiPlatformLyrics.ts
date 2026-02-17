@@ -11,21 +11,69 @@ const API_ENDPOINTS = {
   qq: {
     search: "https://c.y.qq.com/soso/fcgi-bin/client_search_cp",
     lyric: "https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg",
+    cover: "https://y.qq.com/music/photo_new/T002R300x300M000", // 封面 URL 前缀
   },
   // 酷狗音乐 API
   kugou: {
     search: "https://complexsearch.kugou.com/v2/search/song",
     lyric: "https://krcs.kugou.com/search",
   },
-  // 网易云音乐 API
-  netease: {
-    search: "https://163api.qijieya.cn/cloudsearch",
-    lyric: "https://163api.qijieya.cn/lyric/new",
-  },
+  // 网易云音乐 API（多个镜像，自动选择最快的）
+  netease: [
+    "https://163api.qijieya.cn",
+    "https://netease-cloud-music-api-psi-ten.vercel.app",
+    "https://music-api.heheda.top",
+    "https://netease-api.fe-mm.com",
+  ],
   // YouTube Music (需要特殊处理)
   youtube: {
     search: "https://music.youtube.com/youtubei/v1/search",
   },
+};
+
+// 网易云 API 性能统计
+const neteaseApiStats = API_ENDPOINTS.netease.map(url => ({
+  url,
+  responseTimes: [] as number[],
+  failCount: 0,
+}));
+
+/**
+ * 获取最快的网易云 API
+ */
+const getFastestNeteaseApi = (): string => {
+  // 计算每个 API 的平均响应时间
+  const sorted = [...neteaseApiStats].sort((a, b) => {
+    const avgA = a.responseTimes.length > 0 
+      ? a.responseTimes.reduce((sum, t) => sum + t, 0) / a.responseTimes.length 
+      : Infinity;
+    const avgB = b.responseTimes.length > 0 
+      ? b.responseTimes.reduce((sum, t) => sum + t, 0) / b.responseTimes.length 
+      : Infinity;
+    
+    // 失败次数也作为参考
+    return (avgA + a.failCount * 1000) - (avgB + b.failCount * 1000);
+  });
+  
+  return sorted[0].url;
+};
+
+/**
+ * 记录网易云 API 性能
+ */
+const recordNeteaseApiPerformance = (url: string, responseTime: number, success: boolean) => {
+  const stat = neteaseApiStats.find(s => s.url === url);
+  if (!stat) return;
+  
+  if (success) {
+    stat.responseTimes.push(responseTime);
+    // 只保留最近 10 次记录
+    if (stat.responseTimes.length > 10) {
+      stat.responseTimes.shift();
+    }
+  } else {
+    stat.failCount++;
+  }
 };
 
 interface LyricsResult {
@@ -34,6 +82,8 @@ interface LyricsResult {
   tLrc?: string;
   metadata: string[];
   source: "qq" | "kugou" | "netease" | "youtube";
+  coverUrl?: string; // 新增：封面 URL
+  responseTime?: number; // 新增：响应时间（毫秒）
 }
 
 /**
@@ -51,20 +101,28 @@ const searchQQMusic = async (keyword: string): Promise<any> => {
 };
 
 /**
- * QQ 音乐获取歌词
+ * QQ 音乐获取歌词和封面
  */
-const fetchQQMusicLyrics = async (songmid: string): Promise<LyricsResult | null> => {
+const fetchQQMusicLyrics = async (songmid: string, albumMid?: string): Promise<LyricsResult | null> => {
+  const startTime = Date.now();
   try {
     const url = `${API_ENDPOINTS.qq.lyric}?songmid=${songmid}&format=json&nobase64=1`;
     const response = await fetchViaProxy(url);
     
     if (!response?.lyric) return null;
 
+    const responseTime = Date.now() - startTime;
+    
+    // 构建封面 URL
+    const coverUrl = albumMid ? `${API_ENDPOINTS.qq.cover}${albumMid}.jpg` : undefined;
+
     return {
       lrc: response.lyric,
       tLrc: response.trans || undefined,
       metadata: [],
       source: "qq",
+      coverUrl,
+      responseTime,
     };
   } catch (error) {
     console.warn("QQ Music lyrics fetch failed:", error);
@@ -87,9 +145,10 @@ const searchKugouMusic = async (keyword: string): Promise<any> => {
 };
 
 /**
- * 酷狗音乐获取歌词
+ * 酷狗音乐获取歌词和封面
  */
-const fetchKugouMusicLyrics = async (hash: string): Promise<LyricsResult | null> => {
+const fetchKugouMusicLyrics = async (hash: string, imgUrl?: string): Promise<LyricsResult | null> => {
+  const startTime = Date.now();
   try {
     const url = `${API_ENDPOINTS.kugou.lyric}?ver=1&man=yes&client=mobi&hash=${hash}`;
     const response = await fetchViaProxy(url);
@@ -97,11 +156,14 @@ const fetchKugouMusicLyrics = async (hash: string): Promise<LyricsResult | null>
     if (!response?.candidates?.[0]?.content) return null;
 
     const content = response.candidates[0].content;
+    const responseTime = Date.now() - startTime;
     
     return {
       lrc: content,
       metadata: [],
       source: "kugou",
+      coverUrl: imgUrl,
+      responseTime,
     };
   } catch (error) {
     console.warn("Kugou Music lyrics fetch failed:", error);
@@ -110,28 +172,44 @@ const fetchKugouMusicLyrics = async (hash: string): Promise<LyricsResult | null>
 };
 
 /**
- * 网易云音乐搜索（保留作为备用）
+ * 网易云音乐搜索（使用最快的 API）
  */
 const searchNeteaseMusic = async (keyword: string): Promise<any> => {
+  const apiUrl = getFastestNeteaseApi();
+  const startTime = Date.now();
+  
   try {
-    const url = `${API_ENDPOINTS.netease.search}?keywords=${encodeURIComponent(keyword)}&limit=5`;
+    const url = `${apiUrl}/cloudsearch?keywords=${encodeURIComponent(keyword)}&limit=5`;
     const response = await fetchViaProxy(url);
+    const responseTime = Date.now() - startTime;
+    
+    recordNeteaseApiPerformance(apiUrl, responseTime, true);
     return response?.result?.songs?.[0];
   } catch (error) {
+    recordNeteaseApiPerformance(apiUrl, 0, false);
     console.warn("Netease Music search failed:", error);
     return null;
   }
 };
 
 /**
- * 网易云音乐获取歌词（保留作为备用）
+ * 网易云音乐获取歌词和封面
  */
-const fetchNeteaseMusicLyrics = async (songId: string): Promise<LyricsResult | null> => {
+const fetchNeteaseMusicLyrics = async (songId: string, coverUrl?: string): Promise<LyricsResult | null> => {
+  const apiUrl = getFastestNeteaseApi();
+  const startTime = Date.now();
+  
   try {
-    const url = `${API_ENDPOINTS.netease.lyric}?id=${songId}`;
+    const url = `${apiUrl}/lyric/new?id=${songId}`;
     const response = await fetchViaProxy(url);
     
-    if (!response?.lrc?.lyric) return null;
+    if (!response?.lrc?.lyric) {
+      recordNeteaseApiPerformance(apiUrl, 0, false);
+      return null;
+    }
+
+    const responseTime = Date.now() - startTime;
+    recordNeteaseApiPerformance(apiUrl, responseTime, true);
 
     return {
       lrc: response.lrc.lyric,
@@ -139,8 +217,11 @@ const fetchNeteaseMusicLyrics = async (songId: string): Promise<LyricsResult | n
       tLrc: response.tlyric?.lyric,
       metadata: [],
       source: "netease",
+      coverUrl,
+      responseTime,
     };
   } catch (error) {
+    recordNeteaseApiPerformance(apiUrl, 0, false);
     console.warn("Netease Music lyrics fetch failed:", error);
     return null;
   }
@@ -165,9 +246,10 @@ export const searchAndFetchLyrics = async (
         console.log("Trying Netease Music...");
         const neteaseSong = await searchNeteaseMusic(keyword);
         if (neteaseSong?.id) {
-          const lyrics = await fetchNeteaseMusicLyrics(neteaseSong.id.toString());
+          const coverUrl = neteaseSong.al?.picUrl;
+          const lyrics = await fetchNeteaseMusicLyrics(neteaseSong.id.toString(), coverUrl);
           if (lyrics) {
-            console.log("✓ Found lyrics on Netease Music");
+            console.log(`✓ Found lyrics on Netease Music (${lyrics.responseTime}ms)`);
             return lyrics;
           }
         }
@@ -184,9 +266,10 @@ export const searchAndFetchLyrics = async (
         console.log("Trying QQ Music...");
         const qqSong = await searchQQMusic(keyword);
         if (qqSong?.songmid) {
-          const lyrics = await fetchQQMusicLyrics(qqSong.songmid);
+          const albumMid = qqSong?.albummid;
+          const lyrics = await fetchQQMusicLyrics(qqSong.songmid, albumMid);
           if (lyrics) {
-            console.log("✓ Found lyrics on QQ Music");
+            console.log(`✓ Found lyrics on QQ Music (${lyrics.responseTime}ms)`);
             return lyrics;
           }
         }
@@ -203,9 +286,10 @@ export const searchAndFetchLyrics = async (
         console.log("Trying Kugou Music...");
         const kugouSong = await searchKugouMusic(keyword);
         if (kugouSong?.FileHash) {
-          const lyrics = await fetchKugouMusicLyrics(kugouSong.FileHash);
+          const imgUrl = kugouSong?.ImgUrl;
+          const lyrics = await fetchKugouMusicLyrics(kugouSong.FileHash, imgUrl);
           if (lyrics) {
-            console.log("✓ Found lyrics on Kugou Music");
+            console.log(`✓ Found lyrics on Kugou Music (${lyrics.responseTime}ms)`);
             return lyrics;
           }
         }
