@@ -783,6 +783,8 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
     config: { tension: 210, friction: 20 },
   });
 
+  const [audioEffect, setAudioEffect] = React.useState<'none' | 'reverb' | 'echo' | 'bass'>('none');
+
   return (
     <animated.div
       style={style}
@@ -831,6 +833,42 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
         </button>
         <span className="text-[10px] font-medium text-white/60 text-center leading-tight">
           {preservesPitch ? "Digital" : "Vinyl"}
+        </span>
+      </div>
+
+      {/* Audio Effect */}
+      <div className="flex flex-col items-center justify-end gap-2 w-12 pb-6">
+        <button
+          onClick={() => {
+            const effects: Array<'none' | 'reverb' | 'echo' | 'bass'> = ['none', 'reverb', 'echo', 'bass'];
+            const currentIndex = effects.indexOf(audioEffect);
+            const nextIndex = (currentIndex + 1) % effects.length;
+            setAudioEffect(effects[nextIndex]);
+            // TODO: 实现音效切换逻辑
+            console.log('Audio effect changed to:', effects[nextIndex]);
+          }}
+          className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors duration-200 ${
+            audioEffect === 'none' ? "bg-white text-black" : "bg-white/20 text-white"
+          }`}
+          title={
+            audioEffect === 'none' ? 'No Effect' :
+            audioEffect === 'reverb' ? 'Reverb Effect' :
+            audioEffect === 'echo' ? 'Echo Effect' :
+            'Bass Boost'
+          }
+        >
+          <span className="text-xs font-bold">
+            {audioEffect === 'none' ? 'Off' :
+             audioEffect === 'reverb' ? 'Rev' :
+             audioEffect === 'echo' ? 'Ech' :
+             'Bas'}
+          </span>
+        </button>
+        <span className="text-[10px] font-medium text-white/60 text-center leading-tight">
+          {audioEffect === 'none' ? 'None' :
+           audioEffect === 'reverb' ? 'Reverb' :
+           audioEffect === 'echo' ? 'Echo' :
+           'Bass'}
         </span>
       </div>
     </animated.div>
