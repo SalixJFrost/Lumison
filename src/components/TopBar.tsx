@@ -157,14 +157,36 @@ const TopBar: React.FC<TopBarProps> = ({
 
             {/* Settings Popup */}
             {isSettingsOpen && (
-              <div className="absolute top-full right-0 mt-3 w-64 rounded-2xl bg-black/40 backdrop-blur-2xl saturate-150 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden z-50">
-                <div className="p-4">
-                  <h3 className="text-white font-semibold mb-4 text-sm">Settings</h3>
+              <div className="absolute top-full right-0 mt-3 w-72 rounded-2xl bg-black/40 backdrop-blur-2xl saturate-150 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden z-50">
+                <div className="p-4 space-y-6">
+                  <h3 className="text-white font-semibold mb-4 text-sm">设置</h3>
+                  
+                  {/* Language Selection */}
+                  <div className="space-y-2">
+                    <label className="text-white/70 text-xs block">语言 / Language</label>
+                    <select
+                      className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/10 text-white text-sm appearance-none cursor-pointer hover:bg-white/15 transition-colors focus:outline-none focus:ring-2 focus:ring-white/20"
+                      defaultValue="zh-CN"
+                      onChange={(e) => {
+                        // TODO: 实现语言切换逻辑
+                        console.log('Language changed to:', e.target.value);
+                      }}
+                    >
+                      <option value="zh-CN" className="bg-gray-900">简体中文</option>
+                      <option value="zh-TW" className="bg-gray-900">繁體中文</option>
+                      <option value="en" className="bg-gray-900">English</option>
+                      <option value="ja" className="bg-gray-900">日本語</option>
+                      <option value="ko" className="bg-gray-900">한국어</option>
+                    </select>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="border-t border-white/10"></div>
                   
                   {/* Lyrics Font Size */}
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <label className="text-white/70 text-xs">Lyrics Size</label>
+                      <label className="text-white/70 text-xs">歌词大小</label>
                       <span className="text-white/90 text-xs font-mono">{lyricsFontSize}px</span>
                     </div>
                     <input
@@ -177,9 +199,34 @@ const TopBar: React.FC<TopBarProps> = ({
                       className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
                     />
                     <div className="flex justify-between text-[10px] text-white/40">
-                      <span>Small</span>
-                      <span>Large</span>
+                      <span>小</span>
+                      <span>大</span>
                     </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="border-t border-white/10"></div>
+
+                  {/* Lyrics Effect */}
+                  <div className="space-y-2">
+                    <label className="text-white/70 text-xs block">歌词效果</label>
+                    <select
+                      className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/10 text-white text-sm appearance-none cursor-pointer hover:bg-white/15 transition-colors focus:outline-none focus:ring-2 focus:ring-white/20"
+                      defaultValue="default"
+                      onChange={(e) => {
+                        // TODO: 实现歌词效果切换逻辑
+                        console.log('Lyrics effect changed to:', e.target.value);
+                      }}
+                    >
+                      <option value="default" className="bg-gray-900">默认效果</option>
+                      <option value="karaoke" className="bg-gray-900">卡拉OK</option>
+                      <option value="fade" className="bg-gray-900">渐变淡入</option>
+                      <option value="bounce" className="bg-gray-900">弹跳动画</option>
+                      <option value="glow" className="bg-gray-900">发光效果</option>
+                    </select>
+                    <p className="text-[10px] text-white/40 mt-1">
+                      选择歌词显示动画效果
+                    </p>
                   </div>
                 </div>
               </div>
