@@ -9,7 +9,6 @@ A high-fidelity, immersive music player inspired by Apple Music.
 <img width="2559" height="1599" alt="image" src="https://github.com/user-attachments/assets/2ea66a19-2833-46a2-9986-b695b392b822" />
 <img width="2559" height="1599" alt="image" src="https://github.com/user-attachments/assets/aa50a8eb-5476-4f62-bebf-1b7d782aa548" />
 <img width="2559" height="1599" alt="image" src="https://github.com/user-attachments/assets/71d0b2d3-70af-4c38-bf41-b244718042d1" />
-<img width="2559" height="1599" alt="image" src="https://github.com/user-attachments/assets/71d0b2d3-70af-4c38-bf41-b244718042d1" />
 
 
 
