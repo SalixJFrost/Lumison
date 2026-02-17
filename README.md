@@ -4,6 +4,7 @@ A high-fidelity, immersive music player inspired by Apple Music.
 
 🎵 Live Demo: https://salixjfrost.github.io/Lumison/
 
+
 <img width="2559" height="1599" alt="image" src="https://github.com/user-attachments/assets/1eccc917-7620-478a-b46b-942d1498e92e" />
 
 
