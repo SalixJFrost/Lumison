@@ -6,6 +6,32 @@ const NETEASE_SEARCH_API = "https://163api.qijieya.cn/cloudsearch";
 const NETEASE_API_BASE = "http://music.163.com/api";
 const NETEASECLOUD_API_BASE = "https://163api.qijieya.cn";
 
+// Backup API endpoints
+const BACKUP_APIS = [
+  "https://163api.qijieya.cn",
+  "https://netease-cloud-music-api-psi-ten.vercel.app",
+  "https://music-api.heheda.top",
+];
+
+// Fetch with fallback to backup APIs
+const fetchWithFallback = async (endpoint: string): Promise<any> => {
+  const apis = [NETEASECLOUD_API_BASE, ...BACKUP_APIS.filter(api => api !== NETEASECLOUD_API_BASE)];
+  
+  for (const baseUrl of apis) {
+    try {
+      const url = endpoint.replace(NETEASECLOUD_API_BASE, baseUrl);
+      console.log(`Trying API: ${url}`);
+      const result = await fetchViaProxy(url);
+      return result;
+    } catch (error) {
+      console.warn(`API ${baseUrl} failed:`, error);
+      continue;
+    }
+  }
+  
+  throw new Error("All API endpoints failed");
+};
+
 const METADATA_KEYWORDS = [
   "歌词贡献者",
   "翻译贡献者",
@@ -177,12 +203,13 @@ export const searchNetEase = async (
   )}&limit=${limit}&offset=${offset}`;
 
   try {
-    const parsedSearchApiResponse = (await fetchViaProxy(
+    const parsedSearchApiResponse = (await fetchWithFallback(
       searchApiUrl,
     )) as NeteaseSearchResponse;
     const songs = parsedSearchApiResponse.result?.songs ?? [];
 
     if (songs.length === 0) {
+      console.warn(`No search results for: ${keyword}`);
       return [];
     }
 
@@ -206,7 +233,7 @@ export const fetchNeteasePlaylist = async (
 
     while (shouldContinue) {
       const url = `${NETEASECLOUD_API_BASE}/playlist/track/all?id=${playlistId}&limit=${limit}&offset=${offset}`;
-      const data = (await fetchViaProxy(url)) as NeteasePlaylistResponse;
+      const data = (await fetchWithFallback(url)) as NeteasePlaylistResponse;
       const songs = data.songs ?? [];
       if (songs.length === 0) {
         break;
@@ -236,7 +263,7 @@ export const fetchNeteaseSong = async (
 ): Promise<NeteaseTrackInfo | null> => {
   try {
     const url = `${NETEASECLOUD_API_BASE}/song/detail?ids=${songId}`;
-    const data = (await fetchViaProxy(
+    const data = (await fetchWithFallback(
       url,
     )) as NeteaseSongDetailResponse;
     const track = data.songs?.[0];
@@ -280,13 +307,16 @@ export const fetchLyricsById = async (
   try {
     // 使用網易雲音樂 API 獲取歌詞
     const lyricUrl = `${NETEASECLOUD_API_BASE}/lyric/new?id=${songId}`;
-    const lyricData = await fetchViaProxy(lyricUrl);
+    const lyricData = await fetchWithFallback(lyricUrl);
 
     const rawYrc = lyricData.yrc?.lyric;
     const rawLrc = lyricData.lrc?.lyric;
     const tLrc = lyricData.tlyric?.lyric;
 
-    if (!rawYrc && !rawLrc) return null;
+    if (!rawYrc && !rawLrc) {
+      console.warn(`No lyrics found for song ${songId}`);
+      return null;
+    }
 
     const {
       clean: cleanLrc,
@@ -334,7 +364,7 @@ export const fetchLyricsById = async (
       metadata: Array.from(metadataSet),
     };
   } catch (e) {
-    console.error("Lyric fetch error", e);
+    console.error("Lyric fetch error for song", songId, e);
     return null;
   }
 };

@@ -29,7 +29,13 @@ export const fetchViaProxy = async (targetUrl: string): Promise<any> => {
 
   // 1. Try direct request first
   try {
-    const response = await fetch(targetUrl);
+    const response = await fetch(targetUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      mode: 'cors',
+    });
     if (!response.ok) {
       throw new Error(
         `Direct fetch failed with status: ${response.status} ${targetUrl}`,
@@ -44,22 +50,36 @@ export const fetchViaProxy = async (targetUrl: string): Promise<any> => {
       directError,
     );
 
-    try {
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-      const response = await fetch(proxyUrl);
-      if (!response.ok) {
-        throw new Error(`Proxy fetch failed with status: ${response.status}`);
+    // Try multiple proxy services
+    const proxies = [
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+      `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+    ];
+
+    for (const proxyUrl of proxies) {
+      try {
+        const response = await fetch(proxyUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`Proxy fetch failed with status: ${response.status}`);
+        }
+        text = await response.text();
+        return JSON.parse(text);
+      } catch (proxyError) {
+        console.warn(`Proxy ${proxyUrl} failed:`, proxyError);
+        continue;
       }
-      text = await response.text();
-      return JSON.parse(text);
-    } catch (proxyError) {
-      console.error(
-        "Both direct and proxy requests failed:",
-        proxyError,
-        targetUrl,
-      );
-      throw proxyError;
     }
+
+    console.error(
+      "All proxy requests failed for:",
+      targetUrl,
+    );
+    throw new Error("All proxy requests failed");
   }
 };
 
