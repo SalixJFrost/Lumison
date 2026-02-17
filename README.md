@@ -4,6 +4,8 @@ A high-fidelity, immersive music player inspired by Apple Music.
 
 🎵 Live Demo: https://salixjfrost.github.io/Lumison/
 
+
+
 ## Features
 
 - **WebGL Fluid Background**: Dynamic fluid background effect using WebGL shaders. [Reference](https://www.shadertoy.com/view/wdyczG)
