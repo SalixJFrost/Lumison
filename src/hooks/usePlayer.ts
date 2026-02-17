@@ -370,7 +370,17 @@ export const usePlayer = ({
             });
             markMatchSuccess();
           } else {
-            markMatchFailed();
+            // 网易云歌曲失败，尝试使用本地歌词
+            if (currentSong.localLyrics && currentSong.localLyrics.length > 0) {
+              console.log("Using local lyrics as fallback");
+              updateSongInQueue(songId, {
+                lyrics: currentSong.localLyrics,
+                needsLyricsMatch: false,
+              });
+              markMatchSuccess();
+            } else {
+              markMatchFailed();
+            }
           }
         } else {
           const result = await withTimeout(
@@ -385,12 +395,32 @@ export const usePlayer = ({
             });
             markMatchSuccess();
           } else {
-            markMatchFailed();
+            // 在线搜索失败，尝试使用本地歌词
+            if (currentSong.localLyrics && currentSong.localLyrics.length > 0) {
+              console.log("Online search failed, using local lyrics as fallback");
+              updateSongInQueue(songId, {
+                lyrics: currentSong.localLyrics,
+                needsLyricsMatch: false,
+              });
+              markMatchSuccess();
+            } else {
+              markMatchFailed();
+            }
           }
         }
       } catch (error) {
         console.warn("Lyrics matching failed:", error);
-        markMatchFailed();
+        // 出错时也尝试使用本地歌词
+        if (currentSong.localLyrics && currentSong.localLyrics.length > 0) {
+          console.log("Error occurred, using local lyrics as fallback");
+          updateSongInQueue(songId, {
+            lyrics: currentSong.localLyrics,
+            needsLyricsMatch: false,
+          });
+          markMatchSuccess();
+        } else {
+          markMatchFailed();
+        }
       }
     };
 

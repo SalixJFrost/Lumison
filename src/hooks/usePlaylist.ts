@@ -141,7 +141,8 @@ export const usePlaylist = () => {
         let artist = "Unknown Artist";
         let coverUrl: string | undefined;
         let colors: string[] | undefined;
-        let lyrics: { time: number; text: string }[] = [];
+        let localLyrics: { time: number; text: string }[] = [];
+        let embeddedLyrics: { time: number; text: string }[] = [];
 
         const nameParts = title.split("-");
         if (nameParts.length > 1) {
@@ -158,54 +159,53 @@ export const usePlaylist = () => {
             colors = await extractColors(coverUrl);
           }
 
-          // Check for embedded lyrics first (highest priority)
+          // 保存嵌入歌词作为备用，但不立即使用
           if (metadata.lyrics && metadata.lyrics.trim().length > 0) {
             try {
-              lyrics = parseLyrics(metadata.lyrics);
+              embeddedLyrics = parseLyrics(metadata.lyrics);
+              console.log("Found embedded lyrics (will be used as fallback)");
             } catch (err) {
               console.warn("Failed to parse embedded lyrics", err);
             }
           }
 
-          // If no embedded lyrics, try to match lyrics by fuzzy matching
-          if (lyrics.length === 0) {
-            // Normalize song title for matching
-            const songTitle = title.toLowerCase().trim();
+          // 保存本地.lrc文件作为备用，但不立即使用
+          const songTitle = title.toLowerCase().trim();
 
-            // Try exact match first
-            let matchedLyricsFile = lyricsMap.get(songTitle);
+          // Try exact match first
+          let matchedLyricsFile = lyricsMap.get(songTitle);
 
-            // If no exact match, try fuzzy matching
-            if (!matchedLyricsFile && lyricsMap.size > 0) {
-              let bestMatch: { file: File; score: number } | null = null;
-              const minSimilarity = 0.75; // Require 75% similarity (allows 1-2 errors for typical song titles)
+          // If no exact match, try fuzzy matching
+          if (!matchedLyricsFile && lyricsMap.size > 0) {
+            let bestMatch: { file: File; score: number } | null = null;
+            const minSimilarity = 0.75;
 
-              for (const [lyricsTitle, lyricsFile] of lyricsMap.entries()) {
-                const similarity = calculateSimilarity(songTitle, lyricsTitle);
+            for (const [lyricsTitle, lyricsFile] of lyricsMap.entries()) {
+              const similarity = calculateSimilarity(songTitle, lyricsTitle);
 
-                if (similarity >= minSimilarity) {
-                  if (!bestMatch || similarity > bestMatch.score) {
-                    bestMatch = { file: lyricsFile, score: similarity };
-                  }
+              if (similarity >= minSimilarity) {
+                if (!bestMatch || similarity > bestMatch.score) {
+                  bestMatch = { file: lyricsFile, score: similarity };
                 }
-              }
-
-              if (bestMatch) {
-                matchedLyricsFile = bestMatch.file;
               }
             }
 
-            // Load matched lyrics file
-            if (matchedLyricsFile) {
-              const reader = new FileReader();
-              const lrcText = await new Promise<string>((resolve) => {
-                reader.onload = (e) =>
-                  resolve((e.target?.result as string) || "");
-                reader.readAsText(matchedLyricsFile!);
-              });
-              if (lrcText) {
-                lyrics = parseLyrics(lrcText);
-              }
+            if (bestMatch) {
+              matchedLyricsFile = bestMatch.file;
+            }
+          }
+
+          // Load matched lyrics file as fallback
+          if (matchedLyricsFile) {
+            const reader = new FileReader();
+            const lrcText = await new Promise<string>((resolve) => {
+              reader.onload = (e) =>
+                resolve((e.target?.result as string) || "");
+              reader.readAsText(matchedLyricsFile!);
+            });
+            if (lrcText) {
+              localLyrics = parseLyrics(lrcText);
+              console.log("Found local .lrc file (will be used as fallback)");
             }
           }
         } catch (err) {
@@ -218,9 +218,11 @@ export const usePlaylist = () => {
           artist,
           fileUrl: url,
           coverUrl,
-          lyrics,
+          lyrics: [], // 不使用本地歌词，留空让在线API获取
           colors: colors && colors.length > 0 ? colors : undefined,
-          needsLyricsMatch: lyrics.length === 0, // Flag for cloud matching
+          needsLyricsMatch: true, // 总是标记为需要在线匹配
+          // 保存本地歌词作为备用（添加到元数据中）
+          localLyrics: localLyrics.length > 0 ? localLyrics : embeddedLyrics.length > 0 ? embeddedLyrics : undefined,
         });
       }
 

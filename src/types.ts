@@ -23,6 +23,7 @@ export interface Song {
   lyrics?: LyricLine[];
   colors?: string[]; // Array of dominant colors
   needsLyricsMatch?: boolean; // Flag indicating song needs cloud lyrics matching
+  localLyrics?: LyricLine[]; // Local lyrics as fallback (embedded or .lrc file)
   // Netease specific fields
   isNetease?: boolean;
   neteaseId?: string;
