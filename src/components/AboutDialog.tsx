@@ -41,21 +41,16 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ isOpen, onClose }) => {
 
                 {/* Content */}
                 <div className="relative p-8 flex flex-col items-center text-center z-10">
-                    {/* Title & Version */}
-                    <h3 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/60 tracking-tight mb-1">
+                    {/* Title */}
+                    <h3 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/60 tracking-tight mb-6">
                         Lumison
                     </h3>
-                    <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-white/5 border border-white/5 text-[11px] font-medium text-white/40 tracking-wide uppercase mb-6">
-                        v1.4.0 • Web
-                    </div>
 
                     {/* Description */}
                     <p className="text-white/70 text-[15px] leading-relaxed mb-8 font-medium">
-                        An experimental, pure web music player crafted with
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 font-bold mx-1">
-                            Vibe Coding
-                        </span>
-                        technology.
+                        A high-fidelity, immersive music player
+                        <br />
+                        inspired by Apple Music.
                     </p>
 
                     {/* Tech Stack Grid */}
