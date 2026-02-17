@@ -552,7 +552,7 @@ const Controls: React.FC<ControlsProps> = ({
         </div>
 
         <span className="w-12 font-mono tracking-wide">
-          -{formatTime(Math.max(0, duration - displayTime))}
+          {duration > 0 ? `-${formatTime(Math.max(0, duration - displayTime))}` : '0:00'}
         </span>
       </div>
 
