@@ -145,10 +145,24 @@ parseLyrics(lrc, tLrc, { yrcContent })
 - 歌词 API: `https://krcs.kugou.com/search`
 - 特点: 覆盖面广，包含大量独家歌词
 
-#### 3. 网易云音乐（备用）
-- 搜索 API: `https://163api.qijieya.cn/cloudsearch`
-- 歌词 API: `https://163api.qijieya.cn/lyric/new`
-- 特点: 支持逐字歌词（YRC 格式），翻译质量高
+#### 3. 网易云音乐（10+ 镜像，自动选择最快）
+**官方社区 API 镜像（优先）：**
+- `https://163api.qijieya.cn`
+- `https://netease-cloud-music-api-psi-ten.vercel.app`
+- `https://music-api.heheda.top`
+- `https://netease-api.fe-mm.com`
+
+**第三方聚合 API（备用）：**
+- `https://api.no0a.cn/api/cloudmusic`
+- `https://api.injahow.cn/netease`
+- `https://api.uomg.com/api/rand.music`
+
+**更多社区镜像：**
+- `https://netease-music-api.vercel.app`
+- `https://music.ghxi.com`
+- `https://api.mlwei.com/music`
+
+特点: 支持逐字歌词（YRC 格式），翻译质量高，多镜像保证高可用性
 
 ### 搜索策略
 采用并发请求策略，同时向所有平台发起请求：
@@ -157,10 +171,17 @@ parseLyrics(lrc, tLrc, { yrcContent })
 3. 如果网易云失败，使用最快返回的其他平台结果
 4. 所有平台都失败后，显示"纯音乐，请欣赏"
 
+**网易云 API 智能选择：**
+- 10+ 个镜像自动测速
+- 记录每个 API 的响应时间和失败次数
+- 自动选择最快且最稳定的 API
+- 失败的 API 自动降低优先级
+
 这种策略可以：
 - 最大化获取歌词的成功率
 - 减少等待时间（并发请求）
 - 优先使用网易云音乐（支持逐字歌词）
+- 自动适应网络环境变化
 
 ### 歌词来源标识
 获取到的歌词会在元数据中标注来源：

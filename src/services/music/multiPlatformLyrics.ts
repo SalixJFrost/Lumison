@@ -20,10 +20,21 @@ const API_ENDPOINTS = {
   },
   // 网易云音乐 API（多个镜像，自动选择最快的）
   netease: [
+    // 官方社区 API 镜像（优先）
     "https://163api.qijieya.cn",
     "https://netease-cloud-music-api-psi-ten.vercel.app",
     "https://music-api.heheda.top",
     "https://netease-api.fe-mm.com",
+    
+    // 第三方聚合 API（备用）
+    "https://api.no0a.cn/api/cloudmusic",
+    "https://api.injahow.cn/netease",
+    "https://api.uomg.com/api/rand.music",
+    
+    // 更多社区部署的镜像
+    "https://netease-music-api.vercel.app",
+    "https://music.ghxi.com",
+    "https://api.mlwei.com/music",
   ],
   // YouTube Music (需要特殊处理)
   youtube: {
@@ -344,4 +355,61 @@ export const fetchLyricsByPlatform = async (
     default:
       return null;
   }
+};
+
+/**
+ * 测试所有网易云 API 的可用性和速度
+ * 用于初始化或定期检查 API 健康状态
+ */
+export const testNeteaseApis = async (): Promise<void> => {
+  console.log("Testing Netease API mirrors...");
+  
+  const testPromises = API_ENDPOINTS.netease.map(async (apiUrl) => {
+    const startTime = Date.now();
+    try {
+      // 使用一个简单的搜索请求测试
+      const url = `${apiUrl}/cloudsearch?keywords=test&limit=1`;
+      await fetchViaProxy(url);
+      const responseTime = Date.now() - startTime;
+      
+      recordNeteaseApiPerformance(apiUrl, responseTime, true);
+      console.log(`✓ ${apiUrl}: ${responseTime}ms`);
+      return { url: apiUrl, success: true, time: responseTime };
+    } catch (error) {
+      recordNeteaseApiPerformance(apiUrl, 0, false);
+      console.warn(`✗ ${apiUrl}: failed`);
+      return { url: apiUrl, success: false, time: Infinity };
+    }
+  });
+  
+  await Promise.allSettled(testPromises);
+  console.log(`Fastest API: ${getFastestNeteaseApi()}`);
+};
+
+/**
+ * 获取 API 性能统计信息
+ */
+export const getApiStats = () => {
+  return {
+    netease: neteaseApiStats.map(stat => ({
+      url: stat.url,
+      avgResponseTime: stat.responseTimes.length > 0
+        ? Math.round(stat.responseTimes.reduce((a, b) => a + b, 0) / stat.responseTimes.length)
+        : null,
+      failCount: stat.failCount,
+      requestCount: stat.responseTimes.length,
+    })),
+    fastestApi: getFastestNeteaseApi(),
+  };
+};
+
+/**
+ * 重置 API 统计数据
+ */
+export const resetApiStats = () => {
+  neteaseApiStats.forEach(stat => {
+    stat.responseTimes = [];
+    stat.failCount = 0;
+  });
+  console.log("API stats reset");
 };
