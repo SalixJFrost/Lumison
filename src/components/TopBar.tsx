@@ -2,7 +2,9 @@ import React, { useRef, useState } from "react";
 import { SearchIcon, CloudDownloadIcon, InfoIcon, FullscreenIcon, SettingsIcon, LinkIcon, ThemeIcon } from "./Icons";
 import AboutDialog from "./AboutDialog";
 import ImportMusicDialog from "./ImportMusicDialog";
+import LanguageSwitcher from "./LanguageSwitcher";
 import { useTheme } from "../contexts/ThemeContext";
+import { useI18n } from "../contexts/I18nContext";
 
 interface TopBarProps {
   onFilesSelected: (files: FileList) => void;
@@ -22,6 +24,7 @@ const TopBar: React.FC<TopBarProps> = ({
   onImportUrl,
 }) => {
   const { theme, toggleTheme } = useTheme();
+  const { t } = useI18n();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -143,6 +146,9 @@ const TopBar: React.FC<TopBarProps> = ({
         <div
           className={`flex gap-3 ${baseTransitionClasses} delay-75 ${mobileActiveClasses} ${hoverSupportClasses}`}
         >
+          {/* Language Switcher */}
+          <LanguageSwitcher />
+
           {/* Settings Button */}
           <div className="relative" ref={settingsContainerRef}>
             <button
@@ -150,7 +156,7 @@ const TopBar: React.FC<TopBarProps> = ({
               className={`w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center transition-all shadow-sm ${
                 isSettingsOpen ? "text-white bg-white/20" : "text-white/80 hover:bg-white/20 hover:text-white"
               }`}
-              title="Settings"
+              title={t("topBar.settings")}
             >
               <SettingsIcon className="w-5 h-5" />
             </button>
@@ -159,34 +165,12 @@ const TopBar: React.FC<TopBarProps> = ({
             {isSettingsOpen && (
               <div className="absolute top-full right-0 mt-3 w-72 rounded-2xl bg-black/40 backdrop-blur-2xl saturate-150 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden z-50">
                 <div className="p-4 space-y-6">
-                  <h3 className="text-white font-semibold mb-4 text-sm">设置</h3>
-                  
-                  {/* Language Selection */}
-                  <div className="space-y-2">
-                    <label className="text-white/70 text-xs block">语言 / Language</label>
-                    <select
-                      className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/10 text-white text-sm appearance-none cursor-pointer hover:bg-white/15 transition-colors focus:outline-none focus:ring-2 focus:ring-white/20"
-                      defaultValue="zh-CN"
-                      onChange={(e) => {
-                        // TODO: 实现语言切换逻辑
-                        console.log('Language changed to:', e.target.value);
-                      }}
-                    >
-                      <option value="zh-CN" className="bg-gray-900">简体中文</option>
-                      <option value="zh-TW" className="bg-gray-900">繁體中文</option>
-                      <option value="en" className="bg-gray-900">English</option>
-                      <option value="ja" className="bg-gray-900">日本語</option>
-                      <option value="ko" className="bg-gray-900">한국어</option>
-                    </select>
-                  </div>
-
-                  {/* Divider */}
-                  <div className="border-t border-white/10"></div>
+                  <h3 className="text-white font-semibold mb-4 text-sm">{t("topBar.settings")}</h3>
                   
                   {/* Lyrics Font Size */}
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <label className="text-white/70 text-xs">歌词大小</label>
+                      <label className="text-white/70 text-xs">{t("lyrics.fontSize")}</label>
                       <span className="text-white/90 text-xs font-mono">{lyricsFontSize}px</span>
                     </div>
                     <input
@@ -198,35 +182,6 @@ const TopBar: React.FC<TopBarProps> = ({
                       onChange={(e) => onLyricsFontSizeChange(Number(e.target.value))}
                       className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
                     />
-                    <div className="flex justify-between text-[10px] text-white/40">
-                      <span>小</span>
-                      <span>大</span>
-                    </div>
-                  </div>
-
-                  {/* Divider */}
-                  <div className="border-t border-white/10"></div>
-
-                  {/* Lyrics Effect */}
-                  <div className="space-y-2">
-                    <label className="text-white/70 text-xs block">歌词效果</label>
-                    <select
-                      className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/10 text-white text-sm appearance-none cursor-pointer hover:bg-white/15 transition-colors focus:outline-none focus:ring-2 focus:ring-white/20"
-                      defaultValue="default"
-                      onChange={(e) => {
-                        // TODO: 实现歌词效果切换逻辑
-                        console.log('Lyrics effect changed to:', e.target.value);
-                      }}
-                    >
-                      <option value="default" className="bg-gray-900">默认效果</option>
-                      <option value="karaoke" className="bg-gray-900">卡拉OK</option>
-                      <option value="fade" className="bg-gray-900">渐变淡入</option>
-                      <option value="bounce" className="bg-gray-900">弹跳动画</option>
-                      <option value="glow" className="bg-gray-900">发光效果</option>
-                    </select>
-                    <p className="text-[10px] text-white/40 mt-1">
-                      选择歌词显示动画效果
-                    </p>
                   </div>
                 </div>
               </div>
@@ -237,7 +192,7 @@ const TopBar: React.FC<TopBarProps> = ({
           <button
             onClick={() => setIsImportDialogOpen(true)}
             className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all shadow-sm"
-            title="Import from URL"
+            title={t("topBar.import")}
           >
             <LinkIcon className="w-5 h-5" />
           </button>
@@ -246,7 +201,7 @@ const TopBar: React.FC<TopBarProps> = ({
           <button
             onClick={toggleTheme}
             className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all shadow-sm"
-            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            title={theme === 'dark' ? t("theme.light") : t("theme.dark")}
           >
             <ThemeIcon className="w-5 h-5" />
           </button>
@@ -255,7 +210,7 @@ const TopBar: React.FC<TopBarProps> = ({
           <button
             onClick={onSearchClick}
             className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all shadow-sm"
-            title="Search (Cmd+K)"
+            title={`${t("topBar.search")} (Cmd+K)`}
           >
             <SearchIcon className="w-5 h-5" />
           </button>
@@ -265,7 +220,7 @@ const TopBar: React.FC<TopBarProps> = ({
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled}
             className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Import Local Files"
+            title={t("topBar.import")}
           >
             <CloudDownloadIcon className="w-5 h-5" />
           </button>

@@ -44,15 +44,45 @@
                 --border-color: rgba(0, 0, 0, 0.1);
             }
 
+            /* Hardware Acceleration & Performance Optimization */
+            * {
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+
             body {
                 font-family: "PingFang SC", "Inter", sans-serif;
                 background-color: #000;
-                overflow: hidden; /* Prevent scroll on body, handle in app */
+                overflow: hidden;
+                /* Enable hardware acceleration for body */
+                transform: translateZ(0);
+                -webkit-transform: translateZ(0);
+                backface-visibility: hidden;
+                -webkit-backface-visibility: hidden;
+                perspective: 1000px;
+                -webkit-perspective: 1000px;
+            }
+
+            /* Hardware Acceleration for Animated Elements */
+            .hw-accelerate {
+                transform: translateZ(0);
+                -webkit-transform: translateZ(0);
+                backface-visibility: hidden;
+                -webkit-backface-visibility: hidden;
+                will-change: transform, opacity;
+            }
+
+            /* Smooth Transitions */
+            .smooth-transition {
+                transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
             }
 
             .theme-transition {
                 transition: background-color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1),
                             color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+                /* Hardware acceleration for theme transitions */
+                transform: translateZ(0);
+                -webkit-transform: translateZ(0);
             }
 
             .theme-text-primary {
@@ -75,6 +105,10 @@
                 transition: background-color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1);
             }
 
+            .theme-bg-overlay-hover {
+                background-color: var(--bg-overlay-hover);
+            }
+
             .theme-border {
                 border-color: var(--border-color);
                 transition: border-color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -89,54 +123,128 @@
                 scrollbar-width: none;
             }
 
-            /* Fluid Animation Keyframes */
-            @keyframes blob {
-                0% {
-                    transform: translate(0px, 0px) scale(1);
-                }
-                25% {
-                    transform: translate(15vw, -10vh) scale(1.1);
-                }
-                50% {
-                    transform: translate(-10vw, 15vh) scale(0.9);
-                }
-                75% {
-                    transform: translate(5vw, -5vh) scale(1.05);
-                }
-                100% {
-                    transform: translate(0px, 0px) scale(1);
-                }
+            /* Optimized Scrollbar */
+            ::-webkit-scrollbar {
+                width: 8px;
+                height: 8px;
             }
-            @keyframes spin-slow {
-                from {
-                    transform: rotate(0deg);
-                }
-                to {
-                    transform: rotate(360deg);
-                }
+            ::-webkit-scrollbar-track {
+                background: transparent;
             }
-            .animate-blob {
-                animation: blob 15s infinite cubic-bezier(0.4, 0, 0.2, 1);
+            ::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 4px;
+                transition: background 0.2s;
             }
-            .animate-spin-slow {
-                animation: spin-slow 30s linear infinite;
+            ::-webkit-scrollbar-thumb:hover {
+                background: rgba(255, 255, 255, 0.3);
+            }
+            [data-theme="light"] ::-webkit-scrollbar-thumb {
+                background: rgba(0, 0, 0, 0.2);
+            }
+            [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+                background: rgba(0, 0, 0, 0.3);
             }
 
-            /* Floating Animation for Lyrics */
-            @keyframes floatWord {
-                0%,
-                100% {
-                    transform: translateY(0);
+            /* Fluid Animation Keyframes with Hardware Acceleration */
+            @keyframes blob {
+                0% {
+                    transform: translate3d(0, 0, 0) scale(1);
+                }
+                25% {
+                    transform: translate3d(15vw, -10vh, 0) scale(1.1);
                 }
                 50% {
-                    transform: translateY(-4px);
+                    transform: translate3d(-10vw, 15vh, 0) scale(0.9);
+                }
+                75% {
+                    transform: translate3d(5vw, -5vh, 0) scale(1.05);
+                }
+                100% {
+                    transform: translate3d(0, 0, 0) scale(1);
                 }
             }
+            
+            @keyframes spin-slow {
+                from {
+                    transform: rotate3d(0, 0, 1, 0deg);
+                }
+                to {
+                    transform: rotate3d(0, 0, 1, 360deg);
+                }
+            }
+            
+            .animate-blob {
+                animation: blob 15s infinite cubic-bezier(0.4, 0, 0.2, 1);
+                will-change: transform;
+                transform: translateZ(0);
+            }
+            
+            .animate-spin-slow {
+                animation: spin-slow 30s linear infinite;
+                will-change: transform;
+                transform: translateZ(0);
+            }
+
+            /* Floating Animation for Lyrics with Hardware Acceleration */
+            @keyframes floatWord {
+                0%, 100% {
+                    transform: translate3d(0, 0, 0);
+                }
+                50% {
+                    transform: translate3d(0, -4px, 0);
+                }
+            }
+            
             .animate-float {
                 animation: floatWord 3s ease-in-out infinite;
+                will-change: transform;
+                transform: translateZ(0);
             }
-            /* Stagger delays are handled in JS or via nth-child if needed,
-         but randomizing start time in JS is better for organic feel */
+
+            /* Fade In Animation */
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translate3d(0, 10px, 0);
+                }
+                to {
+                    opacity: 1;
+                    transform: translate3d(0, 0, 0);
+                }
+            }
+            
+            .animate-fade-in {
+                animation: fadeIn 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+            }
+
+            /* Performance Optimization: Reduce Paint Areas */
+            .isolate-layer {
+                isolation: isolate;
+            }
+
+            /* Optimize Text Rendering */
+            .optimize-text {
+                text-rendering: optimizeLegibility;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+
+            /* GPU Compositing for Canvas */
+            canvas {
+                transform: translateZ(0);
+                -webkit-transform: translateZ(0);
+                will-change: transform;
+            }
+
+            /* Reduce Repaints for Fixed Elements */
+            .fixed-optimized {
+                position: fixed;
+                transform: translateZ(0);
+                -webkit-transform: translateZ(0);
+                backface-visibility: hidden;
+                -webkit-backface-visibility: hidden;
+            }
         </style>
     </head>
     <body>
