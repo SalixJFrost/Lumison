@@ -1,4 +1,5 @@
 import { fetchViaProxy } from "../utils";
+import { fetchAudioAsBlob } from "../corsProxy";
 
 export interface BilibiliTrackInfo {
   id: string;
@@ -21,6 +22,27 @@ interface BilibiliVideoInfo {
     pic?: string;
     duration?: number;
     bvid?: string;
+    cid?: number;
+  };
+}
+
+interface BilibiliPlayUrl {
+  code: number;
+  data?: {
+    dash?: {
+      audio?: Array<{
+        id: number;
+        baseUrl: string;
+        backupUrl?: string[];
+        bandwidth: number;
+        mimeType: string;
+        codecs: string;
+      }>;
+    };
+    durl?: Array<{
+      url: string;
+      backup_url?: string[];
+    }>;
   };
 }
 
@@ -58,32 +80,143 @@ export const fetchBilibiliVideo = async (
 };
 
 /**
- * Get Bilibili audio URL
- * Note: This is a placeholder. In production, you would need to:
- * 1. Extract audio from video using a backend service
- * 2. Or use Bilibili's audio API if available
- * 3. Handle authentication and rate limiting
+ * Get CID for Bilibili video
  */
-export const getBilibiliAudioUrl = (videoId: string): string => {
-  // This is a placeholder URL
-  // In a real implementation, you would need a backend service to:
-  // 1. Fetch the video stream URL from Bilibili API
-  // 2. Extract audio track
-  // 3. Serve it with proper CORS headers
-  
-  // For now, return a placeholder that indicates this needs backend support
-  return `https://api.example.com/bilibili/audio/${videoId}`;
+const getBilibiliCid = async (bvid: string): Promise<number | null> => {
+  try {
+    const url = `https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`;
+    const data = (await fetchViaProxy(url)) as BilibiliVideoInfo;
+    
+    if (data.code === 0 && data.data?.cid) {
+      return data.data.cid;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Failed to get Bilibili CID:", error);
+    return null;
+  }
 };
 
 /**
- * Note: Bilibili audio extraction requires backend support due to:
- * 1. CORS restrictions on Bilibili's CDN
- * 2. Need to parse video streams and extract audio
- * 3. Authentication requirements
- * 
- * Recommended approach:
- * - Set up a backend service (Node.js/Python)
- * - Use libraries like youtube-dl or you-get to extract audio
- * - Serve audio with proper CORS headers
- * - Cache extracted audio to reduce API calls
+ * Get Bilibili audio stream URL and convert to blob URL
+ * This method fetches the audio as a blob to bypass CORS restrictions
  */
+export const getBilibiliAudioUrl = async (
+  videoId: string,
+  onProgress?: (loaded: number, total: number) => void
+): Promise<string | null> => {
+  try {
+    // Get CID first
+    const cid = await getBilibiliCid(videoId);
+    if (!cid) {
+      console.error("Failed to get CID for video:", videoId);
+      return null;
+    }
+
+    // Get play URL with audio stream
+    const playUrl = `https://api.bilibili.com/x/player/playurl?bvid=${videoId}&cid=${cid}&qn=64&fnval=16&fourk=1`;
+    
+    const data = (await fetchViaProxy(playUrl)) as BilibiliPlayUrl;
+
+    if (data.code === 0 && data.data) {
+      let audioStreamUrl: string | null = null;
+      
+      // Try DASH audio first (better quality)
+      if (data.data.dash?.audio && data.data.dash.audio.length > 0) {
+        // Sort by bandwidth (quality) and get the best one
+        const bestAudio = data.data.dash.audio.sort((a, b) => b.bandwidth - a.bandwidth)[0];
+        audioStreamUrl = bestAudio.baseUrl;
+      }
+      // Fallback to durl (older format)
+      else if (data.data.durl && data.data.durl.length > 0) {
+        audioStreamUrl = data.data.durl[0].url;
+      }
+
+      if (!audioStreamUrl) {
+        console.error("No audio stream found for video:", videoId);
+        return null;
+      }
+
+      // Fetch audio as blob to bypass CORS
+      console.log("Fetching Bilibili audio stream...");
+      const blob = await fetchAudioAsBlob(audioStreamUrl, onProgress);
+      
+      // Create object URL from blob
+      const blobUrl = URL.createObjectURL(blob);
+      console.log("Bilibili audio loaded successfully");
+      
+      return blobUrl;
+    }
+
+    console.error("No audio stream found for video:", videoId);
+    return null;
+  } catch (error) {
+    console.error("Failed to get Bilibili audio URL:", error);
+    return null;
+  }
+};
+
+/**
+ * Check if browser supports hardware decoding for given codec
+ */
+export const checkHardwareDecoding = async (mimeType: string): Promise<boolean> => {
+  if (!('mediaCapabilities' in navigator)) {
+    return false;
+  }
+
+  try {
+    const config = {
+      type: 'file' as const,
+      audio: {
+        contentType: mimeType,
+        channels: 2,
+        bitrate: 128000,
+        samplerate: 48000,
+      },
+    };
+
+    const result = await navigator.mediaCapabilities.decodingInfo(config);
+    return result.supported && result.smooth && result.powerEfficient;
+  } catch (error) {
+    console.warn('Hardware decoding check failed:', error);
+    return false;
+  }
+};
+
+/**
+ * Get best audio format based on browser capabilities
+ */
+export const getBestAudioFormat = async (
+  audioStreams: Array<{
+    id: number;
+    baseUrl: string;
+    mimeType: string;
+    codecs: string;
+    bandwidth: number;
+  }>
+): Promise<string | null> => {
+  // Check hardware decoding support for each format
+  const formatChecks = await Promise.all(
+    audioStreams.map(async (stream) => ({
+      url: stream.baseUrl,
+      mimeType: stream.mimeType,
+      bandwidth: stream.bandwidth,
+      hardwareSupported: await checkHardwareDecoding(stream.mimeType),
+    }))
+  );
+
+  // Prefer hardware-decoded formats
+  const hardwareSupported = formatChecks.filter((f) => f.hardwareSupported);
+  if (hardwareSupported.length > 0) {
+    // Get highest quality among hardware-supported formats
+    const best = hardwareSupported.sort((a, b) => b.bandwidth - a.bandwidth)[0];
+    console.log('Using hardware-accelerated audio format:', best.mimeType);
+    return best.url;
+  }
+
+  // Fallback to highest quality software-decoded format
+  const best = formatChecks.sort((a, b) => b.bandwidth - a.bandwidth)[0];
+  console.log('Using software-decoded audio format:', best.mimeType);
+  return best.url;
+};

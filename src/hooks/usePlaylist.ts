@@ -291,9 +291,20 @@ export const usePlaylist = () => {
           if (bilibiliLink.type === "video" || bilibiliLink.type === "audio") {
             const video = await fetchBilibiliVideo(bilibiliLink.id);
             if (video) {
+              // Get audio URL asynchronously
+              const audioUrl = await getBilibiliAudioUrl(video.id);
+              
+              if (!audioUrl) {
+                return {
+                  success: false,
+                  message: "Failed to extract audio from Bilibili video. The video may be restricted or unavailable.",
+                  songs: [],
+                };
+              }
+              
               newSongs.push({
                 ...video,
-                fileUrl: getBilibiliAudioUrl(video.id),
+                fileUrl: audioUrl,
                 lyrics: [],
                 colors: video.coverUrl ? await extractColors(video.coverUrl) : [],
                 needsLyricsMatch: true,
@@ -304,7 +315,7 @@ export const usePlaylist = () => {
           console.error("Failed to fetch Bilibili video", err);
           return {
             success: false,
-            message: "Failed to load video from Bilibili URL. Note: Bilibili audio extraction requires backend support.",
+            message: "Failed to load video from Bilibili URL. Please check the URL and try again.",
             songs: [],
           };
         }
