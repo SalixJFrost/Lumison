@@ -22,6 +22,7 @@ import {
 } from "./Icons";
 import { PlayMode } from "../types";
 import { useTheme } from "../contexts/ThemeContext";
+import { useI18n } from "../contexts/I18nContext";
 
 interface ControlsProps {
   isPlaying: boolean;
@@ -81,6 +82,7 @@ const Controls: React.FC<ControlsProps> = ({
   isBuffering,
 }) => {
   const { theme } = useTheme();
+  const { t } = useI18n();
   const volumeContainerRef = useRef<HTMLDivElement>(null);
   const settingsContainerRef = useRef<HTMLDivElement>(null);
   const coverRef = useRef<HTMLDivElement>(null);
@@ -438,7 +440,7 @@ const Controls: React.FC<ControlsProps> = ({
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center theme-text-tertiary">
               <div className="text-8xl mb-4 opacity-50">♪</div>
-              <p className="text-sm">No Music Loaded</p>
+              <p className="text-sm">{t("player.noMusicLoaded")}</p>
             </div>
           )}
           
@@ -571,7 +573,7 @@ const Controls: React.FC<ControlsProps> = ({
           <button
             onClick={onToggleMode}
             className="p-2.5 rounded-full theme-bg-overlay hover:theme-bg-overlay-hover transition-colors"
-            title="Playback Mode"
+            title={t("player.repeat")}
           >
             {getModeIcon()}
           </button>
@@ -585,7 +587,7 @@ const Controls: React.FC<ControlsProps> = ({
                   ? theme === 'light' ? "text-black theme-bg-overlay" : "text-white theme-bg-overlay"
                   : theme === 'light' ? "text-black/60 hover:text-black theme-bg-overlay hover:theme-bg-overlay-hover" : "text-white/60 hover:text-white theme-bg-overlay hover:theme-bg-overlay-hover"
               }`}
-              title="Volume"
+              title={t("player.volume")}
             >
               {getVolumeButtonIcon()}
             </button>
@@ -612,7 +614,7 @@ const Controls: React.FC<ControlsProps> = ({
             style={{
               transition: 'color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.2s'
             }}
-            aria-label="Previous"
+            aria-label={t("player.previous")}
           >
             <PrevIcon className="w-10 h-10" />
           </button>
@@ -628,6 +630,7 @@ const Controls: React.FC<ControlsProps> = ({
             style={{
               transition: 'background-color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1), color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.2s'
             }}
+            aria-label={isPlaying ? t("player.pause") : t("player.play")}
           >
             <div className="relative w-7 h-7">
               {/* Pause Icon */}
@@ -656,7 +659,7 @@ const Controls: React.FC<ControlsProps> = ({
             style={{
               transition: 'color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.2s'
             }}
-            aria-label="Next"
+            aria-label={t("player.next")}
           >
             <NextIcon className="w-10 h-10" />
           </button>
@@ -670,7 +673,7 @@ const Controls: React.FC<ControlsProps> = ({
                   ? theme === 'light' ? "text-black theme-bg-overlay" : "text-white theme-bg-overlay"
                   : theme === 'light' ? "text-black/60 hover:text-black theme-bg-overlay hover:theme-bg-overlay-hover" : "text-white/60 hover:text-white theme-bg-overlay hover:theme-bg-overlay-hover"
               }`}
-              title="Settings"
+              title={t("player.settings")}
             >
               <SettingsIcon className="w-5 h-5" />
             </button>
@@ -695,7 +698,7 @@ const Controls: React.FC<ControlsProps> = ({
             className={`p-2.5 rounded-full transition-colors ${
               theme === 'light' ? 'text-black/60 hover:text-black theme-bg-overlay hover:theme-bg-overlay-hover' : 'text-white/60 hover:text-white theme-bg-overlay hover:theme-bg-overlay-hover'
             }`}
-            title="Queue"
+            title={t("player.queue")}
           >
             <QueueIcon className="w-5 h-5" />
           </button>
@@ -778,6 +781,7 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
   speed,
   onSpeedChange,
 }) => {
+  const { t } = useI18n();
   const { speedH } = useSpring({
     speedH: ((speed - 0.5) / 2.5) * 100,
     config: { tension: 210, friction: 20 },
@@ -854,7 +858,7 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
           onClick={() => setShowPresets(!showPresets)}
           className="text-[10px] font-medium text-white/60 hover:text-white/90 transition-colors"
         >
-          Speed
+          {t("player.speed")}
         </button>
         
         {/* Speed Presets Popup */}
@@ -886,14 +890,14 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
           onClick={onTogglePreservesPitch}
           className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors duration-200 ${preservesPitch ? "bg-white/20 text-white" : "bg-white text-black"
             }`}
-          title={preservesPitch ? "Tone Preserved" : "Vinyl Mode"}
+          title={preservesPitch ? t("speed.preservePitch") : t("speed.vinylMode")}
         >
           <span className="text-xs font-bold">
-            {preservesPitch ? "Dig" : "Vin"}
+            {preservesPitch ? t("speed.digital").substring(0, 3) : t("speed.vinyl").substring(0, 3)}
           </span>
         </button>
         <span className="text-[10px] font-medium text-white/60 text-center leading-tight">
-          {preservesPitch ? "Digital" : "Vinyl"}
+          {preservesPitch ? t("speed.digital") : t("speed.vinyl")}
         </span>
       </div>
 

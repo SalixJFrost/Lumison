@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSpring, animated } from "@react-spring/web";
+import { useI18n } from "../contexts/I18nContext";
 
 interface SpeedIndicatorProps {
   speed: number;
@@ -7,6 +8,7 @@ interface SpeedIndicatorProps {
 }
 
 const SpeedIndicator: React.FC<SpeedIndicatorProps> = ({ speed, show }) => {
+  const { t } = useI18n();
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -34,11 +36,11 @@ const SpeedIndicator: React.FC<SpeedIndicatorProps> = ({ speed, show }) => {
   };
 
   const getSpeedLabel = () => {
-    if (speed < 1) return "Slow";
-    if (speed === 1) return "Normal";
-    if (speed <= 1.5) return "Fast";
-    if (speed <= 2) return "Very Fast";
-    return "Ultra Fast";
+    if (speed < 1) return t("speed.slow");
+    if (speed === 1) return t("speed.normal");
+    if (speed <= 1.5) return t("speed.fast");
+    if (speed <= 2) return t("speed.veryFast");
+    return t("speed.ultraFast");
   };
 
   return (

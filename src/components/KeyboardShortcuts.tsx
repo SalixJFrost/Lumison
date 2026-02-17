@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useKeyboardScope } from "../hooks/useKeyboardScope";
+import { useI18n } from "../contexts/I18nContext";
 
 interface KeyboardShortcutsProps {
   isPlaying: boolean;
@@ -37,6 +38,7 @@ const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = ({
   onToggleVolumeDialog,
   onToggleSpeedDialog,
 }) => {
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -206,10 +208,10 @@ return createPortal(
           <div className="flex items-center gap-4 mb-8">
             <div className="flex-1">
               <h2 className="text-2xl font-bold tracking-tight">
-                Keyboard Shortcuts
+                {t("shortcuts.title")}
               </h2>
               <p className="text-white/50 font-medium">
-                Quick controls for playback
+                {t("shortcuts.subtitle")}
               </p>
             </div>
             <button
@@ -235,19 +237,19 @@ return createPortal(
 
           {/* Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-            <ShortcutItem keys={["Space"]} label="Play / Pause" />
-            <ShortcutItem keys={["L"]} label="Loop Mode" />
-            <ShortcutItem keys={["←", "→"]} label="Seek ±5s" />
-            <ShortcutItem keys={["Ctrl", "←/→"]} label="Prev / Next Song" />
-            <ShortcutItem keys={["↑", "↓"]} label="Volume Control" />
-            <ShortcutItem keys={["Shift", "↑/↓"]} label="Speed ±0.25x" />
-            <ShortcutItem keys={["Ctrl", "0-3"]} label="Speed Preset" />
-            <ShortcutItem keys={["R"]} label="Reset Speed (1x)" />
-            <ShortcutItem keys={["V"]} label="Volume Dialog" />
-            <ShortcutItem keys={["S"]} label="Speed Dialog" />
-            <ShortcutItem keys={["Ctrl", "K"]} label="Search" />
-            <ShortcutItem keys={["Ctrl", "P"]} label="Toggle Playlist" />
-            <ShortcutItem keys={["Ctrl", "/"]} label="Toggle Shortcuts" />
+            <ShortcutItem keys={["Space"]} label={t("shortcuts.playPause")} />
+            <ShortcutItem keys={["L"]} label={t("shortcuts.loopMode")} />
+            <ShortcutItem keys={["←", "→"]} label={t("shortcuts.seek")} />
+            <ShortcutItem keys={["Ctrl", "←/→"]} label={t("shortcuts.prevNext")} />
+            <ShortcutItem keys={["↑", "↓"]} label={t("shortcuts.volumeControl")} />
+            <ShortcutItem keys={["Shift", "↑/↓"]} label={t("shortcuts.speedControl")} />
+            <ShortcutItem keys={["Ctrl", "0-3"]} label={t("shortcuts.speedPreset")} />
+            <ShortcutItem keys={["R"]} label={t("shortcuts.resetSpeed")} />
+            <ShortcutItem keys={["V"]} label={t("shortcuts.volumeDialog")} />
+            <ShortcutItem keys={["S"]} label={t("shortcuts.speedDialog")} />
+            <ShortcutItem keys={["Ctrl", "K"]} label={t("shortcuts.searchDialog")} />
+            <ShortcutItem keys={["Ctrl", "P"]} label={t("shortcuts.togglePlaylist")} />
+            <ShortcutItem keys={["Ctrl", "/"]} label={t("shortcuts.toggleShortcuts")} />
           </div>
 
           {/* Footer Hint */}
@@ -256,7 +258,7 @@ return createPortal(
             <kbd className="font-sans bg-white/10 px-1.5 py-0.5 rounded mx-1 text-white/60">
               Esc
             </kbd>{" "}
-            to close
+            {t("shortcuts.closeHint")}
           </div>
         </div>
       </div>
