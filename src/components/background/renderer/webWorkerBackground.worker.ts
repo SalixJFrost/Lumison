@@ -56,7 +56,7 @@ const fragmentShaderSource = `
       vec2 tuv = uv;
       tuv -= 0.5;
 
-      float degree = noise(vec2(uTime * 0.1, tuv.x * tuv.y));
+      float degree = noise(vec2(uTime * 0.05, tuv.x * tuv.y)); // 降低旋转速度，从 0.1 改为 0.05
 
       tuv.y *= 1.0 / ratio;
       tuv *= Rot(radians((degree - 0.5) * 720.0 + 180.0));
@@ -64,7 +64,7 @@ const fragmentShaderSource = `
 
       float frequency = 5.0;
       float amplitude = 30.0;
-      float speed = uTime * 2.0;
+      float speed = uTime * 0.8; // 降低速度，从 2.0 改为 0.8
       tuv.x += sin(tuv.y * frequency + speed) / amplitude;
       tuv.y += sin(tuv.x * frequency * 1.5 + speed) / (amplitude * 0.5);
 
@@ -78,7 +78,7 @@ const fragmentShaderSource = `
   }
 `;
 
-const FRAME_INTERVAL = 1000 / 60;
+const FRAME_INTERVAL = 1000 / 30; // 降低到 30 FPS，更优雅流畅
 
 interface WorkerCommand {
   type: "init" | "resize" | "colors" | "play" | "pause";
@@ -193,7 +193,7 @@ const render = (now: number) => {
   const colors = currentColors.length >= 4 ? currentColors : defaultColors;
   const [c1, c2, c3, c4] = colors.map(parseColor);
 
-  gl.uniform1f(timeUniform, timeAccumulator * 0.0005);
+  gl.uniform1f(timeUniform, timeAccumulator * 0.0003); // 降低时间速度，从 0.0005 改为 0.0003
   gl.uniform3f(color1Uniform, c1[0], c1[1], c1[2]);
   gl.uniform3f(color2Uniform, c2[0], c2[1], c2[2]);
   gl.uniform3f(color3Uniform, c3[0], c3[1], c3[2]);
