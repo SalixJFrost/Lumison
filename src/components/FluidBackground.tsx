@@ -29,6 +29,7 @@ interface FluidBackgroundProps {
   isPlaying?: boolean;
   coverUrl?: string;
   isMobileLayout?: boolean;
+  theme?: 'light' | 'dark';
 }
 
 const FluidBackground: React.FC<FluidBackgroundProps> = ({
@@ -36,6 +37,7 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
   isPlaying = true,
   coverUrl,
   isMobileLayout = false,
+  theme = 'dark',
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<UIBackgroundRender | WebWorkerBackgroundRender | null>(null);
@@ -138,20 +140,38 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     [],
   );
 
+  const invertColor = useCallback((color: string): string => {
+    // Parse RGB color
+    const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (!match) return color;
+    
+    const r = 255 - parseInt(match[1]);
+    const g = 255 - parseInt(match[2]);
+    const b = 255 - parseInt(match[3]);
+    
+    return `rgb(${r}, ${g}, ${b})`;
+  }, []);
+
   const renderGradientFrame = useCallback((ctx: CanvasRenderingContext2D) => {
     const width = ctx.canvas.width;
     const height = ctx.canvas.height;
-    const palette =
+    let palette =
       colorsRef.current && colorsRef.current.length > 0
         ? colorsRef.current
         : desktopGradientDefaults;
+    
+    // Invert colors for light theme
+    if (theme === 'light') {
+      palette = palette.map(invertColor);
+    }
+    
     const gradient = ctx.createLinearGradient(0, 0, width, height);
     palette.forEach((color, index) => {
       gradient.addColorStop(index / Math.max(1, palette.length - 1), color);
     });
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
-  }, []);
+  }, [theme, invertColor]);
 
   useEffect(() => {
     const resize = () => {

@@ -12,9 +12,11 @@ import { usePlaylist } from "./hooks/usePlaylist";
 import { usePlayer } from "./hooks/usePlayer";
 import { keyboardRegistry } from "./services/ui/keyboardRegistry";
 import MediaSessionController from "./components/MediaSessionController";
+import { useTheme } from "./contexts/ThemeContext";
 
 const App: React.FC = () => {
   const { toast } = useToast();
+  const { theme } = useTheme();
   const playlist = usePlaylist();
   const player = usePlayer({
     queue: playlist.queue,
@@ -308,13 +310,14 @@ const App: React.FC = () => {
   const mobileTranslate = baseOffset + dragOffsetX;
 
   return (
-    <div className="relative w-full h-screen flex flex-col overflow-hidden">
+    <div className="relative w-full h-screen flex flex-col overflow-hidden theme-transition">
       <FluidBackground
         key={isMobileLayout ? "mobile" : "desktop"}
         colors={currentSong?.colors || []}
         coverUrl={currentSong?.coverUrl}
         isPlaying={playState === PlayState.PLAYING}
         isMobileLayout={isMobileLayout}
+        theme={theme}
       />
 
       <audio

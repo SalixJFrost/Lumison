@@ -5,6 +5,7 @@ import { useCanvasRenderer } from "../hooks/useCanvasRenderer";
 import { LyricLine } from "./lyrics/LyricLine";
 import { InterludeDots } from "./lyrics/InterludeDots";
 import { ILyricLine } from "./lyrics/ILyricLine";
+import { useTheme } from "../contexts/ThemeContext";
 
 interface LyricsViewProps {
   lyrics: LyricLineType[];
@@ -25,6 +26,7 @@ const LyricsView: React.FC<LyricsViewProps> = ({
   matchStatus,
   fontSize = 48,
 }) => {
+  const { theme } = useTheme();
   const [isMobile, setIsMobile] = useState(false);
   const [lyricLines, setLyricLines] = useState<ILyricLine[]>([]);
   const [mobileHoverIndex, setMobileHoverIndex] = useState<number | null>(null);
@@ -128,7 +130,7 @@ const LyricsView: React.FC<LyricsViewProps> = ({
 
       const lyricLine = isInterlude
         ? new InterludeDots(line, index, isMobile, duration)
-        : new LyricLine(line, index, isMobile, fontSize);
+        : new LyricLine(line, index, isMobile, fontSize, theme);
 
       // Calculate max width from previous n lines
       let suggestedWidth = 0;
@@ -149,7 +151,7 @@ const LyricsView: React.FC<LyricsViewProps> = ({
     });
 
     setLyricLines(lines);
-  }, [lyrics, containerWidth, isMobile, fontSize]);
+  }, [lyrics, containerWidth, isMobile, fontSize, theme]);
 
   // Calculate layout properties for physics
   const { linePositions, lineHeights } = useMemo(() => {
@@ -491,7 +493,7 @@ const LyricsView: React.FC<LyricsViewProps> = ({
 
   if (!lyrics.length) {
     return (
-      <div className="h-[85vh] lg:h-[65vh] flex flex-col items-center justify-center text-white/40 select-none">
+      <div className="h-[85vh] lg:h-[65vh] flex flex-col items-center justify-center theme-text-tertiary select-none">
         {matchStatus === "matching" ? (
           <div className="animate-pulse">Syncing Lyrics...</div>
         ) : (

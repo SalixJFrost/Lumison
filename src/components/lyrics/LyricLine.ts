@@ -81,11 +81,13 @@ export class LyricLine implements ILyricLine {
     | CanvasRenderingContext2D;
   private cachedWordKey: string = "";
   private customFontSize?: number;
+  private theme: 'light' | 'dark' = 'dark';
 
-  constructor(line: LyricLineType, index: number, isMobile: boolean, customFontSize?: number) {
+  constructor(line: LyricLineType, index: number, isMobile: boolean, customFontSize?: number, theme?: 'light' | 'dark') {
     this.lyricLine = line;
     this.isMobile = isMobile;
     this.customFontSize = customFontSize;
+    this.theme = theme || 'dark';
     this.pixelRatio =
       typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
     this.canvas = document.createElement("canvas");
@@ -99,6 +101,33 @@ export class LyricLine implements ILyricLine {
     this.wordCacheCtx = cacheCtx as
       | OffscreenCanvasRenderingContext2D
       | CanvasRenderingContext2D;
+  }
+
+  private getThemeColors() {
+    if (this.theme === 'light') {
+      return {
+        active: '#000000',
+        inactive: 'rgba(0, 0, 0, 0.3)',
+        translation: 'rgba(0, 0, 0, 0.5)',
+        hover: 'rgba(0, 0, 0, 0.08)',
+        shadow: 'rgba(0, 0, 0, 0.8)',
+      };
+    }
+    return {
+      active: '#FFFFFF',
+      inactive: 'rgba(255, 255, 255, 0.3)',
+      translation: 'rgba(255, 255, 255, 0.5)',
+      hover: 'rgba(255, 255, 255, 0.08)',
+      shadow: 'rgba(255, 255, 255, 0.8)',
+    };
+  }
+
+  public setTheme(theme: 'light' | 'dark') {
+    if (this.theme !== theme) {
+      this.theme = theme;
+      this.isDirty = true;
+      this.cachedWordKey = ''; // Invalidate cache
+    }
   }
 
   private drawFullLine({
@@ -124,6 +153,8 @@ export class LyricLine implements ILyricLine {
   }) {
     if (!this.layout) return;
 
+    const colors = this.getThemeColors();
+
     this.ctx.clearRect(0, 0, this.logicalWidth, this.logicalHeight);
     this.ctx.save();
 
@@ -133,7 +164,7 @@ export class LyricLine implements ILyricLine {
 
     // 1. Draw Background (Hover)
     if (isHovered) {
-      this.ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+      this.ctx.fillStyle = colors.hover;
       const bgWidth = Math.max(this.layout.textWidth + 32, 200);
       this.roundRect(-16, 0, bgWidth, this.layout.height, 16);
       this.ctx.fill();
@@ -194,23 +225,23 @@ export class LyricLine implements ILyricLine {
     const isFastLine = (wordCount > 0 && (fastWordCount / wordCount) > 0.9);
 
     if (isActive && (!hasTimedWords || isFastLine)) {
-      // CASE: Active but standard text (no timing) -> Pure White
-      this.ctx.fillStyle = "#FFFFFF";
+      // CASE: Active but standard text (no timing) -> Theme Active Color
+      this.ctx.fillStyle = colors.active;
       this.layout.words.forEach(w => this.ctx.fillText(w.text, w.x, w.y));
     }
     else if (isActive && activeLineY !== null && activeWords.length > 0) {
       // CASE: Active with Timing -> Fluid Animation
 
       // Render static inactive lines first
-      this.ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+      this.ctx.fillStyle = colors.inactive;
       this.layout.words.forEach(w => {
         if (Math.abs(w.y - activeLineY!) >= 5) {
-          // Past lines white, Future dim
+          // Past lines active color, Future dim
           if (w.y < activeLineY!) {
-            this.ctx.fillStyle = "#FFFFFF";
+            this.ctx.fillStyle = colors.active;
             this.ctx.fillText(w.text, w.x, w.y - 2); // Static Lift for past lines
           } else {
-            this.ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+            this.ctx.fillStyle = colors.inactive;
             this.ctx.fillText(w.text, w.x, w.y);
           }
         }
@@ -221,14 +252,14 @@ export class LyricLine implements ILyricLine {
 
     } else {
       // CASE: Completely Inactive Line -> Dim
-      this.ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+      this.ctx.fillStyle = colors.inactive;
       this.layout.words.forEach(w => this.ctx.fillText(w.text, w.x, w.y));
     }
 
     // 4. Translation
     if (this.layout.translationLines && this.layout.translationLines.length > 0) {
       this.ctx.font = transFont;
-      this.ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+      this.ctx.fillStyle = colors.translation;
       const lastWordY = this.layout.words.length > 0
         ? this.layout.words[this.layout.words.length - 1].y
         : 0;
@@ -245,6 +276,7 @@ export class LyricLine implements ILyricLine {
   private drawActiveWords(activeWords: WordLayout[], currentTime: number) {
     const FLOAT_DURATION = 0.250;
     const MAX_LIFT = -2;
+    const colors = this.getThemeColors();
 
     activeWords.forEach((w) => {
       const duration = w.endTime - w.startTime;
@@ -308,11 +340,11 @@ export class LyricLine implements ILyricLine {
 
         if (elapsed >= duration) {
           // Past
-          this.ctx.fillStyle = "#FFFFFF";
+          this.ctx.fillStyle = colors.active;
           this.ctx.fillText(w.text, 0, 0);
         } else if (elapsed < 0) {
           // Future
-          this.ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+          this.ctx.fillStyle = colors.inactive;
           this.ctx.fillText(w.text, 0, 0);
         } else {
           // Active
@@ -320,10 +352,10 @@ export class LyricLine implements ILyricLine {
           const gradient = this.ctx.createLinearGradient(0, 0, w.width, 0);
           const p = elapsed / duration;
 
-          gradient.addColorStop(Math.max(0, p), "#FFFFFF");
+          gradient.addColorStop(Math.max(0, p), colors.active);
           gradient.addColorStop(
             Math.min(1, p + 0.15),
-            "rgba(255, 255, 255, 0.3)"
+            colors.inactive
           );
 
           this.ctx.fillStyle = gradient;
@@ -408,17 +440,20 @@ export class LyricLine implements ILyricLine {
   /**
    * Draw glow effect - single layer
    */
-  private applyGlow(intensity: number, color: string = "white") {
+  private applyGlow(intensity: number, color?: string) {
     if (intensity < 0.01) {
       this.ctx.shadowBlur = 0;
       this.ctx.shadowColor = "transparent";
       return;
     }
 
+    const colors = this.getThemeColors();
+    const glowColor = color || colors.shadow;
+
     // Non-linear blur for "fluid" feel
     const blur = GLOW_CONFIG.blur * (0.4 + 0.6 * Math.pow(intensity, 0.8));
     const alpha = GLOW_CONFIG.intensity * intensity;
-    this.ctx.shadowColor = `rgba(255, 255, 255, ${alpha})`;
+    this.ctx.shadowColor = glowColor.replace('0.8', String(alpha));
     this.ctx.shadowBlur = blur;
   }
 
@@ -429,6 +464,7 @@ export class LyricLine implements ILyricLine {
     decayFactor: number
   ) {
     const chars = word.text.split("");
+    const colors = this.getThemeColors();
 
     if (chars.length === 0) return;
     const charCount = chars.length;
@@ -471,7 +507,7 @@ export class LyricLine implements ILyricLine {
       this.wordCacheCtx.scale(this.pixelRatio, this.pixelRatio);
       this.wordCacheCtx.font = main;
       this.wordCacheCtx.textBaseline = "top";
-      this.wordCacheCtx.fillStyle = "#FFFFFF";
+      this.wordCacheCtx.fillStyle = colors.active;
       this.wordCacheCtx.fillText(word.text, 0, 0);
       this.wordCacheCtx.restore();
 

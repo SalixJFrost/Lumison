@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { SearchIcon, CloudDownloadIcon, InfoIcon, FullscreenIcon, SettingsIcon, LinkIcon, ThemeIcon } from "./Icons";
 import AboutDialog from "./AboutDialog";
 import ImportMusicDialog from "./ImportMusicDialog";
+import { useTheme } from "../contexts/ThemeContext";
 
 interface TopBarProps {
   onFilesSelected: (files: FileList) => void;
@@ -20,6 +21,7 @@ const TopBar: React.FC<TopBarProps> = ({
   onLyricsFontSizeChange,
   onImportUrl,
 }) => {
+  const { theme, toggleTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -195,9 +197,9 @@ const TopBar: React.FC<TopBarProps> = ({
 
           {/* Theme Button */}
           <button
-            onClick={() => {/* TODO: Implement */}}
+            onClick={toggleTheme}
             className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all shadow-sm"
-            title="Theme"
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           >
             <ThemeIcon className="w-5 h-5" />
           </button>

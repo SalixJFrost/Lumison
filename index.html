@@ -26,10 +26,58 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.2/color-thief.umd.js"></script>
         <style>
+            :root {
+                --text-primary: rgba(255, 255, 255, 0.9);
+                --text-secondary: rgba(255, 255, 255, 0.6);
+                --text-tertiary: rgba(255, 255, 255, 0.4);
+                --bg-overlay: rgba(255, 255, 255, 0.1);
+                --bg-overlay-hover: rgba(255, 255, 255, 0.2);
+                --border-color: rgba(255, 255, 255, 0.1);
+            }
+
+            [data-theme="light"] {
+                --text-primary: rgba(0, 0, 0, 0.9);
+                --text-secondary: rgba(0, 0, 0, 0.6);
+                --text-tertiary: rgba(0, 0, 0, 0.4);
+                --bg-overlay: rgba(0, 0, 0, 0.1);
+                --bg-overlay-hover: rgba(0, 0, 0, 0.2);
+                --border-color: rgba(0, 0, 0, 0.1);
+            }
+
             body {
                 font-family: "PingFang SC", "Inter", sans-serif;
                 background-color: #000;
                 overflow: hidden; /* Prevent scroll on body, handle in app */
+            }
+
+            .theme-transition {
+                transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+                            color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .theme-text-primary {
+                color: var(--text-primary);
+                transition: color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .theme-text-secondary {
+                color: var(--text-secondary);
+                transition: color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .theme-text-tertiary {
+                color: var(--text-tertiary);
+                transition: color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .theme-bg-overlay {
+                background-color: var(--bg-overlay);
+                transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .theme-border {
+                border-color: var(--border-color);
+                transition: border-color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
             }
 
             /* Custom Scrollbar for Lyrics */

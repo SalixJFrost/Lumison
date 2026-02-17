@@ -21,6 +21,7 @@ import {
   QueueIcon,
 } from "./Icons";
 import { PlayMode } from "../types";
+import { useTheme } from "../contexts/ThemeContext";
 
 interface ControlsProps {
   isPlaying: boolean;
@@ -79,6 +80,7 @@ const Controls: React.FC<ControlsProps> = ({
   setShowSettingsPopup,
   isBuffering,
 }) => {
+  const { theme } = useTheme();
   const volumeContainerRef = useRef<HTMLDivElement>(null);
   const settingsContainerRef = useRef<HTMLDivElement>(null);
   const coverRef = useRef<HTMLDivElement>(null);
@@ -307,16 +309,19 @@ const Controls: React.FC<ControlsProps> = ({
   }, [showVolumePopup, showSettingsPopup, volume, speed, onVolumeChange, onSpeedChange]);
 
   const getModeIcon = () => {
-    // Standard white colors, simplified hover
-    const iconClass =
-      "w-5 h-5 text-white/60 hover:text-white transition-colors";
+    // Theme-aware colors
+    const iconClass = theme === 'light'
+      ? "w-5 h-5 text-black/60 hover:text-black transition-colors"
+      : "w-5 h-5 text-white/60 hover:text-white transition-colors";
 
     switch (playMode) {
       case PlayMode.LOOP_ONE:
         return (
           <div className="relative">
             <LoopOneIcon className={iconClass} />
-            <span className="absolute -top-1 -right-1 text-[8px] font-bold bg-white text-black rounded-[2px] px-0.5 leading-none">
+            <span className={`absolute -top-1 -right-1 text-[8px] font-bold rounded-[2px] px-0.5 leading-none ${
+              theme === 'light' ? 'bg-black text-white' : 'bg-white text-black'
+            }`}>
               1
             </span>
           </div>
@@ -401,7 +406,7 @@ const Controls: React.FC<ControlsProps> = ({
     : 0;
 
   return (
-    <div className="w-full flex flex-col items-center justify-center gap-2 text-white select-none">
+    <div className="w-full flex flex-col items-center justify-center gap-2 theme-text-primary select-none">
       {/* Cover Section with 3D Effect */}
       <div 
         ref={coverRef}
@@ -431,8 +436,8 @@ const Controls: React.FC<ControlsProps> = ({
               loading="eager"
             />
           ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-white/20">
-              <div className="text-8xl mb-4">♪</div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center theme-text-tertiary">
+              <div className="text-8xl mb-4 opacity-50">♪</div>
               <p className="text-sm">No Music Loaded</p>
             </div>
           )}
@@ -467,10 +472,10 @@ const Controls: React.FC<ControlsProps> = ({
       </div>
       {/* Song Info */}
       <div className="text-center mb-2 px-4 select-text cursor-text">
-        <h2 className="text-3xl font-bold tracking-tight drop-shadow-md line-clamp-1">
+        <h2 className="text-3xl font-bold tracking-tight drop-shadow-md line-clamp-1 theme-text-primary">
           {title}
         </h2>
-        <p className="text-white/60 text-xl font-medium line-clamp-1">
+        <p className="text-xl font-medium line-clamp-1 theme-text-secondary">
           {artist}
         </p>
       </div>
@@ -481,21 +486,21 @@ const Controls: React.FC<ControlsProps> = ({
       </div>
 
       {/* Progress Bar */}
-      <div className="w-full max-w-xl flex items-center gap-3 text-sm font-medium text-white/70 group/bar relative">
+      <div className="w-full max-w-xl flex items-center gap-3 text-sm font-medium theme-text-secondary group/bar relative">
         <span className="w-12 text-right font-mono tracking-wide">
           {formatTime(displayTime)}
         </span>
 
         <div className="relative flex-1 h-10 flex items-center cursor-pointer group">
           {/* Background Track */}
-          <div className="absolute inset-x-0 h-1 bg-white/25 rounded-full group-hover:h-1.5 transition-[height] duration-200 ease-out"></div>
+          <div className="absolute inset-x-0 h-1 theme-bg-overlay rounded-full group-hover:h-1.5 transition-[height] duration-200 ease-out"></div>
 
           {/* Buffer Progress */}
           <div
             className="absolute left-0 h-1 rounded-full group-hover:h-1.5 transition-[height] duration-200 ease-out"
             style={{
               width: bufferedWidthPercent + "%",
-              backgroundColor: "rgba(255,255,255,0.4)",
+              backgroundColor: theme === 'light' ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.4)",
             }}
           ></div>
 
@@ -504,7 +509,7 @@ const Controls: React.FC<ControlsProps> = ({
             className="absolute left-0 h-1 rounded-full group-hover:h-1.5 transition-[height] duration-200 ease-out"
             style={{
               width: `${(displayTime / (duration || 1)) * 100}%`,
-              backgroundColor: "rgba(255,255,255,1)",
+              backgroundColor: theme === 'light' ? "rgba(0,0,0,1)" : "rgba(255,255,255,1)",
             }}
           ></div>
 
@@ -563,7 +568,7 @@ const Controls: React.FC<ControlsProps> = ({
           {/* 1. Play Mode */}
           <button
             onClick={onToggleMode}
-            className="p-2.5 rounded-full hover:bg-white/10 transition-colors"
+            className="p-2.5 rounded-full theme-bg-overlay hover:theme-bg-overlay-hover transition-colors"
             title="Playback Mode"
           >
             {getModeIcon()}
@@ -573,8 +578,11 @@ const Controls: React.FC<ControlsProps> = ({
           <div className="relative" ref={volumeContainerRef}>
             <button
               onClick={() => setShowVolumePopup(!showVolumePopup)}
-              className={`p-2.5 rounded-full hover:bg-white/10 transition-colors ${showVolumePopup ? "text-white" : "text-white/60 hover:text-white"
-                }`}
+              className={`p-2.5 rounded-full transition-colors ${
+                showVolumePopup 
+                  ? theme === 'light' ? "text-black theme-bg-overlay" : "text-white theme-bg-overlay"
+                  : theme === 'light' ? "text-black/60 hover:text-black theme-bg-overlay hover:theme-bg-overlay-hover" : "text-white/60 hover:text-white theme-bg-overlay hover:theme-bg-overlay-hover"
+              }`}
               title="Volume"
             >
               {getVolumeButtonIcon()}
@@ -596,7 +604,9 @@ const Controls: React.FC<ControlsProps> = ({
           {/* 3. Previous */}
           <button
             onClick={onPrev}
-            className="text-white hover:text-white/70 transition-colors active:scale-90 duration-200"
+            className={`transition-colors active:scale-90 duration-200 ${
+              theme === 'light' ? 'text-black hover:text-black/70' : 'text-white hover:text-white/70'
+            }`}
             aria-label="Previous"
           >
             <PrevIcon className="w-10 h-10" />
@@ -605,7 +615,11 @@ const Controls: React.FC<ControlsProps> = ({
           {/* 4. Play/Pause (Center) */}
           <button
             onClick={onPlayPause}
-            className="w-16 h-16 flex items-center justify-center rounded-full bg-white text-black hover:scale-105 active:scale-95 transition-transform duration-200 shadow-lg shadow-white/10"
+            className={`w-16 h-16 flex items-center justify-center rounded-full hover:scale-105 active:scale-95 transition-transform duration-200 shadow-lg ${
+              theme === 'light' 
+                ? 'bg-black text-white shadow-black/10' 
+                : 'bg-white text-black shadow-white/10'
+            }`}
           >
             <div className="relative w-7 h-7">
               {/* Pause Icon */}
@@ -628,7 +642,9 @@ const Controls: React.FC<ControlsProps> = ({
           {/* 5. Next */}
           <button
             onClick={onNext}
-            className="text-white hover:text-white/70 transition-colors active:scale-90 duration-200"
+            className={`transition-colors active:scale-90 duration-200 ${
+              theme === 'light' ? 'text-black hover:text-black/70' : 'text-white hover:text-white/70'
+            }`}
             aria-label="Next"
           >
             <NextIcon className="w-10 h-10" />
@@ -638,8 +654,11 @@ const Controls: React.FC<ControlsProps> = ({
           <div className="relative" ref={settingsContainerRef}>
             <button
               onClick={() => setShowSettingsPopup(!showSettingsPopup)}
-              className={`p-2.5 rounded-full hover:bg-white/10 transition-colors ${showSettingsPopup ? "text-white" : "text-white/60 hover:text-white"
-                }`}
+              className={`p-2.5 rounded-full transition-colors ${
+                showSettingsPopup 
+                  ? theme === 'light' ? "text-black theme-bg-overlay" : "text-white theme-bg-overlay"
+                  : theme === 'light' ? "text-black/60 hover:text-black theme-bg-overlay hover:theme-bg-overlay-hover" : "text-white/60 hover:text-white theme-bg-overlay hover:theme-bg-overlay-hover"
+              }`}
               title="Settings"
             >
               <SettingsIcon className="w-5 h-5" />
@@ -662,7 +681,9 @@ const Controls: React.FC<ControlsProps> = ({
           {/* 7. Playlist/Queue */}
           <button
             onClick={onTogglePlaylist}
-            className="p-2.5 rounded-full hover:bg-white/10 transition-colors text-white/60 hover:text-white"
+            className={`p-2.5 rounded-full transition-colors ${
+              theme === 'light' ? 'text-black/60 hover:text-black theme-bg-overlay hover:theme-bg-overlay-hover' : 'text-white/60 hover:text-white theme-bg-overlay hover:theme-bg-overlay-hover'
+            }`}
             title="Queue"
           >
             <QueueIcon className="w-5 h-5" />
