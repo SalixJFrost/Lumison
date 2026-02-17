@@ -148,7 +148,7 @@ const fetchNeteaseMusicLyrics = async (songId: string): Promise<LyricsResult | n
 
 /**
  * 多平台搜索并获取歌词
- * 按优先级尝试：QQ音乐 -> 酷狗音乐 -> 网易云音乐
+ * 策略：同时请求所有平台，哪个先返回用哪个（优先网易云）
  */
 export const searchAndFetchLyrics = async (
   title: string,
@@ -157,53 +157,90 @@ export const searchAndFetchLyrics = async (
   const keyword = `${title} ${artist}`;
   console.log(`Searching lyrics for: ${keyword}`);
 
-  // 1. 优先尝试 QQ 音乐
+  // 创建所有平台的搜索 Promise
+  const searchPromises = [
+    // 网易云音乐（优先）
+    (async () => {
+      try {
+        console.log("Trying Netease Music...");
+        const neteaseSong = await searchNeteaseMusic(keyword);
+        if (neteaseSong?.id) {
+          const lyrics = await fetchNeteaseMusicLyrics(neteaseSong.id.toString());
+          if (lyrics) {
+            console.log("✓ Found lyrics on Netease Music");
+            return lyrics;
+          }
+        }
+        return null;
+      } catch (error) {
+        console.warn("Netease Music failed:", error);
+        return null;
+      }
+    })(),
+    
+    // QQ 音乐
+    (async () => {
+      try {
+        console.log("Trying QQ Music...");
+        const qqSong = await searchQQMusic(keyword);
+        if (qqSong?.songmid) {
+          const lyrics = await fetchQQMusicLyrics(qqSong.songmid);
+          if (lyrics) {
+            console.log("✓ Found lyrics on QQ Music");
+            return lyrics;
+          }
+        }
+        return null;
+      } catch (error) {
+        console.warn("QQ Music failed:", error);
+        return null;
+      }
+    })(),
+    
+    // 酷狗音乐
+    (async () => {
+      try {
+        console.log("Trying Kugou Music...");
+        const kugouSong = await searchKugouMusic(keyword);
+        if (kugouSong?.FileHash) {
+          const lyrics = await fetchKugouMusicLyrics(kugouSong.FileHash);
+          if (lyrics) {
+            console.log("✓ Found lyrics on Kugou Music");
+            return lyrics;
+          }
+        }
+        return null;
+      } catch (error) {
+        console.warn("Kugou Music failed:", error);
+        return null;
+      }
+    })(),
+  ];
+
+  // 使用 Promise.race 获取最快的结果
+  // 但如果第一个返回 null，继续等待其他的
   try {
-    console.log("Trying QQ Music...");
-    const qqSong = await searchQQMusic(keyword);
-    if (qqSong?.songmid) {
-      const lyrics = await fetchQQMusicLyrics(qqSong.songmid);
-      if (lyrics) {
-        console.log("✓ Found lyrics on QQ Music");
-        return lyrics;
+    const results = await Promise.allSettled(searchPromises);
+    
+    // 优先返回网易云的结果（如果有）
+    const neteaseResult = results[0].status === 'fulfilled' ? results[0].value : null;
+    if (neteaseResult) {
+      return neteaseResult;
+    }
+    
+    // 否则返回任何成功的结果
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value) {
+        return result.value;
       }
     }
+    
+    console.warn("No lyrics found on any platform");
+    return null;
   } catch (error) {
-    console.warn("QQ Music failed:", error);
+    console.error("All platforms failed:", error);
+    return null;
   }
-
-  // 2. 尝试酷狗音乐
-  try {
-    console.log("Trying Kugou Music...");
-    const kugouSong = await searchKugouMusic(keyword);
-    if (kugouSong?.FileHash) {
-      const lyrics = await fetchKugouMusicLyrics(kugouSong.FileHash);
-      if (lyrics) {
-        console.log("✓ Found lyrics on Kugou Music");
-        return lyrics;
-      }
-    }
-  } catch (error) {
-    console.warn("Kugou Music failed:", error);
-  }
-
-  // 3. 备用：网易云音乐
-  try {
-    console.log("Trying Netease Music...");
-    const neteaseSong = await searchNeteaseMusic(keyword);
-    if (neteaseSong?.id) {
-      const lyrics = await fetchNeteaseMusicLyrics(neteaseSong.id.toString());
-      if (lyrics) {
-        console.log("✓ Found lyrics on Netease Music");
-        return lyrics;
-      }
-    }
-  } catch (error) {
-    console.warn("Netease Music failed:", error);
-  }
-
-  console.warn("No lyrics found on any platform");
-  return null;
 };
 
 /**
