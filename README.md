@@ -1,8 +1,12 @@
 # Lumison
 
-A high-fidelity, immersive music player inspired by Apple Music with advanced playback controls and stunning visual effects.
+A high-fidelity, immersive music player inspired by Apple Music with advanced playback controls, stunning visual effects, and multi-language support.
 
 🎵 **Live Demo**: https://salixjfrost.github.io/Lumison/
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 
 ## Screenshots
 <img width="2559" height="1599" alt="image" src="https://github.com/user-attachments/assets/1eccc917-7620-478a-b46b-942d1498e92e" />
@@ -12,88 +16,85 @@ A high-fidelity, immersive music player inspired by Apple Music with advanced pl
 
 ## ✨ Features
 
-### Core Features
-- **WebGL Fluid Background**: Dynamic, reactive fluid background effect using WebGL shaders. [Reference](https://www.shadertoy.com/view/wdyczG)
-- **Canvas Lyric Rendering**: High-performance, custom-drawn lyric visualization with smooth animations on HTML5 Canvas
-- **Music Import & Search**: Seamlessly search and import music from Netease Cloud Music or Bilibili
+### 🎨 Visual Experience
+- **WebGL Fluid Background**: Dynamic, reactive fluid background effect using WebGL shaders
+- **Canvas Lyric Rendering**: High-performance, custom-drawn lyric visualization with smooth animations
 - **3D Album Cover**: Professional 3D card effect with mouse tracking and glare effects
-- **Multi-language Lyrics**: Support for synchronized lyrics with translations and metadata
+- **Theme Support**: Light and dark themes with smooth 1.2s transitions
+- **Hardware Acceleration**: GPU-accelerated rendering for 60 FPS performance
 
-### Advanced Playback Controls
+### 🎵 Music Playback
 - **Variable Speed Playback (0.5x - 3x)**: Enhanced speed control with 8 quick presets
   - Quick presets: 0.5x, 0.75x, 1x, 1.25x, 1.5x, 2x, 2.5x, 3x
   - Smooth speed transitions with performance optimization
   - Visual speed indicator with color-coded feedback
 - **Pitch Preservation**: Toggle between digital (pitch-preserved) and vinyl (natural pitch shift) modes
 - **Real-time Audio Visualization**: Spectrum analyzer with smooth animations
+- **Hardware Decoding**: Automatic detection and use of hardware-accelerated audio decoding
 
-### User Experience
-- **Keyboard Shortcuts**: Comprehensive keyboard controls for efficient navigation
+### 🌐 Music Sources
+- **Netease Cloud Music**: Search and import music with lyrics
+- **Bilibili**: Extract and play audio from Bilibili videos
+  - Automatic audio stream extraction
+  - CORS bypass with Blob URL
+  - Hardware-accelerated decoding support
+- **Local Files**: Import audio files with metadata extraction
+- **Multi-language Lyrics**: Support for synchronized lyrics with translations
+
+### 🌍 Internationalization
+- **3 Languages**: English, 简体中文, 日本語
+- **Auto-detect**: Automatically detects browser language
+- **Persistent**: Language preference saved to localStorage
+- **Complete Coverage**: All UI text fully translated
+
+### ⌨️ User Experience
+- **Keyboard Shortcuts**: Comprehensive keyboard controls
   - `Space`: Play/Pause
   - `Shift + ↑/↓`: Adjust speed ±0.25x
   - `Ctrl + 0-3`: Quick speed presets (1x, 1.5x, 2x, 3x)
   - `R`: Reset speed to 1x
   - `S`: Open speed settings
-  - And more... (Press `Ctrl + /` to view all shortcuts)
-- **Touch Optimized**: Gesture support for mobile devices with responsive design
-- **Theme Support**: Light and dark themes with smooth transitions
-- **Responsive Design**: Seamless experience across desktop and mobile devices
-- **Multi-language Support**: English, 简体中文, 日本語
-  - Auto-detect browser language
-  - Easy language switching in top bar
-  - Persistent language preference
-- **Hardware Acceleration**: GPU-accelerated animations for 60 FPS performance
-  - Optimized CSS transforms with `translate3d`
-  - Reduced repaints and reflows
-  - Smooth theme transitions
+  - `Ctrl + /`: View all shortcuts
+- **Touch Optimized**: Gesture support for mobile devices
+- **Responsive Design**: Seamless experience across desktop and mobile
 
 ## 🚀 Quick Start
 
 **Prerequisites:** Node.js 18+ and npm
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/salixjfrost/Lumison.git
-   cd Lumison
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/salixjfrost/Lumison.git
+cd Lumison
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+# Install dependencies
+npm install
 
-3. **(Optional) Configure AI features**
-   
-   Create a `.env.local` file and set your `GEMINI_API_KEY` for AI-powered lyrics analysis:
-   ```env
-   GEMINI_API_KEY=your_api_key_here
-   ```
+# Run development server
+npm run dev
+# Open http://localhost:5173
 
-4. **Run development server**
-   ```bash
-   npm run dev
-   ```
-   Open http://localhost:5173 in your browser
+# Build for production
+npm run build
+```
 
-5. **Build for production**
-   ```bash
-   npm run build
-   ```
-   The built files will be in the `dist` directory
+### Optional: AI Features
+
+Create a `.env.local` file for AI-powered lyrics analysis:
+```env
+GEMINI_API_KEY=your_api_key_here
+```
 
 ## 🎮 Usage
 
 ### Importing Music
-1. **Local Files**: Drag and drop audio files or click the import button
-2. **Online Search**: Press `Ctrl + K` to search Netease Cloud Music or Bilibili
-3. **URL Import**: Paste music URLs directly
+- **Local Files**: Drag and drop audio files or click the import button
+- **Online Search**: Press `Ctrl + K` to search Netease Cloud Music or Bilibili
+- **URL Import**: Paste music URLs directly (supports Netease and Bilibili)
 
 ### Playback Controls
-- **Speed Control**: Click the settings icon or press `S` to adjust playback speed
-  - Use the vertical slider for precise control
-  - Click "Speed" to access quick presets
-  - Use `Shift + ↑/↓` for keyboard adjustment
-- **Volume**: Click the volume icon or use `↑/↓` arrow keys
+- **Speed Control**: Click settings icon or press `S` to adjust playback speed
+- **Volume**: Click volume icon or use `↑/↓` arrow keys
 - **Navigation**: Use `←/→` to seek, `Ctrl + ←/→` to skip tracks
 - **Loop Modes**: Press `L` to cycle through loop modes
 
@@ -102,12 +103,13 @@ Press `Ctrl + /` to view all available keyboard shortcuts in the app.
 
 ## 🛠️ Tech Stack
 
-- **Frontend Framework**: React 19 with TypeScript
+- **Frontend**: React 19 with TypeScript
 - **Build Tool**: Vite
 - **Animations**: React Spring
 - **Graphics**: WebGL (fluid background), Canvas API (lyrics rendering)
-- **Audio Processing**: Web Audio API with custom playback rate optimization
+- **Audio**: Web Audio API with hardware decoding optimization
 - **Styling**: Tailwind CSS with custom animations
+- **i18n**: Custom React Context-based translation system
 
 ## 📦 Project Structure
 
@@ -115,32 +117,37 @@ Press `Ctrl + /` to view all available keyboard shortcuts in the app.
 Lumison/
 ├── src/
 │   ├── components/        # React components
-│   │   ├── Controls.tsx   # Playback controls with speed settings
+│   │   ├── Controls.tsx   # Playback controls
 │   │   ├── SpeedIndicator.tsx  # Visual speed feedback
 │   │   ├── LyricsView.tsx # Canvas-based lyrics renderer
 │   │   └── ...
 │   ├── hooks/            # Custom React hooks
 │   │   ├── usePlayer.ts  # Audio playback logic
 │   │   └── ...
-│   ├── services/         # Business logic and utilities
-│   └── types.ts          # TypeScript type definitions
-├── public/               # Static assets
-└── dist/                 # Production build output
+│   ├── services/         # Business logic
+│   │   ├── music/        # Music services (Netease, Bilibili)
+│   │   ├── lyrics/       # Lyrics parsing and fetching
+│   │   └── corsProxy.ts  # CORS bypass for Bilibili
+│   ├── contexts/         # React contexts (Theme, i18n)
+│   ├── i18n/            # Internationalization
+│   │   └── locales/     # Translation files (en, zh, ja)
+│   └── types.ts         # TypeScript type definitions
+├── docs/                # Documentation
+│   ├── SPEED_OPTIMIZATION.md
+│   ├── PERFORMANCE_I18N.md
+│   └── BILIBILI_HARDWARE_DECODE.md
+├── public/              # Static assets
+└── dist/                # Production build output
 ```
 
-## 🎯 Performance Optimizations
+## 🎯 Performance
 
+### Optimization Highlights
 - **Hardware Acceleration**: GPU-accelerated rendering for all animations
-  - CSS 3D transforms (`translate3d`, `rotate3d`)
-  - `will-change` hints for browser optimization
-  - Backface visibility optimization
-- **Smooth Speed Transitions**: Uses `requestAnimationFrame` for gradual speed changes
-- **Optimized High-Speed Playback**: Special handling for speeds > 2x
-- **Efficient Canvas Rendering**: Hardware-accelerated lyrics animation
-- **Resource Management**: Automatic cleanup of timers and animation frames
-- **Lazy Loading**: Components load on-demand to reduce initial bundle size
-- **Reduced Repaints**: Isolated rendering layers and optimized paint areas
 - **60 FPS Target**: Consistent frame rate across all animations
+- **Smart Audio Decoding**: Automatic hardware decoding detection
+- **Efficient Rendering**: Isolated layers and optimized paint areas
+- **Memory Management**: Automatic cleanup of resources
 
 ### Performance Metrics
 
@@ -152,30 +159,40 @@ Lumison/
 | CPU Usage | ~25% | ~15% | 40% ↓ |
 | Theme Switch Delay | ~200ms | ~50ms | 75% ↓ |
 
-## 🌍 Internationalization (i18n)
+*Tested on Chrome 120+, MacBook Pro M1, 1920x1080*
 
-Lumison supports multiple languages with automatic detection and easy switching:
+For detailed performance documentation, see [docs/PERFORMANCE_I18N.md](./docs/PERFORMANCE_I18N.md)
+
+## 🌍 Internationalization
 
 ### Supported Languages
-- 🇺🇸 **English** (en)
-- 🇨🇳 **简体中文** (zh)
-- 🇯🇵 **日本語** (ja)
+- 🇺🇸 English (en)
+- 🇨🇳 简体中文 (zh)
+- 🇯🇵 日本語 (ja)
 
 ### Features
 - Auto-detect browser language on first visit
 - Language switcher in top bar
-- Persistent language preference (localStorage)
+- Persistent language preference
 - Type-safe translation system
-- Parameter interpolation support
+- Complete UI coverage
 
 ### Adding New Languages
 
-1. Create a new locale file in `src/i18n/locales/`
+1. Create locale file: `src/i18n/locales/[lang].ts`
 2. Add translations following the existing structure
 3. Update `src/i18n/index.ts` to include the new locale
 4. Submit a pull request!
 
-For detailed i18n documentation, see [PERFORMANCE_I18N.md](./PERFORMANCE_I18N.md)
+For detailed i18n documentation, see [docs/PERFORMANCE_I18N.md](./docs/PERFORMANCE_I18N.md)
+
+## 📚 Documentation
+
+Detailed documentation is available in the `docs/` folder:
+
+- **[Speed Optimization](./docs/SPEED_OPTIMIZATION.md)** - Variable speed playback implementation
+- **[Performance & i18n](./docs/PERFORMANCE_I18N.md)** - Performance optimization and internationalization
+- **[Bilibili Integration](./docs/BILIBILI_HARDWARE_DECODE.md)** - Bilibili audio extraction and hardware decoding
 
 ## 🤝 Contributing
 
@@ -189,37 +206,30 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
 
-This project is open source and available under the MIT License.
+This project is open source and available under the [MIT License](LICENSE).
 
 ## 🙏 Credits
 
-- **Shader Source**: https://www.shadertoy.com/view/wdyczG
+- **Shader Source**: [Shadertoy - wdyczG](https://www.shadertoy.com/view/wdyczG)
 - **Original Project**: Aura Music by dingyi222666
 - **Inspiration**: Apple Music design language
 
 ## 📝 Changelog
 
-### Latest Updates (v2.0)
-- 🌍 **Multi-language Support**: English, 简体中文, 日本語
-  - Auto-detect browser language
-  - Language switcher in top bar
-  - Type-safe translation system
-- ⚡ **Performance Optimization**: Hardware acceleration enabled
-  - GPU-accelerated animations (60 FPS)
-  - Optimized CSS transforms with `translate3d`
-  - Reduced CPU usage by 40%
-  - Faster theme transitions (75% improvement)
-- ✨ Extended speed range to 3x with 8 quick presets
-- 🎨 Added visual speed indicator with color-coded feedback
-- ⌨️ Enhanced keyboard shortcuts for speed control
-- 📱 Optimized touch gestures for mobile devices
-- 🎯 Smooth speed transitions with requestAnimationFrame
+### v2.0.0 (Latest)
+- 🌍 Multi-language support (English, 简体中文, 日本語)
+- ⚡ Hardware acceleration and performance optimization
+- 🎵 Bilibili audio extraction with hardware decoding
+- ✨ Extended speed range to 3x with quick presets
+- 🎨 Visual speed indicator with color-coded feedback
+- ⌨️ Enhanced keyboard shortcuts
+- 📱 Optimized touch gestures for mobile
 
-For detailed changes, see:
-- [SPEED_OPTIMIZATION.md](./SPEED_OPTIMIZATION.md) - Speed control improvements
-- [PERFORMANCE_I18N.md](./PERFORMANCE_I18N.md) - Performance & i18n details
+For detailed changes, see the [documentation](./docs/).
 
 ---
 
 Made with ❤️ by the Lumison team
+
+**Star ⭐ this repo if you like it!**
 
