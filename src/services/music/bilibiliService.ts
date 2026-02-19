@@ -1,5 +1,6 @@
 import { fetchViaProxy } from "../utils";
 import { fetchAudioAsBlob } from "../corsProxy";
+import { getBestStreamingMethod, isStreamingSupported } from "../streamingProxy";
 
 export interface BilibiliTrackInfo {
   id: string;
@@ -10,6 +11,12 @@ export interface BilibiliTrackInfo {
   isBilibili: true;
   bilibiliId: string;
   bvid?: string;
+}
+
+export interface BilibiliError {
+  code: 'FETCH_FAILED' | 'NO_AUDIO' | 'RESTRICTED' | 'NETWORK_ERROR';
+  message: string;
+  details?: string;
 }
 
 interface BilibiliVideoInfo {
@@ -99,19 +106,30 @@ const getBilibiliCid = async (bvid: string): Promise<number | null> => {
 };
 
 /**
- * Get Bilibili audio stream URL and convert to blob URL
- * This method fetches the audio as a blob to bypass CORS restrictions
+ * Get Bilibili audio stream URL with streaming support
+ * Supports both streaming (MediaSource) and progressive loading (Blob)
+ * @param videoId - Bilibili video ID (BV号)
+ * @param onProgress - Progress callback (loaded, total)
+ * @param useStreaming - Whether to use streaming (default: auto-detect)
+ * @returns Audio URL (blob: or MediaSource URL)
  */
 export const getBilibiliAudioUrl = async (
   videoId: string,
-  onProgress?: (loaded: number, total: number) => void
-): Promise<string | null> => {
+  onProgress?: (loaded: number, total: number) => void,
+  useStreaming: boolean = true
+): Promise<{ url: string; error?: BilibiliError } | null> => {
   try {
     // Get CID first
     const cid = await getBilibiliCid(videoId);
     if (!cid) {
-      console.error("Failed to get CID for video:", videoId);
-      return null;
+      return {
+        url: '',
+        error: {
+          code: 'FETCH_FAILED',
+          message: 'Failed to get video information',
+          details: 'Could not retrieve CID for the video',
+        },
+      };
     }
 
     // Get play URL with audio stream
@@ -134,26 +152,61 @@ export const getBilibiliAudioUrl = async (
       }
 
       if (!audioStreamUrl) {
-        console.error("No audio stream found for video:", videoId);
-        return null;
+        return {
+          url: '',
+          error: {
+            code: 'NO_AUDIO',
+            message: 'No audio stream available',
+            details: 'The video may not have a separate audio track',
+          },
+        };
       }
 
-      // Fetch audio as blob to bypass CORS
-      console.log("Fetching Bilibili audio stream...");
-      const blob = await fetchAudioAsBlob(audioStreamUrl, onProgress);
-      
-      // Create object URL from blob
-      const blobUrl = URL.createObjectURL(blob);
-      console.log("Bilibili audio loaded successfully");
-      
-      return blobUrl;
+      // Check if streaming is supported and enabled
+      const shouldUseStreaming = useStreaming && isStreamingSupported();
+
+      console.log(
+        shouldUseStreaming
+          ? 'Using MediaSource streaming for Bilibili audio...'
+          : 'Using progressive blob loading for Bilibili audio...'
+      );
+
+      try {
+        // Use best streaming method
+        const url = await getBestStreamingMethod(audioStreamUrl, onProgress);
+        console.log('Bilibili audio loaded successfully');
+        
+        return { url };
+      } catch (streamError) {
+        console.error('Streaming failed, trying fallback method:', streamError);
+        
+        // Fallback to blob method
+        const blob = await fetchAudioAsBlob(audioStreamUrl, onProgress);
+        const blobUrl = URL.createObjectURL(blob);
+        
+        return { url: blobUrl };
+      }
     }
 
-    console.error("No audio stream found for video:", videoId);
-    return null;
+    return {
+      url: '',
+      error: {
+        code: 'NO_AUDIO',
+        message: 'No audio stream found',
+        details: 'The API response did not contain audio data',
+      },
+    };
   } catch (error) {
-    console.error("Failed to get Bilibili audio URL:", error);
-    return null;
+    console.error('Failed to get Bilibili audio URL:', error);
+    
+    return {
+      url: '',
+      error: {
+        code: 'NETWORK_ERROR',
+        message: 'Network error occurred',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+    };
   }
 };
 

@@ -291,20 +291,39 @@ export const usePlaylist = () => {
           if (bilibiliLink.type === "video" || bilibiliLink.type === "audio") {
             const video = await fetchBilibiliVideo(bilibiliLink.id);
             if (video) {
-              // Get audio URL asynchronously
-              const audioUrl = await getBilibiliAudioUrl(video.id);
+              // Get audio URL with streaming support
+              const result = await getBilibiliAudioUrl(video.id);
               
-              if (!audioUrl) {
+              if (!result || !result.url) {
+                const error = result?.error;
+                let errorMessage = "Failed to extract audio from Bilibili video.";
+                
+                if (error) {
+                  switch (error.code) {
+                    case 'RESTRICTED':
+                      errorMessage = "This video is restricted and cannot be played. It may be region-locked or require login.";
+                      break;
+                    case 'NO_AUDIO':
+                      errorMessage = "No audio stream found in this video. The video may not have a separate audio track.";
+                      break;
+                    case 'NETWORK_ERROR':
+                      errorMessage = `Network error: ${error.details || 'Please check your connection and try again.'}`;
+                      break;
+                    default:
+                      errorMessage = error.message || errorMessage;
+                  }
+                }
+                
                 return {
                   success: false,
-                  message: "Failed to extract audio from Bilibili video. The video may be restricted or unavailable.",
+                  message: errorMessage,
                   songs: [],
                 };
               }
               
               newSongs.push({
                 ...video,
-                fileUrl: audioUrl,
+                fileUrl: result.url,
                 lyrics: [],
                 colors: video.coverUrl ? await extractColors(video.coverUrl) : [],
                 needsLyricsMatch: true,
@@ -315,7 +334,9 @@ export const usePlaylist = () => {
           console.error("Failed to fetch Bilibili video", err);
           return {
             success: false,
-            message: "Failed to load video from Bilibili URL. Please check the URL and try again.",
+            message: err instanceof Error 
+              ? `Failed to load video: ${err.message}` 
+              : "Failed to load video from Bilibili URL. Please check the URL and try again.",
             songs: [],
           };
         }
