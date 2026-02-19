@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useSpring, animated, useTransition, to } from "@react-spring/web";
 import { formatTime } from "../services/utils";
+import { SpatialAudioEngine } from "../services/audio/SpatialAudioEngine";
 import Visualizer from "./visualizer/Visualizer";
 import SmartImage from "./SmartImage";
-import SpatialAudioControl from "./SpatialAudioControl";
 import {
   LoopIcon,
   LoopOneIcon,
@@ -87,6 +87,10 @@ const Controls: React.FC<ControlsProps> = ({
   const volumeContainerRef = useRef<HTMLDivElement>(null);
   const settingsContainerRef = useRef<HTMLDivElement>(null);
   const coverRef = useRef<HTMLDivElement>(null);
+  
+  // Spatial Audio Engine
+  const spatialEngineRef = useRef<SpatialAudioEngine | null>(null);
+  const [spatialAudioEnabled, setSpatialAudioEnabled] = useState(false);
 
   // 3D Card Effect State
   const [{ rotateX, rotateY, glareX, glareY, glareOpacity }, cardApi] = useSpring(() => ({
@@ -97,6 +101,34 @@ const Controls: React.FC<ControlsProps> = ({
     glareOpacity: 0,
     config: { tension: 300, friction: 40 },
   }));
+  
+  // Initialize Spatial Audio Engine
+  useEffect(() => {
+    if (!audioRef.current) return;
+    
+    const engine = new SpatialAudioEngine();
+    engine.attachToAudioElement(audioRef.current);
+    engine.applyPreset('music');
+    spatialEngineRef.current = engine;
+    
+    // Resume audio context on user interaction
+    const resumeContext = () => {
+      engine.resume();
+    };
+    document.addEventListener('click', resumeContext, { once: true });
+    
+    return () => {
+      engine.destroy();
+    };
+  }, [audioRef]);
+  
+  // Toggle Spatial Audio
+  const handleToggleSpatialAudio = () => {
+    if (!spatialEngineRef.current) return;
+    const newEnabled = !spatialAudioEnabled;
+    setSpatialAudioEnabled(newEnabled);
+    spatialEngineRef.current.setEnabled(newEnabled);
+  };
 
   const volumeTransitions = useTransition(showVolumePopup, {
     from: { opacity: 0, transform: "translate(-50%, 10px) scale(0.9)" },
@@ -690,6 +722,8 @@ const Controls: React.FC<ControlsProps> = ({
                   onSpeedChange={onSpeedChange}
                   audioRef={audioRef}
                   isPlaying={isPlaying}
+                  spatialAudioEnabled={spatialAudioEnabled}
+                  onToggleSpatialAudio={handleToggleSpatialAudio}
                 />
               ) : null
             )}
@@ -777,6 +811,8 @@ interface SettingsPopupProps {
   onSpeedChange: (speed: number) => void;
   audioRef: React.RefObject<HTMLAudioElement>;
   isPlaying: boolean;
+  spatialAudioEnabled: boolean;
+  onToggleSpatialAudio: () => void;
 }
 
 const SettingsPopup: React.FC<SettingsPopupProps> = ({
@@ -785,8 +821,8 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
   onTogglePreservesPitch,
   speed,
   onSpeedChange,
-  audioRef,
-  isPlaying,
+  spatialAudioEnabled,
+  onToggleSpatialAudio,
 }) => {
   const { t } = useI18n();
   const { speedH } = useSpring({
@@ -795,7 +831,6 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
   });
 
   const [audioEffect, setAudioEffect] = React.useState<'none' | 'reverb' | 'echo' | 'bass'>('none');
-  const [showSpatialAudio, setShowSpatialAudio] = React.useState(false);
 
   // Quick speed presets
   const speedPresets = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
@@ -948,27 +983,17 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
       {/* 3D Spatial Audio */}
       <div className="flex flex-col items-center justify-end gap-2 w-12 pb-6">
         <button
-          onClick={() => setShowSpatialAudio(!showSpatialAudio)}
+          onClick={onToggleSpatialAudio}
           className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors duration-200 ${
-            showSpatialAudio ? "bg-gradient-to-br from-purple-500 to-pink-500 text-white" : "bg-white text-black"
+            spatialAudioEnabled ? "bg-gradient-to-br from-purple-500 to-pink-500 text-white" : "bg-white text-black"
           }`}
           title={t("spatialAudio.title")}
         >
           <span className="text-xs font-bold">3D</span>
         </button>
         <span className="text-[10px] font-medium text-white/60 text-center leading-tight">
-          {t("spatialAudio.title").split(' ')[0]}
+          {spatialAudioEnabled ? t("spatialAudio.on") : t("spatialAudio.off")}
         </span>
-        
-        {/* Spatial Audio Panel */}
-        {showSpatialAudio && (
-          <div className="absolute top-0 left-full ml-2">
-            <SpatialAudioControl
-              audioRef={audioRef}
-              isPlaying={isPlaying}
-            />
-          </div>
-        )}
       </div>
     </animated.div>
   );
