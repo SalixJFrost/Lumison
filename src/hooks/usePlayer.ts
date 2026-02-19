@@ -321,6 +321,11 @@ export const usePlayer = ({
       return;
     }
 
+    console.log(`🎵 Lyrics matching check for: "${currentSong.title}" by "${currentSong.artist}"`);
+    console.log(`   - needsLyricsMatch: ${currentSong.needsLyricsMatch}`);
+    console.log(`   - existing lyrics: ${currentSong.lyrics?.length || 0} lines`);
+    console.log(`   - local lyrics: ${currentSong.localLyrics?.length || 0} lines`);
+
     const songId = currentSong.id;
     const songTitle = currentSong.title;
     const songArtist = currentSong.artist;
@@ -345,34 +350,40 @@ export const usePlayer = ({
     };
 
     if (existingLyrics.length > 0) {
+      console.log("✅ Lyrics already exist, skipping search");
       markMatchSuccess();
       return;
     }
 
     if (!needsLyricsMatch) {
+      console.log("⏭️ Song doesn't need lyrics matching");
       markMatchFailed();
       return;
     }
 
     const fetchLyrics = async () => {
       setMatchStatus("matching");
+      console.log(`🎵 Starting lyrics search for: "${songTitle}" by "${songArtist}"`);
       try {
         if (isNeteaseSong && songNeteaseId) {
+          console.log(`📀 Fetching lyrics by Netease ID: ${songNeteaseId}`);
           const raw = await withTimeout(
             fetchLyricsById(songNeteaseId),
             MATCH_TIMEOUT_MS,
           );
           if (cancelled) return;
           if (raw) {
+            console.log("✅ Successfully fetched lyrics by ID");
             updateSongInQueue(songId, {
               lyrics: mergeLyricsWithMetadata(raw),
               needsLyricsMatch: false,
             });
             markMatchSuccess();
           } else {
+            console.warn("❌ Failed to fetch lyrics by ID");
             // 网易云歌曲失败，尝试使用本地歌词
             if (currentSong.localLyrics && currentSong.localLyrics.length > 0) {
-              console.log("Using local lyrics as fallback");
+              console.log("📝 Using local lyrics as fallback");
               updateSongInQueue(songId, {
                 lyrics: currentSong.localLyrics,
                 needsLyricsMatch: false,
@@ -383,36 +394,40 @@ export const usePlayer = ({
             }
           }
         } else {
+          console.log(`🔍 Searching lyrics online for: "${songTitle}" - "${songArtist}"`);
           const result = await withTimeout(
             searchAndMatchLyrics(songTitle, songArtist),
             MATCH_TIMEOUT_MS,
           );
           if (cancelled) return;
           if (result) {
+            console.log("✅ Successfully found lyrics online");
             updateSongInQueue(songId, {
               lyrics: mergeLyricsWithMetadata(result),
               needsLyricsMatch: false,
             });
             markMatchSuccess();
           } else {
+            console.warn("❌ Online search failed");
             // 在线搜索失败，尝试使用本地歌词
             if (currentSong.localLyrics && currentSong.localLyrics.length > 0) {
-              console.log("Online search failed, using local lyrics as fallback");
+              console.log("📝 Online search failed, using local lyrics as fallback");
               updateSongInQueue(songId, {
                 lyrics: currentSong.localLyrics,
                 needsLyricsMatch: false,
               });
               markMatchSuccess();
             } else {
+              console.log("❌ No local lyrics available");
               markMatchFailed();
             }
           }
         }
       } catch (error) {
-        console.warn("Lyrics matching failed:", error);
+        console.error("💥 Lyrics matching error:", error);
         // 出错时也尝试使用本地歌词
         if (currentSong.localLyrics && currentSong.localLyrics.length > 0) {
-          console.log("Error occurred, using local lyrics as fallback");
+          console.log("📝 Error occurred, using local lyrics as fallback");
           updateSongInQueue(songId, {
             lyrics: currentSong.localLyrics,
             needsLyricsMatch: false,
@@ -435,8 +450,67 @@ export const usePlayer = ({
     const audio = audioRef.current;
     if (!audio) return;
 
-    const handleAudioError = () => {
-      console.warn("Audio playback error detected");
+    const handleAudioError = (event: Event) => {
+      const audioElement = event.target as HTMLAudioElement;
+      const error = audioElement.error;
+      
+      console.error("🔴 Audio playback error detected");
+      
+      if (error) {
+        let errorMessage = "Unknown audio error";
+        let errorDetails = "";
+        
+        switch (error.code) {
+          case MediaError.MEDIA_ERR_ABORTED:
+            errorMessage = "Audio loading aborted";
+            errorDetails = "The audio loading was aborted by the user";
+            break;
+          case MediaError.MEDIA_ERR_NETWORK:
+            errorMessage = "Network error";
+            errorDetails = "A network error occurred while loading the audio";
+            break;
+          case MediaError.MEDIA_ERR_DECODE:
+            errorMessage = "Audio decode error";
+            errorDetails = "The audio format is not supported or the file is corrupted. Try converting to MP3 or FLAC.";
+            console.error("💡 Suggestion: This WAV file might use an unsupported codec. Try converting to standard PCM WAV or MP3.");
+            break;
+          case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            errorMessage = "Audio format not supported";
+            errorDetails = "The audio format or MIME type is not supported by your browser. Try converting to MP3.";
+            console.error("💡 Suggestion: Convert the file to a more compatible format like MP3 or FLAC.");
+            break;
+          default:
+            errorMessage = "Audio playback error";
+            errorDetails = error.message || "Unknown error";
+        }
+        
+        console.error(`   Error Code: ${error.code}`);
+        console.error(`   Error Message: ${errorMessage}`);
+        console.error(`   Details: ${errorDetails}`);
+        
+        if (currentSong) {
+          console.error(`   File: ${currentSong.title} - ${currentSong.artist}`);
+          console.error(`   URL: ${currentSong.fileUrl}`);
+          
+          // Try to detect file format
+          const fileUrl = currentSong.fileUrl;
+          if (fileUrl) {
+            const extension = fileUrl.split('.').pop()?.toLowerCase();
+            console.error(`   Format: ${extension || 'unknown'}`);
+            
+            // Provide format-specific suggestions
+            if (extension === 'wav') {
+              console.error("   ⚠️ WAV files can have compatibility issues.");
+              console.error("   💡 Try converting to: MP3 (best compatibility) or FLAC (lossless)");
+              console.error("   🔧 Conversion command: ffmpeg -i input.wav -codec:a libmp3lame -qscale:a 2 output.mp3");
+            } else if (extension === 'wma' || extension === 'ape') {
+              console.error(`   ⚠️ ${extension?.toUpperCase()} format has limited browser support.`);
+              console.error("   💡 Convert to MP3 or FLAC for better compatibility");
+            }
+          }
+        }
+      }
+      
       audio.pause();
       audio.currentTime = 0;
       setPlayState(PlayState.PAUSED);
@@ -447,7 +521,7 @@ export const usePlayer = ({
     return () => {
       audio.removeEventListener("error", handleAudioError);
     };
-  }, [audioRef]);
+  }, [audioRef, currentSong]);
 
   // Provide high-precision time updates directly from the native audio element
   useEffect(() => {

@@ -14,10 +14,17 @@ import { usePlayer } from "./hooks/usePlayer";
 import { keyboardRegistry } from "./services/ui/keyboardRegistry";
 import MediaSessionController from "./components/MediaSessionController";
 import { useTheme } from "./contexts/ThemeContext";
+import { logSupportedFormats } from "./services/utils";
 
 const App: React.FC = () => {
   const { toast } = useToast();
   const { theme } = useTheme();
+  
+  // Log supported audio formats on app start
+  useEffect(() => {
+    logSupportedFormats();
+  }, []);
+  
   const playlist = usePlaylist();
   const player = usePlayer({
     queue: playlist.queue,

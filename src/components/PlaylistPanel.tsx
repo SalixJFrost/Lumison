@@ -388,7 +388,7 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileChange}
-                accept="audio/*,.lrc,.txt"
+                accept="audio/*,.mp3,.wav,.flac,.m4a,.aac,.ogg,.opus,.wma,.ape,.alac,.aiff,.webm,.lrc,.txt"
                 multiple
                 className="hidden"
             />

@@ -270,3 +270,59 @@ export const parseBilibiliLink = (
     return null;
   }
 };
+
+/**
+ * Check if browser supports a specific audio format
+ */
+export const canPlayAudioFormat = (mimeType: string): boolean => {
+  const audio = document.createElement('audio');
+  const canPlay = audio.canPlayType(mimeType);
+  return canPlay === 'probably' || canPlay === 'maybe';
+};
+
+/**
+ * Get supported audio formats for the current browser
+ */
+export const getSupportedAudioFormats = (): Record<string, boolean> => {
+  return {
+    mp3: canPlayAudioFormat('audio/mpeg'),
+    wav: canPlayAudioFormat('audio/wav') || canPlayAudioFormat('audio/wave'),
+    flac: canPlayAudioFormat('audio/flac'),
+    m4a: canPlayAudioFormat('audio/mp4') || canPlayAudioFormat('audio/x-m4a'),
+    aac: canPlayAudioFormat('audio/aac'),
+    ogg: canPlayAudioFormat('audio/ogg'),
+    opus: canPlayAudioFormat('audio/opus'),
+    webm: canPlayAudioFormat('audio/webm'),
+    aiff: canPlayAudioFormat('audio/aiff') || canPlayAudioFormat('audio/x-aiff'),
+  };
+};
+
+/**
+ * Log supported audio formats to console
+ */
+export const logSupportedFormats = (): void => {
+  const formats = getSupportedAudioFormats();
+  console.log('🎵 Supported Audio Formats:');
+  Object.entries(formats).forEach(([format, supported]) => {
+    console.log(`   ${supported ? '✅' : '❌'} ${format.toUpperCase()}`);
+  });
+};
+
+/**
+ * Get file extension from filename or URL
+ */
+export const getFileExtension = (filename: string): string | null => {
+  const match = filename.match(/\.([^.]+)$/);
+  return match ? match[1].toLowerCase() : null;
+};
+
+/**
+ * Check if a file format is likely supported based on extension
+ */
+export const isFormatLikelySupported = (filename: string): boolean => {
+  const ext = getFileExtension(filename);
+  if (!ext) return false;
+  
+  const formats = getSupportedAudioFormats();
+  return formats[ext as keyof typeof formats] || false;
+};
