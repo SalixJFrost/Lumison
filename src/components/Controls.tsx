@@ -517,7 +517,7 @@ const Controls: React.FC<ControlsProps> = ({
 
       {/* Spectrum Visualizer */}
       <div className="w-full flex justify-center h-12 mb-3">
-        <Visualizer audioRef={audioRef} isPlaying={isPlaying} />
+        <Visualizer audioRef={audioRef} isPlaying={isPlaying} spatialEngine={spatialEngineRef.current} />
       </div>
 
       {/* Progress Bar */}

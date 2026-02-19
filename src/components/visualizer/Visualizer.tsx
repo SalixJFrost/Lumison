@@ -4,154 +4,117 @@ import audioProcessorUrl from './AudioProcessor.ts?worker&url';
 interface VisualizerProps {
     audioRef: React.RefObject<HTMLAudioElement>;
     isPlaying: boolean;
+    spatialEngine?: { getAnalyzer: () => AnalyserNode } | null;
 }
 
 // Global map to store source nodes to prevent "MediaElementAudioSourceNode" double-connection errors
 const sourceMap = new WeakMap<HTMLAudioElement, MediaElementAudioSourceNode>();
 const contextMap = new WeakMap<HTMLAudioElement, AudioContext>();
 
-const Visualizer: React.FC<VisualizerProps> = ({ audioRef, isPlaying }) => {
+const Visualizer: React.FC<VisualizerProps> = ({ audioRef, isPlaying, spatialEngine }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const workerRef = useRef<Worker | null>(null);
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const workletNodeRef = useRef<AudioWorkletNode | null>(null);
+    const analyserRef = useRef<AnalyserNode | null>(null);
+    const animationFrameRef = useRef<number | null>(null);
 
-    // Effect 1: Audio Context and Worklet Initialization
+    // Effect 1: Get Analyser from Spatial Engine
     useEffect(() => {
-        const initAudio = async () => {
-            if (!audioRef.current) return;
-            const audioEl = audioRef.current;
+        if (!isPlaying || !spatialEngine) {
+            analyserRef.current = null;
+            return;
+        }
 
-            let ctx = contextMap.get(audioEl);
-            if (!ctx) {
-                ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-                contextMap.set(audioEl, ctx);
+        try {
+            const analyser = spatialEngine.getAnalyzer();
+            if (analyser) {
+                analyser.fftSize = 2048;
+                analyser.smoothingTimeConstant = 0.75;
+                analyserRef.current = analyser;
             }
-            audioContextRef.current = ctx;
-
-            if (ctx.state === 'suspended' && isPlaying) {
-                await ctx.resume();
-            }
-
-            // Load AudioWorklet
-            if (!workletNodeRef.current) {
-                try {
-                    console.log("Visualizer: Loading AudioWorklet module...");
-                    // Load the module using a URL pointing to the JS file
-                    await ctx.audioWorklet.addModule(audioProcessorUrl);
-                    console.log("Visualizer: AudioWorklet module loaded successfully.");
-
-                    const workletNode = new AudioWorkletNode(ctx, 'audio-processor');
-                    workletNode.port.onmessage = (e) => {
-                        console.log("Visualizer: Message from Worklet:", e.data);
-                    };
-                    workletNodeRef.current = workletNode;
-                    console.log("Visualizer: AudioWorkletNode created.");
-
-                    // Connect Source -> Worklet -> Destination
-                    if (!sourceMap.has(audioEl)) {
-                        const source = ctx.createMediaElementSource(audioEl);
-                        source.connect(ctx.destination); // Output to speakers
-                        source.connect(workletNode);     // Output to visualizer
-                        sourceMap.set(audioEl, source);
-                    } else {
-                        const source = sourceMap.get(audioEl);
-                        if (source) {
-                            // Ensure connection
-                            try { source.connect(workletNode); } catch (e) { }
-                        }
-                    }
-
-                } catch (e) {
-                    console.error("Visualizer: Failed to load AudioWorklet", e);
-                }
-            }
-        };
-
-        if (isPlaying) {
-            initAudio();
+        } catch (e) {
+            console.error("Visualizer: Failed to get analyser", e);
         }
 
         return () => {
-            // Cleanup logic if needed
+            analyserRef.current = null;
         };
-    }, [isPlaying, audioRef]);
+    }, [isPlaying, spatialEngine]);
 
-    // Effect 2: Worker Initialization
+    // Effect 2: Canvas Rendering
     useEffect(() => {
-        if (!isPlaying) {
-            if (workerRef.current) {
-                workerRef.current.postMessage({ type: 'DESTROY' });
-                workerRef.current.terminate();
-                workerRef.current = null;
+        if (!isPlaying || !analyserRef.current) {
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+                animationFrameRef.current = null;
             }
             return;
         }
 
         const canvasEl = canvasRef.current;
-        if (!canvasEl) {
-            return;
-        }
+        if (!canvasEl) return;
 
-        if (workerRef.current) {
-            return;
-        }
+        const ctx = canvasEl.getContext('2d');
+        if (!ctx) return;
 
-        const isOffscreenSupported = !!canvasEl.transferControlToOffscreen;
-        if (!isOffscreenSupported) {
-            console.warn("Visualizer: OffscreenCanvas not available, skipping worker");
-            return;
-        }
+        const analyser = analyserRef.current;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
 
-        try {
-            const worker = new Worker(new URL('./VisualizerWorker.ts', import.meta.url), {
-                type: 'module'
-            });
-            workerRef.current = worker;
+        const barCount = 64;
+        const bars = new Array(barCount).fill(0);
 
-            const dpr = window.devicePixelRatio || 1;
-            canvasEl.width = 320 * dpr;
-            canvasEl.height = 32 * dpr;
+        const draw = () => {
+            if (!isPlaying || !analyserRef.current) return;
 
-            const offscreen = canvasEl.transferControlToOffscreen();
+            analyser.getByteFrequencyData(dataArray);
 
-            const channel = new MessageChannel();
+            const width = canvasEl.width;
+            const height = canvasEl.height;
 
-            worker.postMessage(
-                {
-                    type: 'INIT',
-                    canvas: offscreen,
-                    config: {
-                        barCount: 128,
-                        gap: 2,
-                        fftSize: 256,
-                        smoothingTimeConstant: 0.5,
-                        dpr: dpr
-                    },
-                    port: channel.port1
-                },
-                [offscreen, channel.port1]
-            );
+            ctx.clearRect(0, 0, width, height);
 
-            const sendPortToWorklet = () => {
-                if (workletNodeRef.current) {
-                    workletNodeRef.current.port.postMessage({ type: 'PORT', port: channel.port2 }, [
-                        channel.port2
-                    ]);
-                } else {
-                    requestAnimationFrame(sendPortToWorklet);
+            const barWidth = width / barCount;
+            const samplesPerBar = Math.floor(bufferLength / barCount);
+
+            // Calculate target bar heights with increased sensitivity
+            for (let i = 0; i < barCount; i++) {
+                let sum = 0;
+                for (let j = 0; j < samplesPerBar; j++) {
+                    const index = i * samplesPerBar + j;
+                    if (index < bufferLength) {
+                        sum += dataArray[index];
+                    }
                 }
-            };
-            sendPortToWorklet();
-        } catch (e) {
-            console.error("Visualizer: Failed to initialize worker", e);
-        }
+                const average = sum / samplesPerBar;
+                // Increase jump height by amplifying the value (2.5x multiplier)
+                const targetHeight = (average / 255) * height * 2.5;
+                
+                // Smooth animation with faster response
+                bars[i] += (targetHeight - bars[i]) * 0.35;
+            }
+
+            // Draw bars
+            ctx.fillStyle = '#ffffff';
+            for (let i = 0; i < barCount; i++) {
+                const barHeight = Math.min(bars[i], height);
+                const x = i * barWidth;
+                const y = height - barHeight;
+                const radius = barWidth / 3;
+
+                ctx.beginPath();
+                ctx.roundRect(x + 1, y, barWidth - 2, barHeight, radius);
+                ctx.fill();
+            }
+
+            animationFrameRef.current = requestAnimationFrame(draw);
+        };
+
+        draw();
 
         return () => {
-            if (workerRef.current) {
-                workerRef.current.postMessage({ type: 'DESTROY' });
-                workerRef.current.terminate();
-                workerRef.current = null;
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+                animationFrameRef.current = null;
             }
         };
     }, [isPlaying]);
