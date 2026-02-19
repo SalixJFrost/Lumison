@@ -35,6 +35,34 @@ export default {
     off: "オフ",
   },
 
+  // 空間オーディオ
+  spatialAudio: {
+    title: "3D 空間オーディオ",
+    subtitle: "シネマスタイルの没入感",
+    on: "オン",
+    off: "オフ",
+    active: "アクティブ",
+    inactive: "非アクティブ",
+    presets: "プリセット",
+    music: "音楽",
+    cinema: "シネマ",
+    vocal: "ボーカル",
+    advanced: "詳細設定",
+    equalizer: "5バンドイコライザー",
+    spatial: "空間パラメータ",
+    sub: "サブ",
+    bass: "ベース",
+    mid: "ミッド",
+    highMid: "ハイミッド",
+    treble: "トレブル",
+    width: "幅",
+    depth: "深さ",
+    height: "高さ",
+    roomSize: "ルームサイズ",
+    distance: "距離",
+    disclaimer: "⚠️ これは本物のDolby Atmosではありません。ヘッドフォンでの没入型リスニングのためのシミュレートされた空間強化システムです。",
+  },
+
   // プレーヤーコントロール
   player: {
     play: "再生",

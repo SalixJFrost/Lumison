@@ -35,6 +35,34 @@ export default {
     off: "关闭",
   },
 
+  // 空间音频
+  spatialAudio: {
+    title: "3D 空间音频",
+    subtitle: "影院级沉浸感",
+    on: "开启",
+    off: "关闭",
+    active: "激活",
+    inactive: "未激活",
+    presets: "预设",
+    music: "音乐",
+    cinema: "影院",
+    vocal: "人声",
+    advanced: "高级设置",
+    equalizer: "5段均衡器",
+    spatial: "空间参数",
+    sub: "超低音",
+    bass: "低音",
+    mid: "中音",
+    highMid: "中高音",
+    treble: "高音",
+    width: "宽度",
+    depth: "深度",
+    height: "高度",
+    roomSize: "房间大小",
+    distance: "距离",
+    disclaimer: "⚠️ 这不是真正的杜比全景声。这是一个模拟的空间增强系统，用于耳机沉浸式聆听。",
+  },
+
   // 播放器控制
   player: {
     play: "播放",

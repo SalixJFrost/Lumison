@@ -28,6 +28,13 @@ A high-fidelity, immersive music player inspired by Apple Music with advanced pl
   - Quick presets: 0.5x, 0.75x, 1x, 1.25x, 1.5x, 2x, 2.5x, 3x
   - Smooth speed transitions with performance optimization
   - Visual speed indicator with color-coded feedback
+- **3D Spatial Audio**: Cinema-style immersive sound for headphones
+  - 5-band parametric equalizer (Sub, Bass, Mid, High-Mid, Treble)
+  - HRTF-based 3D positioning with spatial widening
+  - Convolution reverb for depth and room simulation
+  - 3 presets: Music, Cinema, Vocal modes
+  - Real-time frequency visualization
+  - ⚠️ Simulated spatial enhancement (not real Dolby Atmos)
 - **Pitch Preservation**: Toggle between digital (pitch-preserved) and vinyl (natural pitch shift) modes
 - **Real-time Audio Visualization**: Spectrum analyzer with smooth animations
 - **Hardware Decoding**: Automatic detection and use of hardware-accelerated audio decoding
@@ -108,6 +115,11 @@ Press `Ctrl + /` to view all available keyboard shortcuts in the app.
 - **Animations**: React Spring
 - **Graphics**: WebGL (fluid background), Canvas API (lyrics rendering)
 - **Audio**: Web Audio API with hardware decoding optimization
+  - 3D Spatial Audio Engine with HRTF panning
+  - 5-band parametric EQ
+  - Convolution reverb
+  - Harmonic excitation
+  - Dynamic range compression
 - **Styling**: Tailwind CSS with custom animations
 - **i18n**: Custom React Context-based translation system
 
@@ -120,11 +132,15 @@ Lumison/
 │   │   ├── Controls.tsx   # Playback controls
 │   │   ├── SpeedIndicator.tsx  # Visual speed feedback
 │   │   ├── LyricsView.tsx # Canvas-based lyrics renderer
+│   │   ├── SpatialAudioControl.tsx  # 3D spatial audio UI
 │   │   └── ...
 │   ├── hooks/            # Custom React hooks
 │   │   ├── usePlayer.ts  # Audio playback logic
+│   │   ├── useSpatialAudio.ts  # Spatial audio integration
 │   │   └── ...
 │   ├── services/         # Business logic
+│   │   ├── audio/        # Audio processing
+│   │   │   └── SpatialAudioEngine.ts  # 3D spatial audio engine
 │   │   ├── music/        # Music services (Netease, Bilibili)
 │   │   ├── lyrics/       # Lyrics parsing and fetching
 │   │   └── corsProxy.ts  # CORS bypass for Bilibili
@@ -216,7 +232,13 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## 📝 Changelog
 
-### v2.0.0 (Latest)
+### v2.1.0 (Latest)
+- 🎧 3D Spatial Audio system with cinema-style immersion
+  - 5-band parametric equalizer
+  - HRTF-based 3D positioning
+  - Convolution reverb and stereo widening
+  - Music/Cinema/Vocal presets
+  - Real-time frequency visualization
 - 🌍 Multi-language support (English, 简体中文, 日本語)
 - ⚡ Hardware acceleration and performance optimization
 - 🎵 Bilibili audio extraction with hardware decoding

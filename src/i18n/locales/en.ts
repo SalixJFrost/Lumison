@@ -35,6 +35,34 @@ export default {
     off: "Off",
   },
 
+  // Spatial Audio
+  spatialAudio: {
+    title: "3D Spatial Audio",
+    subtitle: "Cinema-style immersion",
+    on: "ON",
+    off: "OFF",
+    active: "ACTIVE",
+    inactive: "INACTIVE",
+    presets: "Presets",
+    music: "Music",
+    cinema: "Cinema",
+    vocal: "Vocal",
+    advanced: "Advanced Settings",
+    equalizer: "5-Band Equalizer",
+    spatial: "Spatial Parameters",
+    sub: "Sub",
+    bass: "Bass",
+    mid: "Mid",
+    highMid: "High-Mid",
+    treble: "Treble",
+    width: "Width",
+    depth: "Depth",
+    height: "Height",
+    roomSize: "Room Size",
+    distance: "Distance",
+    disclaimer: "⚠️ This is NOT real Dolby Atmos. This is a simulated spatial enhancement system for immersive headphone listening.",
+  },
+
   // Player Controls
   player: {
     play: "Play",
