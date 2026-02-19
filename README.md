@@ -214,15 +214,37 @@ Detailed documentation is available in the `docs/` folder:
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+### Development Setup
+
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/Lumison.git`
+3. Create a feature branch: `git checkout -b feature/AmazingFeature`
+4. Install dependencies: `npm install`
+5. Start dev server: `npm run dev`
+6. Make your changes and test thoroughly
+7. Commit your changes: `git commit -m 'Add some AmazingFeature'`
+8. Push to the branch: `git push origin feature/AmazingFeature`
+9. Open a Pull Request
+
+### Code Style
+
+- Follow existing code patterns
+- Use TypeScript for type safety
+- Write meaningful commit messages
+- Add comments for complex logic
+- Test your changes before submitting
 
 ## 📄 License
 
-This project is open source and available under the [MIT License](LICENSE).
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+### Third-Party Licenses
+
+- React: MIT License
+- Vite: MIT License
+- Tailwind CSS: MIT License
+- React Spring: MIT License
+- Other dependencies: See package.json
 
 ## 🙏 Credits
 
@@ -249,9 +271,11 @@ This project is open source and available under the [MIT License](LICENSE).
 
 For detailed changes, see the [documentation](./docs/).
 
+## ⭐ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=SalixJFrost/Lumison&type=Date)](https://star-history.com/#SalixJFrost/Lumison&Date)
+
 ---
 
-Made with ❤️ by the Lumison team
-
-**Star ⭐ this repo if you like it!**
+**If you find this project useful, please consider giving it a star ⭐**
 
