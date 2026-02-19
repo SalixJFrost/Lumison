@@ -175,16 +175,9 @@ const SpatialAudioControl: React.FC<SpatialAudioControlProps> = ({
       {/* Header */}
       <div className="p-4 border-b border-white/10">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-white font-semibold text-sm">3D Spatial Audio</h3>
-              <p className="text-white/50 text-xs">Cinema-style immersion</p>
-            </div>
+          <div>
+            <h3 className="text-white font-semibold text-sm">3D Spatial Audio</h3>
+            <p className="text-white/50 text-xs">Cinema-style immersion</p>
           </div>
           
           <button
@@ -299,15 +292,6 @@ const SpatialAudioControl: React.FC<SpatialAudioControlProps> = ({
             </div>
           </div>
         )}
-      </div>
-      
-      {/* Disclaimer */}
-      <div className="px-4 pb-4">
-        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">
-          <p className="text-yellow-200/80 text-[10px] leading-relaxed">
-            ⚠️ This is NOT real Dolby Atmos. This is a simulated spatial enhancement system for immersive headphone listening.
-          </p>
-        </div>
       </div>
     </div>
   );
