@@ -6,6 +6,7 @@ import { CheckIcon, PlusIcon, QueueIcon, TrashIcon, SelectAllIcon, CloudDownload
 import { useKeyboardScope } from '../hooks/useKeyboardScope';
 import ImportMusicDialog from './ImportMusicDialog';
 import SmartImage from './SmartImage';
+import { useI18n } from '../contexts/I18nContext';
 
 const IOS_SCROLLBAR_STYLES = `
   .playlist-scrollbar {
@@ -56,6 +57,7 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
     accentColor,
     onFilesSelected
 }) => {
+    const { t } = useI18n();
     const [isAdding, setIsAdding] = useState(false);
     const [visible, setVisible] = useState(false);
 
@@ -224,8 +226,8 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                     {/* iOS 18 Style Header */}
                     <div className="px-5 pt-5 pb-3 shrink-0 flex items-center justify-between bg-transparent border-b border-white/5">
                         <div className="flex flex-col">
-                            <h3 className="text-white text-lg font-bold leading-none tracking-tight">Playing Next</h3>
-                            <span className="text-white/40 text-xs font-medium mt-1">{queue.length} Songs</span>
+                            <h3 className="text-white text-lg font-bold leading-none tracking-tight">{t("playlist.playingNext")}</h3>
+                            <span className="text-white/40 text-xs font-medium mt-1">{queue.length} {t("playlist.songs")}</span>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -234,14 +236,14 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                                     <button
                                         onClick={handleSelectAll}
                                         className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${selectedIds.size === queue.length && queue.length > 0 ? 'text-white bg-white/10' : 'text-white/50 hover:text-white hover:bg-white/10'}`}
-                                        title="Select All"
+                                        title={t("playlist.selectAll")}
                                     >
                                         <SelectAllIcon className="w-5 h-5" />
                                     </button>
                                     <button
                                         onClick={handleDelete}
                                         className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${selectedIds.size > 0 ? 'text-red-400 hover:bg-red-500/10' : 'text-white/20 cursor-not-allowed'}`}
-                                        title="Delete Selected"
+                                        title={t("playlist.deleteSelected")}
                                         disabled={selectedIds.size === 0}
                                     >
                                         <TrashIcon className="w-5 h-5" />
@@ -250,7 +252,7 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                                         onClick={() => setIsEditing(false)}
                                         className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:bg-white/10"
                                         style={{ color: accentColor }}
-                                        title="Done"
+                                        title={t("playlist.done")}
                                     >
                                         <CheckIcon className="w-5 h-5" />
                                     </button>
@@ -260,21 +262,21 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
                                         className="w-8 h-8 rounded-full flex items-center justify-center transition-all text-white/50 hover:text-white hover:bg-white/10"
-                                        title="Import Local Files"
+                                        title={t("playlist.importLocal")}
                                     >
                                         <CloudDownloadIcon className="w-5 h-5" />
                                     </button>
                                     <button
                                         onClick={() => setIsAdding(true)}
                                         className="w-8 h-8 rounded-full flex items-center justify-center transition-all text-white/50 hover:text-white hover:bg-white/10"
-                                        title="Add from URL"
+                                        title={t("playlist.addFromUrl")}
                                     >
                                         <PlusIcon className="w-5 h-5" />
                                     </button>
                                     <button
                                         onClick={() => setIsEditing(true)}
                                         className="w-8 h-8 rounded-full flex items-center justify-center transition-all text-white/50 hover:text-white hover:bg-white/10"
-                                        title="Edit List"
+                                        title={t("playlist.editList")}
                                     >
                                         <QueueIcon className="w-5 h-5" />
                                     </button>
@@ -291,7 +293,7 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                     >
                         {queue.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-32 text-white/30 space-y-2">
-                                <p className="text-xs font-medium">Queue is empty</p>
+                                <p className="text-xs font-medium">{t("playlist.empty")}</p>
                             </div>
                         ) : (
                             <div style={{ height: `${totalHeight}px`, position: 'relative' }}>

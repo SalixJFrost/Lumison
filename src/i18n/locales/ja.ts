@@ -100,13 +100,20 @@ export default {
   // プレイリスト
   playlist: {
     title: "プレイリスト",
-    empty: "プレイリストが空です",
+    playingNext: "次に再生",
+    songs: "曲",
+    empty: "キューが空です",
     addSongs: "曲を追加して開始",
     importUrl: "URLからインポート",
     importLocal: "ローカルファイルをインポート",
     remove: "削除",
     clear: "すべてクリア",
     songCount: "{count} 曲",
+    selectAll: "すべて選択",
+    deleteSelected: "選択項目を削除",
+    done: "完了",
+    addFromUrl: "URLから追加",
+    editList: "リストを編集",
   },
 
   // 検索

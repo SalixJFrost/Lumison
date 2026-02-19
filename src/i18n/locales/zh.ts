@@ -100,13 +100,20 @@ export default {
   // 播放列表
   playlist: {
     title: "播放列表",
-    empty: "播放列表为空",
+    playingNext: "即将播放",
+    songs: "首歌曲",
+    empty: "队列为空",
     addSongs: "添加歌曲开始播放",
     importUrl: "从链接导入",
     importLocal: "导入本地文件",
     remove: "移除",
     clear: "清空全部",
     songCount: "{count} 首歌曲",
+    selectAll: "全选",
+    deleteSelected: "删除所选",
+    done: "完成",
+    addFromUrl: "从链接添加",
+    editList: "编辑列表",
   },
 
   // 搜索

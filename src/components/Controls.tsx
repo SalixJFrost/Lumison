@@ -641,15 +641,10 @@ const Controls: React.FC<ControlsProps> = ({
           {/* 3. Previous */}
           <button
             onClick={onPrev}
-            className={`active:scale-90 duration-200 ${
-              theme === 'light' ? 'text-black hover:text-black/70' : 'text-white hover:text-white/70'
-            }`}
-            style={{
-              transition: 'color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.2s'
-            }}
+            className={`w-14 h-14 flex items-center justify-center rounded-full theme-bg-overlay hover:theme-bg-overlay-hover active:scale-95 transition-all duration-200`}
             aria-label={t("player.previous")}
           >
-            <PrevIcon className="w-10 h-10" />
+            <PrevIcon className="w-7 h-7" />
           </button>
 
           {/* 4. Play/Pause (Center) */}
@@ -686,15 +681,10 @@ const Controls: React.FC<ControlsProps> = ({
           {/* 5. Next */}
           <button
             onClick={onNext}
-            className={`active:scale-90 duration-200 ${
-              theme === 'light' ? 'text-black hover:text-black/70' : 'text-white hover:text-white/70'
-            }`}
-            style={{
-              transition: 'color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.2s'
-            }}
+            className={`w-14 h-14 flex items-center justify-center rounded-full theme-bg-overlay hover:theme-bg-overlay-hover active:scale-95 transition-all duration-200`}
             aria-label={t("player.next")}
           >
-            <NextIcon className="w-10 h-10" />
+            <NextIcon className="w-7 h-7" />
           </button>
 
           {/* 6. Settings (Replaces Like) */}

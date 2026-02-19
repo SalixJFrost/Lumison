@@ -100,13 +100,20 @@ export default {
   // Playlist
   playlist: {
     title: "Playlist",
-    empty: "No songs in playlist",
+    playingNext: "Playing Next",
+    songs: "Songs",
+    empty: "Queue is empty",
     addSongs: "Add songs to get started",
     importUrl: "Import from URL",
     importLocal: "Import Local Files",
     remove: "Remove",
     clear: "Clear All",
     songCount: "{count} songs",
+    selectAll: "Select All",
+    deleteSelected: "Delete Selected",
+    done: "Done",
+    addFromUrl: "Add from URL",
+    editList: "Edit List",
   },
 
   // Search
