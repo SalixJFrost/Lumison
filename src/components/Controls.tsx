@@ -985,7 +985,7 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
         <button
           onClick={onToggleSpatialAudio}
           className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors duration-200 ${
-            spatialAudioEnabled ? "bg-gradient-to-br from-purple-500 to-pink-500 text-white" : "bg-white text-black"
+            spatialAudioEnabled ? "bg-white/20 text-white" : "bg-white text-black"
           }`}
           title={t("spatialAudio.title")}
         >

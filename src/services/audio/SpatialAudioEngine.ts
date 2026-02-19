@@ -390,15 +390,28 @@ export class SpatialAudioEngine {
   
   /**
    * Enable/disable spatial audio
+   * Note: When disabled, audio still passes through (gain = 1) but spatial effects are bypassed
    */
   public setEnabled(enabled: boolean): void {
     this.config.enabled = enabled;
     const now = this.ctx.currentTime;
     
+    // Always keep output gain at 1 to ensure audio plays
+    // Instead, we control the effect by adjusting individual effect gains
+    this.outputGain.gain.setTargetAtTime(1, now, 0.05);
+    
     if (enabled) {
-      this.outputGain.gain.setTargetAtTime(1, now, 0.05);
+      // Enable spatial effects
+      this.haasGain.gain.setTargetAtTime(this.config.spatial.width * 0.3, now, 0.05);
+      this.reverbGain.gain.setTargetAtTime(this.config.spatial.depth * 0.4, now, 0.05);
+      this.exciterGain.gain.setTargetAtTime(this.config.enhancement.exciter * 0.15, now, 0.05);
+      this.dryGain.gain.setTargetAtTime(1 - this.config.spatial.depth * 0.3, now, 0.05);
     } else {
-      this.outputGain.gain.setTargetAtTime(0, now, 0.05);
+      // Disable spatial effects - bypass all processing
+      this.haasGain.gain.setTargetAtTime(0, now, 0.05);
+      this.reverbGain.gain.setTargetAtTime(0, now, 0.05);
+      this.exciterGain.gain.setTargetAtTime(0, now, 0.05);
+      this.dryGain.gain.setTargetAtTime(1, now, 0.05); // Full dry signal
     }
   }
   
