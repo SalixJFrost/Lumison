@@ -916,24 +916,24 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
             audioEffect === 'none' ? "bg-white text-black" : "bg-white/20 text-white"
           }`}
           title={
-            audioEffect === 'none' ? 'No Effect' :
-            audioEffect === 'reverb' ? 'Reverb Effect' :
-            audioEffect === 'echo' ? 'Echo Effect' :
-            'Bass Boost'
+            audioEffect === 'none' ? t("audioEffect.noEffect") :
+            audioEffect === 'reverb' ? t("audioEffect.reverbEffect") :
+            audioEffect === 'echo' ? t("audioEffect.echoEffect") :
+            t("audioEffect.bassBoost")
           }
         >
           <span className="text-xs font-bold">
-            {audioEffect === 'none' ? 'Off' :
-             audioEffect === 'reverb' ? 'Rev' :
-             audioEffect === 'echo' ? 'Ech' :
-             'Bas'}
+            {audioEffect === 'none' ? t("audioEffect.off").substring(0, 3) :
+             audioEffect === 'reverb' ? t("audioEffect.reverb").substring(0, 3) :
+             audioEffect === 'echo' ? t("audioEffect.echo").substring(0, 3) :
+             t("audioEffect.bass").substring(0, 3)}
           </span>
         </button>
         <span className="text-[10px] font-medium text-white/60 text-center leading-tight">
-          {audioEffect === 'none' ? 'None' :
-           audioEffect === 'reverb' ? 'Reverb' :
-           audioEffect === 'echo' ? 'Echo' :
-           'Bass'}
+          {audioEffect === 'none' ? t("audioEffect.none") :
+           audioEffect === 'reverb' ? t("audioEffect.reverb") :
+           audioEffect === 'echo' ? t("audioEffect.echo") :
+           t("audioEffect.bass")}
         </span>
       </div>
     </animated.div>

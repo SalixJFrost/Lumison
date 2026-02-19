@@ -11,6 +11,28 @@ export default {
     loading: "読み込み中...",
     error: "エラー",
     success: "成功",
+    done: "完了",
+  },
+
+  // アバウトダイアログ
+  about: {
+    description: "高忠実度で没入型の音楽プレーヤー",
+    inspiredBy: "Apple Musicにインスパイアされました。",
+    viewOnGitHub: "GitHubで見る",
+    createdBy: "SalixJFrost 作成",
+  },
+
+  // オーディオエフェクト
+  audioEffect: {
+    none: "なし",
+    noEffect: "エフェクトなし",
+    reverb: "リバーブ",
+    reverbEffect: "リバーブエフェクト",
+    echo: "エコー",
+    echoEffect: "エコーエフェクト",
+    bass: "ベース",
+    bassBoost: "ベースブースト",
+    off: "オフ",
   },
 
   // プレーヤーコントロール
@@ -99,9 +121,22 @@ export default {
     togglePlaylist: "プレイリスト切替",
     toggleShortcuts: "ショートカット切替",
     closeHint: "閉じる",
+    pressEsc: "押す",
   },
 
-  // トーストメッセージ
+  // インポートダイアログ
+  import: {
+    title: "音楽をインポート",
+    description: "貼り付け",
+    netease: "Netease Cloud Music",
+    or: "または",
+    bilibili: "Bilibili",
+    linkToAdd: "リンクをキューに追加します。",
+    placeholder: "https://music.163.com/... または https://bilibili.com/video/...",
+    cancel: "キャンセル",
+    import: "インポート",
+    importing: "インポート中...",
+  },
   toast: {
     importSuccess: "{count} 曲を正常にインポートしました",
     importFailed: "URLから曲を読み込めませんでした",
@@ -118,6 +153,9 @@ export default {
     settings: "設定",
     theme: "テーマ",
     language: "言語",
+    about: "について",
+    enterFullscreen: "フルスクリーン",
+    exitFullscreen: "フルスクリーン終了",
   },
 
   // テーマ

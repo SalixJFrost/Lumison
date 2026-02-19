@@ -254,7 +254,7 @@ return createPortal(
 
           {/* Footer Hint */}
           <div className="mt-8 pt-6 border-t border-white/5 text-center text-white/30 text-xs font-medium tracking-wider uppercase">
-            Press{" "}
+            {t("shortcuts.pressEsc")}{" "}
             <kbd className="font-sans bg-white/10 px-1.5 py-0.5 rounded mx-1 text-white/60">
               Esc
             </kbd>{" "}

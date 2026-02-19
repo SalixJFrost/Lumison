@@ -11,6 +11,28 @@ export default {
     loading: "Loading...",
     error: "Error",
     success: "Success",
+    done: "Done",
+  },
+
+  // About Dialog
+  about: {
+    description: "A high-fidelity, immersive music player",
+    inspiredBy: "inspired by Apple Music.",
+    viewOnGitHub: "View on GitHub",
+    createdBy: "Created by SalixJFrost",
+  },
+
+  // Audio Effects
+  audioEffect: {
+    none: "None",
+    noEffect: "No Effect",
+    reverb: "Reverb",
+    reverbEffect: "Reverb Effect",
+    echo: "Echo",
+    echoEffect: "Echo Effect",
+    bass: "Bass",
+    bassBoost: "Bass Boost",
+    off: "Off",
   },
 
   // Player Controls
@@ -99,9 +121,22 @@ export default {
     togglePlaylist: "Toggle Playlist",
     toggleShortcuts: "Toggle Shortcuts",
     closeHint: "to close",
+    pressEsc: "Press",
   },
 
-  // Toast Messages
+  // Import Dialog
+  import: {
+    title: "Import Music",
+    description: "Paste a",
+    netease: "Netease Cloud Music",
+    or: "or",
+    bilibili: "Bilibili",
+    linkToAdd: "link to add to queue.",
+    placeholder: "https://music.163.com/... or https://bilibili.com/video/...",
+    cancel: "Cancel",
+    import: "Import",
+    importing: "Importing...",
+  },
   toast: {
     importSuccess: "Successfully imported {count} songs",
     importFailed: "Failed to load songs from URL",
@@ -118,6 +153,9 @@ export default {
     settings: "Settings",
     theme: "Theme",
     language: "Language",
+    about: "About",
+    enterFullscreen: "Enter Fullscreen",
+    exitFullscreen: "Exit Fullscreen",
   },
 
   // Theme

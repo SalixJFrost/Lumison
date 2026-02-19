@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { LinkIcon } from "./Icons";
+import { useI18n } from "../contexts/I18nContext";
 
 interface ImportMusicDialogProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ const ImportMusicDialog: React.FC<ImportMusicDialogProps> = ({
   onClose,
   onImport,
 }) => {
+  const { t } = useI18n();
   const [importUrl, setImportUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -58,25 +60,25 @@ const ImportMusicDialog: React.FC<ImportMusicDialogProps> = ({
           </div>
 
           <h3 className="text-xl font-bold text-white tracking-tight">
-            Import Music
+            {t("import.title")}
           </h3>
           <p className="text-white/60 text-[15px] mt-2 leading-relaxed px-2">
-            Paste a{" "}
+            {t("import.description")}{" "}
             <span className="text-white/90 font-medium">
-              Netease Cloud Music
+              {t("import.netease")}
             </span>{" "}
-            or{" "}
+            {t("import.or")}{" "}
             <span className="text-white/90 font-medium">
-              Bilibili
+              {t("import.bilibili")}
             </span>{" "}
-            link to add to queue.
+            {t("import.linkToAdd")}
           </p>
 
           <input
             type="text"
             value={importUrl}
             onChange={(e) => setImportUrl(e.target.value)}
-            placeholder="https://music.163.com/... or https://bilibili.com/video/..."
+            placeholder={t("import.placeholder")}
             className="w-full mt-5 bg-white/10 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/10 transition-all text-[15px]"
             disabled={isLoading}
             autoFocus
@@ -94,7 +96,7 @@ const ImportMusicDialog: React.FC<ImportMusicDialogProps> = ({
             onClick={handleClose}
             className="py-4 text-[17px] text-white/60 font-medium hover:bg-white/5 transition-colors active:bg-white/10"
           >
-            Cancel
+            {t("import.cancel")}
           </button>
           <button
             onClick={handleImport}
@@ -126,10 +128,10 @@ const ImportMusicDialog: React.FC<ImportMusicDialogProps> = ({
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                <span>Importing...</span>
+                <span>{t("import.importing")}</span>
               </>
             ) : (
-              "Import"
+              t("import.import")
             )}
           </button>
         </div>

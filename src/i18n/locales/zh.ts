@@ -11,6 +11,28 @@ export default {
     loading: "加载中...",
     error: "错误",
     success: "成功",
+    done: "完成",
+  },
+
+  // 关于对话框
+  about: {
+    description: "高保真、沉浸式音乐播放器",
+    inspiredBy: "灵感来自 Apple Music。",
+    viewOnGitHub: "在 GitHub 上查看",
+    createdBy: "由 SalixJFrost 创建",
+  },
+
+  // 音效
+  audioEffect: {
+    none: "无",
+    noEffect: "无音效",
+    reverb: "混响",
+    reverbEffect: "混响效果",
+    echo: "回声",
+    echoEffect: "回声效果",
+    bass: "低音",
+    bassBoost: "低音增强",
+    off: "关闭",
   },
 
   // 播放器控制
@@ -99,9 +121,22 @@ export default {
     togglePlaylist: "切换播放列表",
     toggleShortcuts: "切换快捷键",
     closeHint: "关闭",
+    pressEsc: "按",
   },
 
-  // 提示消息
+  // 导入对话框
+  import: {
+    title: "导入音乐",
+    description: "粘贴",
+    netease: "网易云音乐",
+    or: "或",
+    bilibili: "哔哩哔哩",
+    linkToAdd: "链接以添加到队列。",
+    placeholder: "https://music.163.com/... 或 https://bilibili.com/video/...",
+    cancel: "取消",
+    import: "导入",
+    importing: "导入中...",
+  },
   toast: {
     importSuccess: "成功导入 {count} 首歌曲",
     importFailed: "从链接加载歌曲失败",
@@ -118,6 +153,9 @@ export default {
     settings: "设置",
     theme: "主题",
     language: "语言",
+    about: "关于",
+    enterFullscreen: "进入全屏",
+    exitFullscreen: "退出全屏",
   },
 
   // 主题

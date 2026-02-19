@@ -183,6 +183,18 @@ const TopBar: React.FC<TopBarProps> = ({
                       className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
                     />
                   </div>
+
+                  {/* About Button */}
+                  <button
+                    onClick={() => {
+                      setIsAboutOpen(true);
+                      setIsSettingsOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all"
+                  >
+                    <span className="text-sm">{t("topBar.about")}</span>
+                    <InfoIcon className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             )}
@@ -225,20 +237,11 @@ const TopBar: React.FC<TopBarProps> = ({
             <CloudDownloadIcon className="w-5 h-5" />
           </button>
 
-          {/* About Button */}
-          <button
-            onClick={() => setIsAboutOpen(true)}
-            className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all shadow-sm"
-            title="About Lumison"
-          >
-            <InfoIcon className="w-5 h-5" />
-          </button>
-
           {/* Fullscreen Button */}
           <button
             onClick={toggleFullscreen}
             className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all shadow-sm"
-            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+            title={isFullscreen ? t("topBar.exitFullscreen") : t("topBar.enterFullscreen")}
           >
             <FullscreenIcon className="w-5 h-5" isFullscreen={isFullscreen} />
           </button>
