@@ -311,6 +311,7 @@ const App: React.FC = () => {
           onImport={handleImportUrl}
           onRemove={playlist.removeSongs}
           accentColor={accentColor}
+          onFilesSelected={handleFileChange}
         />
       </div>
     </div>
@@ -394,7 +395,6 @@ const App: React.FC = () => {
 
       {/* Top Bar */}
       <TopBar
-        onFilesSelected={handleFileChange}
         onSearchClick={() => setShowSearch(true)}
         lyricsFontSize={lyricsFontSize}
         onLyricsFontSizeChange={setLyricsFontSize}

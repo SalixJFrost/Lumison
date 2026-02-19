@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { SearchIcon, CloudDownloadIcon, InfoIcon, FullscreenIcon, SettingsIcon, LinkIcon, ThemeIcon } from "./Icons";
+import { SearchIcon, InfoIcon, FullscreenIcon, SettingsIcon, ThemeIcon } from "./Icons";
 import AboutDialog from "./AboutDialog";
 import ImportMusicDialog from "./ImportMusicDialog";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -7,7 +7,6 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useI18n } from "../contexts/I18nContext";
 
 interface TopBarProps {
-  onFilesSelected: (files: FileList) => void;
   onSearchClick: () => void;
   disabled?: boolean;
   lyricsFontSize: number;
@@ -16,7 +15,6 @@ interface TopBarProps {
 }
 
 const TopBar: React.FC<TopBarProps> = ({
-  onFilesSelected,
   onSearchClick,
   disabled,
   lyricsFontSize,
@@ -25,7 +23,6 @@ const TopBar: React.FC<TopBarProps> = ({
 }) => {
   const { theme, toggleTheme } = useTheme();
   const { t } = useI18n();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
@@ -109,14 +106,6 @@ const TopBar: React.FC<TopBarProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      onFilesSelected(files);
-    }
-    e.target.value = "";
-  };
-
   const baseTransitionClasses = "transition-all duration-500 ease-out";
   const mobileActiveClasses = isTopBarActive
     ? "opacity-100 translate-y-0 pointer-events-auto"
@@ -184,6 +173,15 @@ const TopBar: React.FC<TopBarProps> = ({
                     />
                   </div>
 
+                  {/* Theme Button */}
+                  <button
+                    onClick={toggleTheme}
+                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all"
+                  >
+                    <span className="text-sm">{theme === 'dark' ? t("theme.light") : t("theme.dark")}</span>
+                    <ThemeIcon className="w-4 h-4" />
+                  </button>
+
                   {/* About Button */}
                   <button
                     onClick={() => {
@@ -200,23 +198,7 @@ const TopBar: React.FC<TopBarProps> = ({
             )}
           </div>
 
-          {/* Import from URL Button */}
-          <button
-            onClick={() => setIsImportDialogOpen(true)}
-            className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all shadow-sm"
-            title={t("topBar.import")}
-          >
-            <LinkIcon className="w-5 h-5" />
-          </button>
 
-          {/* Theme Button */}
-          <button
-            onClick={toggleTheme}
-            className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all shadow-sm"
-            title={theme === 'dark' ? t("theme.light") : t("theme.dark")}
-          >
-            <ThemeIcon className="w-5 h-5" />
-          </button>
 
           {/* Search Button */}
           <button
@@ -227,16 +209,6 @@ const TopBar: React.FC<TopBarProps> = ({
             <SearchIcon className="w-5 h-5" />
           </button>
 
-          {/* Import Button */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={disabled}
-            className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            title={t("topBar.import")}
-          >
-            <CloudDownloadIcon className="w-5 h-5" />
-          </button>
-
           {/* Fullscreen Button */}
           <button
             onClick={toggleFullscreen}
@@ -245,15 +217,6 @@ const TopBar: React.FC<TopBarProps> = ({
           >
             <FullscreenIcon className="w-5 h-5" isFullscreen={isFullscreen} />
           </button>
-
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept="audio/*,.lrc,.txt"
-            multiple
-            className="hidden"
-          />
         </div>
       </div>
       <AboutDialog isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />

@@ -169,7 +169,7 @@ export class SpatialAudioEngine {
     // Harmonic exciter
     this.exciterGain = this.ctx.createGain();
     this.exciterWaveShaper = this.ctx.createWaveShaper();
-    this.exciterWaveShaper.curve = this.createExciterCurve();
+    this.exciterWaveShaper.curve = this.createExciterCurve() as any;
     this.exciterWaveShaper.oversample = '4x';
     
     // Dynamics

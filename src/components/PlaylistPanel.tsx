@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTransition, animated } from '@react-spring/web';
 import { Song } from '../types';
-import { CheckIcon, PlusIcon, QueueIcon, TrashIcon, SelectAllIcon } from './Icons';
+import { CheckIcon, PlusIcon, QueueIcon, TrashIcon, SelectAllIcon, CloudDownloadIcon } from './Icons';
 import { useKeyboardScope } from '../hooks/useKeyboardScope';
 import ImportMusicDialog from './ImportMusicDialog';
 import SmartImage from './SmartImage';
@@ -42,6 +42,7 @@ interface PlaylistPanelProps {
     onImport: (url: string) => Promise<boolean>;
     onRemove: (ids: string[]) => void;
     accentColor: string;
+    onFilesSelected?: (files: FileList) => void;
 }
 
 const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
@@ -52,7 +53,8 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
     onPlay,
     onImport,
     onRemove,
-    accentColor
+    accentColor,
+    onFilesSelected
 }) => {
     const [isAdding, setIsAdding] = useState(false);
     const [visible, setVisible] = useState(false);
@@ -63,6 +65,7 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
     const panelRef = useRef<HTMLDivElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
     const [scrollTop, setScrollTop] = useState(0);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Virtualization Constants
     const ITEM_HEIGHT = 74; // Approx height of each item (including margin)
@@ -161,6 +164,14 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
         }
     };
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (files && files.length > 0 && onFilesSelected) {
+            onFilesSelected(files);
+        }
+        e.target.value = "";
+    };
+
     // Virtual List Logic
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         setScrollTop(e.currentTarget.scrollTop);
@@ -246,6 +257,13 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                                 </>
                             ) : (
                                 <>
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="w-8 h-8 rounded-full flex items-center justify-center transition-all text-white/50 hover:text-white hover:bg-white/10"
+                                        title="Import Local Files"
+                                    >
+                                        <CloudDownloadIcon className="w-5 h-5" />
+                                    </button>
                                     <button
                                         onClick={() => setIsAdding(true)}
                                         className="w-8 h-8 rounded-full flex items-center justify-center transition-all text-white/50 hover:text-white hover:bg-white/10"
@@ -362,6 +380,16 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
 
                 </animated.div>
             ))}
+
+            {/* Hidden File Input */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="audio/*,.lrc,.txt"
+                multiple
+                className="hidden"
+            />
 
             {/* Import Music Dialog */}
             <ImportMusicDialog
