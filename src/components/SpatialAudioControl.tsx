@@ -14,7 +14,7 @@ const SpatialAudioControl: React.FC<SpatialAudioControlProps> = ({
   const { t } = useI18n();
   const engineRef = useRef<SpatialAudioEngine | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
   
   const [enabled, setEnabled] = useState(false);
   const [preset, setPreset] = useState<'music' | 'cinema' | 'vocal'>('music');
@@ -171,7 +171,7 @@ const SpatialAudioControl: React.FC<SpatialAudioControlProps> = ({
   };
   
   return (
-    <div className="fixed bottom-20 right-4 z-50 w-96 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
+    <div className="w-96 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
       {/* Header */}
       <div className="p-4 border-b border-white/10">
         <div className="flex items-center justify-between">

@@ -9,7 +9,6 @@ import KeyboardShortcuts from "./components/KeyboardShortcuts";
 import TopBar from "./components/TopBar";
 import SearchModal from "./components/SearchModal";
 import SpeedIndicator from "./components/SpeedIndicator";
-import SpatialAudioControl from "./components/SpatialAudioControl";
 import { usePlaylist } from "./hooks/usePlaylist";
 import { usePlayer } from "./hooks/usePlayer";
 import { keyboardRegistry } from "./services/ui/keyboardRegistry";
@@ -413,12 +412,6 @@ const App: React.FC = () => {
         currentSong={currentSong}
         isPlaying={playState === PlayState.PLAYING}
         accentColor={accentColor}
-      />
-
-      {/* Spatial Audio Control */}
-      <SpatialAudioControl
-        audioRef={audioRef}
-        isPlaying={playState === PlayState.PLAYING}
       />
 
       {/* Main Content Split */}

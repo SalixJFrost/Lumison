@@ -3,6 +3,7 @@ import { useSpring, animated, useTransition, to } from "@react-spring/web";
 import { formatTime } from "../services/utils";
 import Visualizer from "./visualizer/Visualizer";
 import SmartImage from "./SmartImage";
+import SpatialAudioControl from "./SpatialAudioControl";
 import {
   LoopIcon,
   LoopOneIcon,
@@ -687,6 +688,8 @@ const Controls: React.FC<ControlsProps> = ({
                   preservesPitch={preservesPitch}
                   onTogglePreservesPitch={onTogglePreservesPitch}
                   onSpeedChange={onSpeedChange}
+                  audioRef={audioRef}
+                  isPlaying={isPlaying}
                 />
               ) : null
             )}
@@ -772,6 +775,8 @@ interface SettingsPopupProps {
   preservesPitch: boolean;
   onTogglePreservesPitch: () => void;
   onSpeedChange: (speed: number) => void;
+  audioRef: React.RefObject<HTMLAudioElement>;
+  isPlaying: boolean;
 }
 
 const SettingsPopup: React.FC<SettingsPopupProps> = ({
@@ -780,6 +785,8 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
   onTogglePreservesPitch,
   speed,
   onSpeedChange,
+  audioRef,
+  isPlaying,
 }) => {
   const { t } = useI18n();
   const { speedH } = useSpring({
@@ -788,6 +795,7 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
   });
 
   const [audioEffect, setAudioEffect] = React.useState<'none' | 'reverb' | 'echo' | 'bass'>('none');
+  const [showSpatialAudio, setShowSpatialAudio] = React.useState(false);
 
   // Quick speed presets
   const speedPresets = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
@@ -935,6 +943,32 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
            audioEffect === 'echo' ? t("audioEffect.echo") :
            t("audioEffect.bass")}
         </span>
+      </div>
+
+      {/* 3D Spatial Audio */}
+      <div className="flex flex-col items-center justify-end gap-2 w-12 pb-6">
+        <button
+          onClick={() => setShowSpatialAudio(!showSpatialAudio)}
+          className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors duration-200 ${
+            showSpatialAudio ? "bg-gradient-to-br from-purple-500 to-pink-500 text-white" : "bg-white text-black"
+          }`}
+          title={t("spatialAudio.title")}
+        >
+          <span className="text-xs font-bold">3D</span>
+        </button>
+        <span className="text-[10px] font-medium text-white/60 text-center leading-tight">
+          {t("spatialAudio.title").split(' ')[0]}
+        </span>
+        
+        {/* Spatial Audio Panel */}
+        {showSpatialAudio && (
+          <div className="absolute top-0 left-full ml-2">
+            <SpatialAudioControl
+              audioRef={audioRef}
+              isPlaying={isPlaying}
+            />
+          </div>
+        )}
       </div>
     </animated.div>
   );
