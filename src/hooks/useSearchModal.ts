@@ -6,9 +6,10 @@ import {
   useNeteaseSearchProvider,
   NeteaseSearchProviderExtended,
 } from "./useNeteaseSearchProvider";
+import { useYouTubeMusicSearchProvider, YouTubeMusicSearchResult } from "./useYouTubeMusicSearchProvider";
 
-export type SearchSource = "queue" | "netease";
-export type SearchResultItem = Song | NeteaseTrackInfo;
+export type SearchSource = "queue" | "netease" | "youtube";
+export type SearchResultItem = Song | NeteaseTrackInfo | YouTubeMusicSearchResult;
 
 interface ContextMenuState {
   visible: boolean;
@@ -45,6 +46,7 @@ export const useSearchModal = ({
   // Search Providers
   const queueProvider = useQueueSearchProvider({ queue });
   const neteaseProvider = useNeteaseSearchProvider();
+  const youtubeProvider = useYouTubeMusicSearchProvider();
 
   // Queue search results (real-time)
   const [queueResults, setQueueResults] = useState<{ s: Song; i: number }[]>(
@@ -54,6 +56,9 @@ export const useSearchModal = ({
   // Offset for Netease pagination
   const [neteaseOffset, setNeteaseOffset] = useState(0);
   const LIMIT = 30;
+
+  // YouTube search state
+  const [youtubeOffset, setYoutubeOffset] = useState(0);
 
   // Update queue results in real-time
   useEffect(() => {
@@ -96,15 +101,35 @@ export const useSearchModal = ({
     setNeteaseOffset(nextOffset);
   }, [neteaseProvider, neteaseOffset, query]);
 
+  const performYouTubeSearch = useCallback(async () => {
+    if (!query.trim()) return;
+    setYoutubeOffset(0);
+    setSelectedIndex(-1);
+    await youtubeProvider.search(query);
+  }, [query, youtubeProvider]);
+
+  const loadMoreYouTube = useCallback(async () => {
+    if (youtubeProvider.isLoading || !youtubeProvider.hasMore) return;
+    const nextOffset = youtubeOffset + LIMIT;
+    await youtubeProvider.loadMore?.(query, nextOffset, LIMIT);
+    setYoutubeOffset(nextOffset);
+  }, [youtubeProvider, youtubeOffset, query]);
+
   const handleScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
-      if (activeTab !== "netease") return;
-      const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
-      if (scrollHeight - scrollTop - clientHeight < 100) {
-        loadMoreNetease();
+      if (activeTab === "netease") {
+        const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
+        if (scrollHeight - scrollTop - clientHeight < 100) {
+          loadMoreNetease();
+        }
+      } else if (activeTab === "youtube") {
+        const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
+        if (scrollHeight - scrollTop - clientHeight < 100) {
+          loadMoreYouTube();
+        }
       }
     },
-    [activeTab, loadMoreNetease],
+    [activeTab, loadMoreNetease, loadMoreYouTube],
   );
 
   // --- Navigation ---
@@ -117,10 +142,15 @@ export const useSearchModal = ({
   }, []);
 
   const navigateDown = useCallback(() => {
-    const listLength =
-      activeTab === "queue"
-        ? queueResults.length
-        : neteaseProvider.results.length;
+    let listLength = 0;
+    if (activeTab === "queue") {
+      listLength = queueResults.length;
+    } else if (activeTab === "netease") {
+      listLength = neteaseProvider.results.length;
+    } else if (activeTab === "youtube") {
+      listLength = (youtubeProvider as any).results?.length || 0;
+    }
+    
     if (listLength === 0) return;
 
     const next = Math.min(selectedIndex + 1, listLength - 1);
@@ -131,6 +161,7 @@ export const useSearchModal = ({
     selectedIndex,
     queueResults.length,
     neteaseProvider.results.length,
+    youtubeProvider,
     scrollToItem,
   ]);
 
@@ -141,7 +172,11 @@ export const useSearchModal = ({
   }, [selectedIndex, scrollToItem]);
 
   const switchTab = useCallback(() => {
-    setActiveTab((prev) => (prev === "queue" ? "netease" : "queue"));
+    setActiveTab((prev) => {
+      if (prev === "queue") return "netease";
+      if (prev === "netease") return "youtube";
+      return "queue";
+    });
     setSelectedIndex(-1);
   }, []);
 
@@ -178,6 +213,9 @@ export const useSearchModal = ({
       if ("isNetease" in item && item.isNetease && currentSong.isNetease) {
         return item.neteaseId === currentSong.neteaseId;
       }
+      if ("isYouTube" in item && item.isYouTube && "isYouTube" in currentSong && currentSong.isYouTube) {
+        return (item as YouTubeMusicSearchResult).youtubeId === (currentSong as any).youtubeId;
+      }
       return (
         item.title === currentSong.title && item.artist === currentSong.artist
       );
@@ -207,6 +245,30 @@ export const useSearchModal = ({
     !neteaseProvider.hasSearched &&
     query.trim().length === 0;
 
+  // YouTube display flags
+  const youtubeResults = (youtubeProvider as any).results || [];
+  const showYouTubePrompt =
+    activeTab === "youtube" &&
+    youtubeResults.length === 0 &&
+    query.trim().length > 0 &&
+    !youtubeProvider.isLoading;
+
+  const showYouTubeEmpty =
+    activeTab === "youtube" &&
+    youtubeResults.length === 0 &&
+    !youtubeProvider.isLoading &&
+    query.trim().length > 0;
+
+  const showYouTubeLoading =
+    activeTab === "youtube" &&
+    youtubeProvider.isLoading &&
+    youtubeResults.length === 0;
+
+  const showYouTubeInitial =
+    activeTab === "youtube" &&
+    youtubeResults.length === 0 &&
+    query.trim().length === 0;
+
   return {
     // State
     query,
@@ -219,9 +281,11 @@ export const useSearchModal = ({
     // Providers
     queueProvider,
     neteaseProvider,
+    youtubeProvider,
 
     // Results
     queueResults,
+    youtubeResults,
 
     // Refs
     itemRefs,
@@ -229,6 +293,8 @@ export const useSearchModal = ({
     // Actions
     performNeteaseSearch,
     loadMoreNetease,
+    performYouTubeSearch,
+    loadMoreYouTube,
     handleScroll,
 
     // Navigation
@@ -249,6 +315,10 @@ export const useSearchModal = ({
     showNeteaseEmpty,
     showNeteaseInitial,
     showNeteaseLoading,
+    showYouTubePrompt,
+    showYouTubeEmpty,
+    showYouTubeInitial,
+    showYouTubeLoading,
 
     // Constants
     LIMIT,

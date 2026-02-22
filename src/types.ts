@@ -27,10 +27,16 @@ export interface Song {
   // Netease specific fields
   isNetease?: boolean;
   neteaseId?: string;
+  // YouTube specific fields
+  isYouTube?: boolean;
+  youtubeId?: string;
   // Audio stream specific fields
   isAudioStream?: boolean;
   audioStreamSource?: 'internet-archive' | 'self-hosted';
   album?: string;
+  duration?: number; // Duration in seconds
+  viewCount?: number; // For YouTube videos
+  channelTitle?: string; // For YouTube videos
 }
 
 export enum PlayState {
