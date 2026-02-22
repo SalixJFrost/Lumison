@@ -1,105 +1,186 @@
-# Lumison
+# Lumison - Visual Art Music Player
 
-A high-fidelity, immersive music player inspired by Apple Music with advanced playback controls, stunning visual effects, and multi-language support.
+English | [简体中文](README.zh-CN.md)
 
-🎵 **Live Demo**: https://salixjfrost.github.io/Lumison/
+<div align="center">
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
+![Lumison Logo](public/icon.svg)
+
+**A high-fidelity, immersive music player inspired by Apple Music**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tauri](https://img.shields.io/badge/Tauri-2.0-blue.svg)](https://tauri.app/)
+[![React](https://img.shields.io/badge/React-19.2-61dafb.svg)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)](https://www.typescriptlang.org/)
+
+[Live Demo](https://salixjfrost.github.io/Lumison/) | [Download Desktop](https://github.com/SalixJFrost/Lumison/releases) | [Documentation](docs/GUIDE.md)
+
+</div>
 
 ## Screenshots
 <img width="2559" height="1599" alt="image" src="https://github.com/user-attachments/assets/df80ac38-cad1-440f-8d53-02f959c67822" />
 
-
-
 ## ✨ Key Features
 
-- 🎨 **WebGL Fluid Background** - Dynamic, GPU-accelerated visual effects
-- 🎵 **3D Spatial Audio** - Cinema-style immersive sound with 5-band EQ
-- 🎚️ **Variable Speed (0.5x-3x)** - Smooth playback control with pitch preservation
+### 🎵 Core Functionality
+- **High-fidelity music playback** - Support for multiple formats (MP3, FLAC, WAV, etc.)
+- **Fluid background animation** - Dynamic background that responds to music and album art
+- **Synchronized lyrics display** - Smooth scrolling with physics-based animations
+- **Playlist management** - Drag-and-drop support
+- **Search integration** - Netease Cloud Music API integration
+
+### 🎨 Visual Experience
+- **Frameless window design** - Modern aesthetics
+- **Responsive layout** - Desktop and mobile support
+- **Dark/Light theme** - Automatic switching
+- **Multi-language support** - English, Chinese, Japanese
+- **Smooth animations** - 60fps performance optimization
+
+### 🎧 Audio Features
+- **Variable playback speed** (0.25x - 2.0x) with pitch preservation
+- **Volume control** with visual feedback
+- **Audio visualization** (optional, can be disabled to save memory)
+- **Spatial audio engine** for immersive experience
+- **Smart format detection** and error handling
+
+### 💻 Desktop Integration
+- Native window controls (minimize, maximize, close)
+- System tray integration
+- Media session API support
+- **Auto-update functionality** (silent check on startup)
 - 📊 **Real-time Visualizer** - Spectrum analyzer with enhanced animations
 - 🌐 **Multi-platform** - Netease Cloud Music, Internet Archive, and local files
 - 🌍 **i18n Support** - English, 简体中文 (Simplified Chinese), 日本語 (Japanese)
 - ⌨️ **Keyboard Shortcuts** - Comprehensive keyboard controls
 - 📱 **Responsive Design** - Optimized for desktop and mobile
 
-## 🚀 Quick Start
+## 📦 Installation
+
+### Windows Desktop
+
+Download the latest version from [Releases](https://github.com/SalixJFrost/Lumison/releases):
+
+- **MSI Installer** (recommended for enterprise): `Lumison_x.x.x_x64_en-US.msi`
+- **NSIS Installer** (smaller, faster): `Lumison_x.x.x_x64-setup.exe`
+
+Double-click to install. The application will be installed to `C:\Program Files\Lumison\`.
 
 ### Web Version
 
+Visit: https://salixjfrost.github.io/Lumison/
+
+No installation required, works in your browser.
+
+## 🚀 Quick Start
+
+### Development
+
 ```bash
-# Clone and install
-git clone https://github.com/salixjfrost/Lumison.git
+# Clone repository
+git clone https://github.com/SalixJFrost/Lumison.git
 cd Lumison
+
+# Install dependencies
 npm install
 
-# Development
+# Start development server
 npm run dev
 
-# Production build
-npm run build
-```
-
-### Desktop Application
-
-Lumison is also available as a native desktop application for Windows.
-
-#### Prerequisites
-- [Rust toolchain](https://rustup.rs/) (for building from source)
-- Node.js 18+
-- Windows 10/11
-
-#### Development
-```bash
-# Start desktop app in development mode
+# Start Tauri desktop app
 npm run tauri:dev
 ```
 
-#### Building
+### Building
+
 ```bash
+# Build web version
+npm run build
+
 # Build desktop application
 npm run tauri:build
-
-# Output: src-tauri/target/release/lumison.exe
-# Installers: src-tauri/target/release/bundle/
 ```
 
-For detailed information about the desktop integration, see [docs/TAURI_INTEGRATION.md](docs/TAURI_INTEGRATION.md).
+## 🎹 Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Space` | Play/Pause |
+| `→` | Next track |
+| `←` | Previous track |
+| `↑` | Volume up |
+| `↓` | Volume down |
+| `Cmd/Ctrl + K` | Open search |
+| `F` | Toggle fullscreen |
+| `L` | Toggle playlist |
 
 ## 🎮 Usage
 
 ### Import Music
 - **Local Files**: Drag and drop or click import button
-- **Online Search**: Press `Ctrl + K` to search
-- **URL Import**: Paste Netease, Internet Archive, or direct audio URLs
+- **Online Search**: Press `Ctrl + K` to search Netease Cloud Music
+- **URL Import**: Paste direct audio URLs
 
-### Keyboard Shortcuts
-- `Space` - Play/Pause
-- `Shift + ↑/↓` - Adjust speed ±0.25x
-- `Ctrl + 0-3` - Quick speed presets
-- `←/→` - Seek ±5s
-- `Ctrl + K` - Search
-- `Ctrl + /` - View all shortcuts
+### Playback Controls
+- Variable speed (0.25x - 2.0x) with pitch preservation
+- Volume control with visual feedback
+- Play modes: Sequential, Loop, Shuffle
+- Audio visualization (optional)
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React 19 + TypeScript + Vite
-- **Styling**: Tailwind CSS
-- **Animation**: React Spring
-- **Graphics**: WebGL + Canvas API
-- **Audio**: Web Audio API with spatial audio engine
+### Frontend
+- **React 19.2** - UI framework
+- **TypeScript 5.8** - Type safety
+- **Vite 6.2** - Build tool
+- **Tailwind CSS 3.4** - Styling framework
+
+### Desktop
+- **Tauri 2.0** - Desktop application framework
+- **Rust** - Backend language
+
+### Core Libraries
+- **@react-spring/web** - Animation library
+- **jsmediatags** - Audio metadata parsing
+- **colorthief** - Color extraction
+
+## 📁 Project Structure
+
+```
+Lumison/
+├── src/                      # Source code
+│   ├── components/          # React components
+│   │   ├── background/     # Background animation
+│   │   ├── controls/       # Playback controls
+│   │   ├── lyrics/         # Lyrics display
+│   │   └── visualizer/     # Audio visualization
+│   ├── contexts/           # React Context
+│   ├── hooks/              # Custom Hooks
+│   ├── services/           # Business logic
+│   │   ├── animation/      # Animation system
+│   │   ├── audio/          # Audio processing
+│   │   ├── lyrics/         # Lyrics service
+│   │   └── music/          # Music service
+│   ├── i18n/               # Internationalization
+│   └── utils/              # Utility functions
+├── src-tauri/              # Tauri backend
+├── docs/                   # Documentation
+└── public/                 # Static assets
+```
+
+## 🔄 Auto-Update
+
+Desktop version includes auto-update functionality:
+
+1. App checks for updates on startup (after 3 seconds)
+2. When a new version is available, a notification appears in the bottom-right corner
+3. Click "Update Now" to download
+4. Automatically installs and restarts after download
 
 ## 📚 Documentation
 
-Complete documentation is available in the [docs](./docs) directory:
-
-- **[User Guide](./docs/GUIDE.md)** - Complete usage guide with features, shortcuts, and FAQ
-- **[Development Guide](./docs/DEVELOPMENT.md)** - Technical implementation, performance optimization, and desktop app development
-
-For project structure and overview, see:
-- **[Project Structure](./PROJECT_STRUCTURE.md)** - Detailed project organization
-- **[Project Overview](./.github/PROJECT_OVERVIEW.md)** - High-level architecture and roadmap
+- [Development Guide](docs/DEVELOPMENT.md) - Development setup and contribution guide
+- [User Guide](docs/GUIDE.md) - Feature descriptions and usage tips
+- [Release Guide](RELEASE.md) - How to publish new versions
 
 ## 🤝 Contributing
 
@@ -126,3 +207,55 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 **If you find this project useful, please consider giving it a star ⭐**
+
+Contributions are welcome! Please see [DEVELOPMENT.md](docs/DEVELOPMENT.md) for how to get started.
+
+### Contribution Process
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with [Tauri](https://tauri.app/) for desktop applications
+- Built with [React](https://reactjs.org/) for user interface
+- Music metadata from [Netease Cloud Music API](https://neteasecloudmusicapi.vercel.app/)
+- Design inspired by Apple Music
+
+## 📞 Contact
+
+- GitHub Issues: [Submit an issue](https://github.com/SalixJFrost/Lumison/issues)
+- GitHub Discussions: [Join the discussion](https://github.com/SalixJFrost/Lumison/discussions)
+
+## 🗺️ Roadmap
+
+- [ ] macOS support
+- [ ] Linux support
+- [ ] More music platform integrations
+- [ ] Playback history
+- [ ] Smart recommendations
+- [ ] Equalizer
+- [ ] Plugin system
+
+## ⭐ Star History
+
+If you like this project, please give it a star!
+
+[![Star History Chart](https://api.star-history.com/svg?repos=SalixJFrost/Lumison&type=Date)](https://star-history.com/#SalixJFrost/Lumison&Date)
+
+---
+
+<div align="center">
+
+**Made with ❤️**
+
+[⬆ Back to top](#lumison---visual-art-music-player)
+
+</div>
