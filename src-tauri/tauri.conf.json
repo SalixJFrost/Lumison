@@ -59,12 +59,7 @@
       "wix": {
         "language": "en-US"
       },
-      "nsis": {
-        "installerIcon": "icons/icon.ico",
-        "installMode": "perUser",
-        "languages": ["English", "SimpChinese"],
-        "displayLanguageSelector": true
-      }
+      "nsis": null
     },
     "macOS": {
       "minimumSystemVersion": "10.13",
