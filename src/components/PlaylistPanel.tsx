@@ -61,7 +61,6 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
 }) => {
     const { t } = useI18n();
     const [isAdding, setIsAdding] = useState(false);
-    const [visible, setVisible] = useState(false);
 
     const [isEditing, setIsEditing] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
