@@ -2,7 +2,8 @@ import { fetchViaProxy } from "../utils";
 
 /**
  * 多平台歌词服务
- * 优先级：QQ音乐 > 酷狗音乐 > 网易云音乐 > YouTube Music
+ * 优先级：网易云音乐 > QQ音乐 > 酷狗音乐 > 其他歌词API
+ * 网易云音乐最可靠，优先使用
  */
 
 // API 端点配置

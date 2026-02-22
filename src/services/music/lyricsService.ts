@@ -168,7 +168,7 @@ const parseJsonMetadata = (line: string) => {
   return line.trim();
 };
 
-// 专门的歌词API列表
+// 专门的歌词API列表（按可靠性排序）
 const DEDICATED_LYRICS_APIS = [
   {
     name: "LrcLib",
@@ -220,6 +220,54 @@ const DEDICATED_LYRICS_APIS = [
             source: "LRCAPI",
           };
         }
+      }
+      return null;
+    },
+  },
+  {
+    name: "Syair.info",
+    search: async (title: string, artist: string) => {
+      try {
+        const url = `https://api.syair.info/lyrics/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
+        const response = await fetchViaProxy(url);
+        if (response && response.lyrics) {
+          // Convert to LRC format
+          const lines = response.lyrics.split('\n').filter((line: string) => line.trim());
+          const lrc = lines.map((line: string, index: number) => {
+            const time = index * 3;
+            const minutes = Math.floor(time / 60);
+            const seconds = time % 60;
+            return `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.00]${line}`;
+          }).join('\n');
+          return {
+            lrc,
+            source: "Syair.info",
+          };
+        }
+      } catch (error) {
+        // Silently fail
+      }
+      return null;
+    },
+  },
+  {
+    name: "Genius (via API)",
+    search: async (title: string, artist: string) => {
+      try {
+        // Note: This is a simplified version, real Genius API requires authentication
+        const searchQuery = `${artist} ${title}`;
+        const url = `https://genius.com/api/search/multi?q=${encodeURIComponent(searchQuery)}`;
+        const response = await fetchViaProxy(url);
+        if (response && response.response && response.response.sections) {
+          const songs = response.response.sections.find((s: any) => s.type === 'song');
+          if (songs && songs.hits && songs.hits.length > 0) {
+            // Note: Genius doesn't provide LRC format directly
+            // This is a placeholder - would need additional processing
+            return null;
+          }
+        }
+      } catch (error) {
+        // Silently fail
       }
       return null;
     },
