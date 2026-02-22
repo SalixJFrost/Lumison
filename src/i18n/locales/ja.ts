@@ -140,6 +140,8 @@ export default {
     gradient: "グラデーション",
     glow: "グロー",
     shadow: "シャドウ",
+    originalAndTranslation: "原文+翻訳",
+    originalOnly: "原文のみ",
   },
   
   // ビジュアライザー

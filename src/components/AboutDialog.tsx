@@ -56,13 +56,6 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ isOpen, onClose }) => {
                         {t("about.inspiredBy")}
                     </p>
 
-                    {/* Tech Stack Grid */}
-                    <div className="w-full grid grid-cols-3 gap-2 mb-8">
-                        <TechBadge label="Gemini 3" />
-                        <TechBadge label="Codex" />
-                        <TechBadge label="Claude" />
-                    </div>
-
                     {/* Selection List */}
                     <div className="w-full flex flex-col gap-2 mb-6">
                         <a

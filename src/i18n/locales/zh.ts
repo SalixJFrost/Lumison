@@ -140,6 +140,8 @@ export default {
     gradient: "渐变",
     glow: "发光",
     shadow: "阴影",
+    originalAndTranslation: "原文+译文",
+    originalOnly: "仅原文",
   },
   
   // 可视化器

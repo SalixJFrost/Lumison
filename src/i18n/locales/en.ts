@@ -140,6 +140,8 @@ export default {
     gradient: "Gradient",
     glow: "Glow",
     shadow: "Shadow",
+    originalAndTranslation: "Original + Translation",
+    originalOnly: "Original Only",
   },
   
   // Visualizer

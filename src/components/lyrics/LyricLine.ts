@@ -85,6 +85,7 @@ export class LyricLine implements ILyricLine {
   private enableBlur: boolean = false;
   private enableGlow: boolean = false;
   private enableShadow: boolean = true;
+  private showTranslation: boolean = true;
 
   constructor(
     line: LyricLineType, 
@@ -142,6 +143,13 @@ export class LyricLine implements ILyricLine {
       this.theme = theme;
       this.isDirty = true;
       this.cachedWordKey = ''; // Invalidate cache
+    }
+  }
+
+  public setShowTranslation(show: boolean) {
+    if (this.showTranslation !== show) {
+      this.showTranslation = show;
+      this.isDirty = true;
     }
   }
 
@@ -291,7 +299,7 @@ export class LyricLine implements ILyricLine {
     }
 
     // 4. Translation
-    if (this.layout.translationLines && this.layout.translationLines.length > 0) {
+    if (this.showTranslation && this.layout.translationLines && this.layout.translationLines.length > 0) {
       this.ctx.font = transFont;
       this.ctx.fillStyle = colors.translation;
       const lastWordY = this.layout.words.length > 0

@@ -6,6 +6,7 @@ import { LyricLine } from "./lyrics/LyricLine";
 import { InterludeDots } from "./lyrics/InterludeDots";
 import { ILyricLine } from "./lyrics/ILyricLine";
 import { useTheme } from "../contexts/ThemeContext";
+import { useI18n } from "../contexts/I18nContext";
 
 interface LyricsViewProps {
   lyrics: LyricLineType[];
@@ -33,13 +34,17 @@ const LyricsView: React.FC<LyricsViewProps> = ({
   shadow = true,
 }) => {
   const { theme } = useTheme();
+  const { t } = useI18n();
   const [isMobile, setIsMobile] = useState(false);
   const [lyricLines, setLyricLines] = useState<ILyricLine[]>([]);
   const [mobileHoverIndex, setMobileHoverIndex] = useState<number | null>(null);
+  const [showButtons, setShowButtons] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
   const mobileHoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const buttonHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Detect mobile layout
   useEffect(() => {
@@ -97,6 +102,25 @@ const LyricsView: React.FC<LyricsViewProps> = ({
       }
     };
   }, [mobileHoverIndex, isMobile]);
+
+  // Button auto-hide logic
+  useEffect(() => {
+    if (buttonHideTimeoutRef.current) {
+      clearTimeout(buttonHideTimeoutRef.current);
+    }
+
+    if (showButtons) {
+      buttonHideTimeoutRef.current = setTimeout(() => {
+        setShowButtons(false);
+      }, 10000);
+    }
+
+    return () => {
+      if (buttonHideTimeoutRef.current) {
+        clearTimeout(buttonHideTimeoutRef.current);
+      }
+    };
+  }, [showButtons]);
 
   // Measure Container Width
   useEffect(() => {
@@ -159,6 +183,15 @@ const LyricsView: React.FC<LyricsViewProps> = ({
     setLyricLines(lines);
   }, [lyrics, containerWidth, isMobile, fontSize, theme]);
 
+  // Update translation visibility for all lines
+  useEffect(() => {
+    lyricLines.forEach((line) => {
+      if (line instanceof LyricLine) {
+        line.setShowTranslation(showTranslation);
+      }
+    });
+  }, [lyricLines, showTranslation]);
+
   // Calculate layout properties for physics
   const { linePositions, lineHeights } = useMemo(() => {
     const positions: number[] = [];
@@ -206,6 +239,10 @@ const LyricsView: React.FC<LyricsViewProps> = ({
   const handleMouseMove = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
     mouseRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    
+    // Show buttons on mouse move
+    setShowButtons(true);
+    
     handlers.onTouchMove(e);
   };
 
@@ -552,6 +589,41 @@ const LyricsView: React.FC<LyricsViewProps> = ({
       onClick={handleClick}
     >
       <canvas ref={canvasRef} className="w-full h-full block" />
+      
+      {/* Translation Toggle Buttons */}
+      <div 
+        className={`absolute top-4 right-4 flex gap-2 transition-opacity duration-300 ${
+          showButtons ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onMouseEnter={() => setShowButtons(true)}
+      >
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowTranslation(true);
+          }}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+            showTranslation
+              ? 'bg-white/20 text-white backdrop-blur-md border border-white/30'
+              : 'bg-white/5 text-white/50 backdrop-blur-md border border-white/10 hover:bg-white/10 hover:text-white/70'
+          }`}
+        >
+          {t('lyrics.originalAndTranslation')}
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowTranslation(false);
+          }}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+            !showTranslation
+              ? 'bg-white/20 text-white backdrop-blur-md border border-white/30'
+              : 'bg-white/5 text-white/50 backdrop-blur-md border border-white/10 hover:bg-white/10 hover:text-white/70'
+          }`}
+        >
+          {t('lyrics.originalOnly')}
+        </button>
+      </div>
     </div>
   );
 };
