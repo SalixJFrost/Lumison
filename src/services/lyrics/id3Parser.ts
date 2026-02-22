@@ -20,6 +20,7 @@ const jsmediatags = (jsmediat as any).default || jsmediat;
 /**
  * Extract lyrics from audio file metadata
  * Uses jsmediatags library for ID3 parsing
+ * Optimized with timeout and better error handling
  */
 export const extractEmbeddedLyrics = async (
   file: File
@@ -31,7 +32,15 @@ export const extractEmbeddedLyrics = async (
       return { lyrics: [], source: 'none' };
     }
 
-    return new Promise((resolve) => {
+    // 添加超时机制（5秒），避免大文件卡住
+    const timeoutPromise = new Promise<{ lyrics: LyricLine[]; source: 'id3' | 'flac' | 'none' }>((resolve) => {
+      setTimeout(() => {
+        console.warn(`ID3 parsing timeout for: ${file.name}`);
+        resolve({ lyrics: [], source: 'none' });
+      }, 5000);
+    });
+
+    const parsePromise = new Promise<{ lyrics: LyricLine[]; source: 'id3' | 'flac' | 'none' }>((resolve) => {
       jsmediatags.read(file, {
         onSuccess: (tag: any) => {
           const tags = tag.tags;
@@ -42,7 +51,7 @@ export const extractEmbeddedLyrics = async (
             const lyricsText = usltData.lyrics || usltData.text || usltData;
 
             if (typeof lyricsText === 'string' && lyricsText.trim()) {
-              console.log('✓ Found ID3 USLT lyrics');
+              console.log(`✓ Found ID3 USLT lyrics in: ${file.name}`);
               const parsed = parseLyrics(lyricsText);
               resolve({ lyrics: parsed, source: 'id3' });
               return;
@@ -55,7 +64,7 @@ export const extractEmbeddedLyrics = async (
             const lyrics = parseSYLT(syltData);
 
             if (lyrics.length > 0) {
-              console.log('✓ Found ID3 SYLT synchronized lyrics');
+              console.log(`✓ Found ID3 SYLT synchronized lyrics in: ${file.name}`);
               resolve({ lyrics, source: 'id3' });
               return;
             }
@@ -65,7 +74,7 @@ export const extractEmbeddedLyrics = async (
           if (tags.LYRICS) {
             const lyricsText = tags.LYRICS;
             if (typeof lyricsText === 'string' && lyricsText.trim()) {
-              console.log('✓ Found ID3 LYRICS tag');
+              console.log(`✓ Found ID3 LYRICS tag in: ${file.name}`);
               const parsed = parseLyrics(lyricsText);
               resolve({ lyrics: parsed, source: 'id3' });
               return;
@@ -83,7 +92,7 @@ export const extractEmbeddedLyrics = async (
                 : comment.LYRICS;
 
               if (typeof lyricsText === 'string' && lyricsText.trim()) {
-                console.log('✓ Found FLAC LYRICS comment');
+                console.log(`✓ Found FLAC LYRICS comment in: ${file.name}`);
                 const parsed = parseLyrics(lyricsText);
                 resolve({ lyrics: parsed, source: 'flac' });
                 return;
@@ -97,7 +106,7 @@ export const extractEmbeddedLyrics = async (
                 : comment.UNSYNCEDLYRICS;
 
               if (typeof lyricsText === 'string' && lyricsText.trim()) {
-                console.log('✓ Found FLAC UNSYNCEDLYRICS comment');
+                console.log(`✓ Found FLAC UNSYNCEDLYRICS comment in: ${file.name}`);
                 const parsed = parseLyrics(lyricsText);
                 resolve({ lyrics: parsed, source: 'flac' });
                 return;
@@ -109,13 +118,16 @@ export const extractEmbeddedLyrics = async (
           resolve({ lyrics: [], source: 'none' });
         },
         onError: (error: any) => {
-          console.warn('ID3 tag reading failed:', error);
+          console.warn(`ID3 tag reading failed for ${file.name}:`, error.type || error);
           resolve({ lyrics: [], source: 'none' });
         },
       });
     });
+
+    // 使用 Promise.race 实现超时
+    return await Promise.race([parsePromise, timeoutPromise]);
   } catch (error) {
-    console.warn('jsmediatags error:', error);
+    console.warn(`jsmediatags error for ${file.name}:`, error);
     return { lyrics: [], source: 'none' };
   }
 };

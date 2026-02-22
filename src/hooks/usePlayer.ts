@@ -25,7 +25,7 @@ interface UsePlayerParams {
   setOriginalQueue: Dispatch<SetStateAction<Song[]>>;
 }
 
-const MATCH_TIMEOUT_MS = 15000; // 增加到 15 秒，给网络请求更多时间
+const MATCH_TIMEOUT_MS = 10000; // 减少到 10 秒，并行搜索应该更快
 
 const withTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
   return new Promise<T>((resolve, reject) => {
@@ -453,6 +453,53 @@ export const usePlayer = ({
       cancelled = true;
     };
   }, [currentSong?.id, mergeLyricsWithMetadata, updateSongInQueue]);
+
+  // 预加载下一首歌的歌词
+  useEffect(() => {
+    if (currentIndex < 0 || currentIndex >= queue.length - 1) return;
+    
+    const nextSong = queue[currentIndex + 1];
+    if (!nextSong || !nextSong.needsLyricsMatch || (nextSong.lyrics && nextSong.lyrics.length > 0)) {
+      return; // 下一首不需要匹配或已有歌词
+    }
+
+    // 延迟 2 秒后开始预加载，避免影响当前歌曲的播放
+    const preloadTimer = setTimeout(async () => {
+      console.log(`🔮 Preloading lyrics for next song: "${nextSong.title}"`);
+      
+      try {
+        if (nextSong.isNetease && nextSong.neteaseId) {
+          const raw = await withTimeout(
+            fetchLyricsById(nextSong.neteaseId),
+            MATCH_TIMEOUT_MS,
+          );
+          if (raw) {
+            console.log(`✅ Preloaded lyrics for: "${nextSong.title}"`);
+            updateSongInQueue(nextSong.id, {
+              lyrics: mergeLyricsWithMetadata(raw),
+              needsLyricsMatch: false,
+            });
+          }
+        } else {
+          const result = await withTimeout(
+            searchAndMatchLyrics(nextSong.title, nextSong.artist),
+            MATCH_TIMEOUT_MS,
+          );
+          if (result) {
+            console.log(`✅ Preloaded lyrics for: "${nextSong.title}"`);
+            updateSongInQueue(nextSong.id, {
+              lyrics: mergeLyricsWithMetadata(result),
+              needsLyricsMatch: false,
+            });
+          }
+        }
+      } catch (error) {
+        console.warn(`⚠️ Failed to preload lyrics for: "${nextSong.title}"`, error);
+      }
+    }, 2000);
+
+    return () => clearTimeout(preloadTimer);
+  }, [currentIndex, queue, updateSongInQueue, mergeLyricsWithMetadata]);
 
   useEffect(() => {
     const audio = audioRef.current;

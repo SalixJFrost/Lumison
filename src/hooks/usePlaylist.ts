@@ -78,27 +78,22 @@ export const usePlaylist = () => {
 
       const newSongs: Song[] = [];
 
-      // Build lyrics map: extract song title from filename (part after first "-")
-      // Remove Netease IDs like (12345678) from title
+      // Build lyrics map
       const lyricsMap = new Map<string, File>();
       lyricsFiles.forEach((file) => {
         const basename = file.name.replace(/\.[^/.]+$/, "");
         const firstDashIndex = basename.indexOf("-");
 
-        // If has "-", use part after first dash as title, otherwise use full basename
         let title = firstDashIndex > 0 && firstDashIndex < basename.length - 1
           ? basename.substring(firstDashIndex + 1).trim()
           : basename;
 
-        // Remove Netease ID pattern like (12345678) or [12345678]
         title = title.replace(/[\(\[]?\d{7,9}[\)\]]?/g, "").trim();
-
         lyricsMap.set(title.toLowerCase(), file);
       });
 
-      // Process audio files
-      for (let i = 0; i < audioFiles.length; i++) {
-        const file = audioFiles[i];
+      // 并行处理所有音频文件（优化性能）
+      const processingPromises = audioFiles.map(async (file, i) => {
         const url = URL.createObjectURL(file);
         const basename = file.name.replace(/\.[^/.]+$/, "");
         let title = basename;
@@ -115,8 +110,14 @@ export const usePlaylist = () => {
         }
 
         try {
-          // 1. Extract basic metadata
-          const metadata = await parseAudioMetadata(file);
+          // 并行执行：元数据提取、LRC文件查找、内嵌歌词提取
+          const [metadata, matchedLRCFile, embeddedResult] = await Promise.all([
+            parseAudioMetadata(file),
+            Promise.resolve(findMatchingLRCFile(file, lyricsFiles)),
+            extractEmbeddedLyrics(file),
+          ]);
+
+          // 处理元数据
           if (metadata.title) title = metadata.title;
           if (metadata.artist) artist = metadata.artist;
           if (metadata.picture) {
@@ -124,8 +125,7 @@ export const usePlaylist = () => {
             colors = await extractColors(coverUrl);
           }
 
-          // 2. Try to find matching LRC file (will be used as lowest priority fallback)
-          const matchedLRCFile = findMatchingLRCFile(file, lyricsFiles);
+          // 处理 LRC 文件
           if (matchedLRCFile) {
             lrcFileLyrics = await loadLRCFile(matchedLRCFile);
             if (lrcFileLyrics.length > 0) {
@@ -133,48 +133,41 @@ export const usePlaylist = () => {
             }
           }
 
-          // 3. Extract embedded lyrics from ID3/FLAC tags (highest priority)
-          const { lyrics: id3Lyrics, source: id3Source } = await extractEmbeddedLyrics(file);
-          if (id3Lyrics.length > 0) {
-            embeddedLyrics = id3Lyrics;
-            console.log(`✓ Found ${id3Source} embedded lyrics`);
+          // 处理内嵌歌词
+          if (embeddedResult.lyrics.length > 0) {
+            embeddedLyrics = embeddedResult.lyrics;
+            console.log(`✓ Found ${embeddedResult.source} embedded lyrics for: ${title}`);
           }
 
-          // 4. Determine initial lyrics (embedded only, online search will happen during playback)
+          // 确定初始歌词
           let initialLyrics: { time: number; text: string }[] = [];
           let needsOnlineSearch = false;
           
           if (embeddedLyrics.length > 0) {
-            // Use embedded lyrics (highest priority)
             initialLyrics = embeddedLyrics;
             needsOnlineSearch = false;
-            console.log(`📝 Using embedded ID3/FLAC lyrics (highest priority) for: ${title}`);
+            console.log(`📝 Using embedded lyrics for: ${title}`);
           } else {
-            // No embedded lyrics, will try online search during playback
             initialLyrics = [];
             needsOnlineSearch = true;
-            console.log(`⚠️ No embedded lyrics, will search online during playback for: ${title}`);
+            console.log(`🔍 Will search online for: ${title}`);
           }
 
-          newSongs.push({
+          return {
             id: `local-${Date.now()}-${i}`,
             title,
             artist,
             fileUrl: url,
             coverUrl,
-            // Use embedded lyrics if available, otherwise empty (will search online)
             lyrics: initialLyrics,
             colors: colors && colors.length > 0 ? colors : undefined,
-            // Search online only if no embedded lyrics
             needsLyricsMatch: needsOnlineSearch,
-            // Store LRC file as lowest priority fallback
             localLyrics: lrcFileLyrics,
-          });
+          };
         } catch (err) {
-          console.warn("Local metadata extraction failed", err);
+          console.warn(`Failed to process: ${file.name}`, err);
           
-          // Fallback: create song without lyrics
-          newSongs.push({
+          return {
             id: `local-${Date.now()}-${i}`,
             title,
             artist,
@@ -183,9 +176,13 @@ export const usePlaylist = () => {
             lyrics: [],
             colors: colors && colors.length > 0 ? colors : undefined,
             needsLyricsMatch: true,
-          });
+          };
         }
-      }
+      });
+
+      // 等待所有文件处理完成
+      const processedSongs = await Promise.all(processingPromises);
+      newSongs.push(...processedSongs);
 
       appendSongs(newSongs);
       return newSongs;
