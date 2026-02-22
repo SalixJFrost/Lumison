@@ -592,14 +592,14 @@ const LyricsView: React.FC<LyricsViewProps> = ({
       
       {/* Translation Toggle Switch */}
       <div 
-        className={`absolute top-8 right-4 transition-opacity duration-300 ${
+        className={`absolute top-4 right-4 transition-opacity duration-300 ${
           showButtons ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onMouseEnter={() => setShowButtons(true)}
       >
-        <div className="relative inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-lg">
-          <span className={`text-xs font-medium transition-colors duration-200 ${showTranslation ? 'text-white' : 'text-white/50'}`}>
-            {t('lyrics.originalAndTranslation')}
+        <div className="relative inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-lg">
+          <span className={`text-sm font-medium transition-colors duration-200 ${showTranslation ? 'text-white' : 'text-white/50'}`}>
+            {t('lyrics.translation')}
           </span>
           
           {/* Toggle Switch */}
@@ -608,18 +608,18 @@ const LyricsView: React.FC<LyricsViewProps> = ({
               e.stopPropagation();
               setShowTranslation(!showTranslation);
             }}
-            className="relative w-11 h-6 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-white/30"
+            className="relative w-9 h-5 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-white/30"
             style={{ backgroundColor: showTranslation ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.15)' }}
             aria-label={showTranslation ? t('lyrics.originalAndTranslation') : t('lyrics.originalOnly')}
           >
             <span
-              className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 ease-in-out"
-              style={{ transform: showTranslation ? 'translateX(20px)' : 'translateX(0)' }}
+              className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-transform duration-300 ease-in-out"
+              style={{ transform: showTranslation ? 'translateX(16px)' : 'translateX(0)' }}
             />
           </button>
           
-          <span className={`text-xs font-medium transition-colors duration-200 ${!showTranslation ? 'text-white' : 'text-white/50'}`}>
-            {t('lyrics.originalOnly')}
+          <span className={`text-sm font-medium transition-colors duration-200 ${!showTranslation ? 'text-white' : 'text-white/50'}`}>
+            {t('lyrics.original')}
           </span>
         </div>
       </div>

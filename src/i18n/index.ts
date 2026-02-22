@@ -1,21 +1,18 @@
 import en from "./locales/en";
 import zh from "./locales/zh";
-import ja from "./locales/ja";
 
-export type Locale = "en" | "zh" | "ja";
+export type Locale = "en" | "zh";
 
 export type TranslationKeys = typeof en;
 
 const translations: Record<Locale, TranslationKeys> = {
   en,
   zh,
-  ja,
 };
 
 export const localeNames: Record<Locale, string> = {
   en: "English",
   zh: "简体中文",
-  ja: "日本語",
 };
 
 export const getTranslations = (locale: Locale): TranslationKeys => {
@@ -51,7 +48,6 @@ export const detectBrowserLanguage = (): Locale => {
   const browserLang = navigator.language.toLowerCase();
   
   if (browserLang.startsWith("zh")) return "zh";
-  if (browserLang.startsWith("ja")) return "ja";
   
   return "en";
 };
@@ -61,7 +57,7 @@ export const getSavedLocale = (): Locale | null => {
   if (typeof localStorage === "undefined") return null;
   
   const saved = localStorage.getItem("lumison-locale");
-  if (saved && (saved === "en" || saved === "zh" || saved === "ja")) {
+  if (saved && (saved === "en" || saved === "zh")) {
     return saved as Locale;
   }
   

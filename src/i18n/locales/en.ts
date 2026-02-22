@@ -143,6 +143,8 @@ export default {
     shadow: "Shadow",
     originalAndTranslation: "Original + Translation",
     originalOnly: "Original Only",
+    translation: "Trans",
+    original: "Orig",
   },
   
   // Visualizer
@@ -201,6 +203,7 @@ export default {
     import: "Import",
     search: "Search",
     settings: "Settings",
+    lab: "Lab",
     theme: "Theme",
     language: "Language",
     about: "About",

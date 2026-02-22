@@ -143,6 +143,8 @@ export default {
     shadow: "阴影",
     originalAndTranslation: "原文+译文",
     originalOnly: "仅原文",
+    translation: "译",
+    original: "原",
   },
   
   // 可视化器
@@ -201,6 +203,7 @@ export default {
     import: "导入",
     search: "搜索",
     settings: "设置",
+    lab: "实验室",
     theme: "主题",
     language: "语言",
     about: "关于",

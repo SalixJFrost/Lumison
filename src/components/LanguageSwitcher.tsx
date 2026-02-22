@@ -18,7 +18,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   const [showMenu, setShowMenu] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const locales: Locale[] = ["en", "zh", "ja"];
+  const locales: Locale[] = ["en", "zh"];
 
   const menuTransitions = useTransition(showMenu, {
     from: { opacity: 0, transform: "translateY(-10px) scale(0.95)" },

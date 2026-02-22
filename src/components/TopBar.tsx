@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
-import { InfoIcon, FullscreenIcon, SettingsIcon, ThemeIcon, MinimizeIcon, MaximizeIcon, RestoreIcon, CloseIcon } from "./Icons";
+import { InfoIcon, FullscreenIcon, SettingsIcon, ThemeIcon, MinimizeIcon, MaximizeIcon, RestoreIcon, CloseIcon, LabIcon } from "./Icons";
 import AboutDialog from "./AboutDialog";
 import ImportMusicDialog from "./ImportMusicDialog";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -50,12 +50,14 @@ const TopBar: React.FC<TopBarProps> = ({
   const { t } = useI18n();
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isLabOpen, setIsLabOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const [isTopBarActive, setIsTopBarActive] = useState(false);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settingsContainerRef = useRef<HTMLDivElement>(null);
+  const labContainerRef = useRef<HTMLDivElement>(null);
 
   // 使用 useCallback 优化函数
   const toggleFullscreen = useCallback(() => {
@@ -226,6 +228,23 @@ const TopBar: React.FC<TopBarProps> = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isSettingsOpen]);
+
+  // Close lab popup when clicking outside
+  useEffect(() => {
+    if (!isLabOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        labContainerRef.current &&
+        !labContainerRef.current.contains(event.target as Node)
+      ) {
+        setIsLabOpen(false);
+      }
+    };
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isLabOpen]);
 
   // 使用 useMemo 缓存样式类
   const transitionClasses = useMemo(() => {
@@ -412,6 +431,40 @@ const TopBar: React.FC<TopBarProps> = ({
                     <span className="text-sm">{t("topBar.about")}</span>
                     <InfoIcon className="w-4 h-4 transition-transform duration-300" />
                   </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Lab Button */}
+          <div className="relative" ref={labContainerRef} onPointerDown={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setIsLabOpen(!isLabOpen)}
+              className={`w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center transition-all duration-300 ease-out shadow-sm hover:scale-110 active:scale-95 ${
+                isLabOpen ? "text-white bg-white/20 scale-110" : "text-white/80 hover:bg-white/20 hover:text-white"
+              }`}
+              title={t("topBar.lab")}
+              aria-label={t("topBar.lab")}
+            >
+              <LabIcon className={`w-5 h-5 transition-transform duration-500 ease-out ${isLabOpen ? 'rotate-12' : ''}`} />
+            </button>
+
+            {/* Lab Popup */}
+            {isLabOpen && (
+              <div className="absolute top-full right-0 mt-3 w-72 rounded-2xl bg-black/40 backdrop-blur-2xl saturate-150 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="p-4 space-y-4">
+                  <h3 className="text-white font-semibold mb-4 text-sm flex items-center gap-2">
+                    <LabIcon className="w-4 h-4" />
+                    {t("topBar.lab")}
+                  </h3>
+                  
+                  <div className="text-white/60 text-xs text-center py-8">
+                    实验性功能即将推出...
+                    <br />
+                    <span className="text-white/40 text-[10px] mt-2 block">
+                      Experimental features coming soon...
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
