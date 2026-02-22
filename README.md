@@ -92,12 +92,36 @@ npm run tauri:dev
 
 ### Building
 
+See [BUILD.md](docs/BUILD.md) for detailed build instructions for all platforms.
+
+#### Quick Build Commands
+
 ```bash
 # Build web version
 npm run build
 
-# Build desktop application
+# Build for current platform (Windows/macOS/Linux)
 npm run tauri:build
+
+# Build for specific platforms
+npm run tauri:build:windows   # Windows (NSIS + MSI)
+npm run tauri:build:macos      # macOS (Universal DMG)
+npm run tauri:build:linux      # Linux (AppImage + deb)
+npm run tauri:build:android    # Android (APK + AAB)
+
+# Or use the build scripts
+./build.sh macos      # macOS/Linux
+.\build.ps1 windows   # Windows PowerShell
+```
+
+#### Platform-Specific Requirements
+
+- **Windows**: Visual Studio 2022 with C++ build tools
+- **macOS**: Xcode Command Line Tools
+- **Linux**: WebKit2GTK and other system libraries
+- **Android**: Android Studio, SDK, NDK, and JDK 17+
+
+See [BUILD.md](docs/BUILD.md) for complete setup instructions.
 ```
 
 ## 🎹 Keyboard Shortcuts
