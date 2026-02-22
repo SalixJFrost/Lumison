@@ -15,6 +15,9 @@ interface LyricsViewProps {
   onSeekRequest: (time: number, immediate?: boolean) => void;
   matchStatus: "idle" | "matching" | "success" | "failed";
   fontSize?: number;
+  blur?: boolean;
+  glow?: boolean;
+  shadow?: boolean;
 }
 
 const LyricsView: React.FC<LyricsViewProps> = ({
@@ -25,6 +28,9 @@ const LyricsView: React.FC<LyricsViewProps> = ({
   onSeekRequest,
   matchStatus,
   fontSize = 48,
+  blur = false,
+  glow = false,
+  shadow = true,
 }) => {
   const { theme } = useTheme();
   const [isMobile, setIsMobile] = useState(false);
@@ -130,7 +136,7 @@ const LyricsView: React.FC<LyricsViewProps> = ({
 
       const lyricLine = isInterlude
         ? new InterludeDots(line, index, isMobile, duration)
-        : new LyricLine(line, index, isMobile, fontSize, theme);
+        : new LyricLine(line, index, isMobile, fontSize, theme, blur, glow, shadow);
 
       // Calculate max width from previous n lines
       let suggestedWidth = 0;

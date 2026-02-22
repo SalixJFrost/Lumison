@@ -82,12 +82,27 @@ export class LyricLine implements ILyricLine {
   private cachedWordKey: string = "";
   private customFontSize?: number;
   private theme: 'light' | 'dark' = 'dark';
+  private enableBlur: boolean = false;
+  private enableGlow: boolean = false;
+  private enableShadow: boolean = true;
 
-  constructor(line: LyricLineType, index: number, isMobile: boolean, customFontSize?: number, theme?: 'light' | 'dark') {
+  constructor(
+    line: LyricLineType, 
+    index: number, 
+    isMobile: boolean, 
+    customFontSize?: number, 
+    theme?: 'light' | 'dark',
+    blur?: boolean,
+    glow?: boolean,
+    shadow?: boolean
+  ) {
     this.lyricLine = line;
     this.isMobile = isMobile;
     this.customFontSize = customFontSize;
     this.theme = theme || 'dark';
+    this.enableBlur = blur ?? false;
+    this.enableGlow = glow ?? false;
+    this.enableShadow = shadow ?? true;
     this.pixelRatio =
       typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
     this.canvas = document.createElement("canvas");
@@ -212,6 +227,25 @@ export class LyricLine implements ILyricLine {
     }
 
     // 3. Rendering Strategy
+    
+    // Apply shadow effect if enabled
+    if (this.enableShadow && isActive) {
+      this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+      this.ctx.shadowBlur = 8;
+      this.ctx.shadowOffsetX = 0;
+      this.ctx.shadowOffsetY = 2;
+    } else {
+      this.ctx.shadowColor = 'transparent';
+      this.ctx.shadowBlur = 0;
+    }
+    
+    // Apply blur effect if enabled (to inactive lines)
+    if (this.enableBlur && !isActive) {
+      this.ctx.filter = 'blur(2px)';
+    } else {
+      this.ctx.filter = 'none';
+    }
+    
     const firstWord = this.layout.words[0];
     const lastWord = this.layout.words[this.layout.words.length - 1];
     const lineDuration = (firstWord && lastWord) ? lastWord.endTime - firstWord.startTime : 0;
@@ -441,7 +475,8 @@ export class LyricLine implements ILyricLine {
    * Draw glow effect - single layer
    */
   private applyGlow(intensity: number, color?: string) {
-    if (intensity < 0.01) {
+    // 如果禁用了发光效果，直接返回
+    if (!this.enableGlow || intensity < 0.01) {
       this.ctx.shadowBlur = 0;
       this.ctx.shadowColor = "transparent";
       return;

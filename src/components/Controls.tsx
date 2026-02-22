@@ -8,6 +8,7 @@ import {
   LoopIcon,
   LoopOneIcon,
   ShuffleIcon,
+  SearchIcon,
   VolumeHighFilledIcon,
   VolumeHighIcon,
   VolumeLowFilledIcon,
@@ -52,6 +53,7 @@ interface ControlsProps {
   showSettingsPopup: boolean;
   setShowSettingsPopup: (show: boolean) => void;
   isBuffering: boolean;
+  onSearchClick: () => void;
 }
 
 const Controls: React.FC<ControlsProps> = ({
@@ -81,6 +83,7 @@ const Controls: React.FC<ControlsProps> = ({
   showSettingsPopup,
   setShowSettingsPopup,
   isBuffering,
+  onSearchClick,
 }) => {
   const { theme } = useTheme();
   const { t } = useI18n();
@@ -599,10 +602,19 @@ const Controls: React.FC<ControlsProps> = ({
       </div>
 
       {/* Controls Row - Flattened for Equal Spacing */}
-      {/* Layout: [Mode] [Vol] [Prev] [Play] [Next] [Settings] [List] */}
-      <div className="w-full max-w-[440px] mt-6 px-2">
+      {/* Layout: [Search] [Mode] [Vol] [Prev] [Play] [Next] [Settings] [List] */}
+      <div className="w-full max-w-[480px] mt-6 px-2">
         <div className="flex items-center justify-between w-full">
-          {/* 1. Play Mode */}
+          {/* 1. Search */}
+          <button
+            onClick={onSearchClick}
+            className="p-2.5 rounded-full theme-bg-overlay hover:theme-bg-overlay-hover transition-colors"
+            title={`${t("topBar.search")} (Cmd+K)`}
+          >
+            <SearchIcon className={`w-5 h-5 ${theme === 'light' ? 'text-black/60 hover:text-black' : 'text-white/60 hover:text-white'} transition-colors`} />
+          </button>
+
+          {/* 2. Play Mode */}
           <button
             onClick={onToggleMode}
             className="p-2.5 rounded-full theme-bg-overlay hover:theme-bg-overlay-hover transition-colors"
@@ -611,7 +623,7 @@ const Controls: React.FC<ControlsProps> = ({
             {getModeIcon()}
           </button>
 
-          {/* 2. Volume */}
+          {/* 3. Volume */}
           <div className="relative" ref={volumeContainerRef}>
             <button
               onClick={() => setShowVolumePopup(!showVolumePopup)}
@@ -638,7 +650,7 @@ const Controls: React.FC<ControlsProps> = ({
             )}
           </div>
 
-          {/* 3. Previous */}
+          {/* 4. Previous */}
           <button
             onClick={onPrev}
             className={`w-14 h-14 flex items-center justify-center rounded-full theme-bg-overlay hover:theme-bg-overlay-hover active:scale-95 transition-all duration-200`}
@@ -647,7 +659,7 @@ const Controls: React.FC<ControlsProps> = ({
             <PrevIcon className="w-7 h-7" />
           </button>
 
-          {/* 4. Play/Pause (Center) */}
+          {/* 5. Play/Pause (Center) */}
           <button
             onClick={onPlayPause}
             className={`w-16 h-16 flex items-center justify-center rounded-full hover:scale-105 active:scale-95 shadow-lg ${
@@ -678,7 +690,7 @@ const Controls: React.FC<ControlsProps> = ({
             </div>
           </button>
 
-          {/* 5. Next */}
+          {/* 6. Next */}
           <button
             onClick={onNext}
             className={`w-14 h-14 flex items-center justify-center rounded-full theme-bg-overlay hover:theme-bg-overlay-hover active:scale-95 transition-all duration-200`}
@@ -687,7 +699,7 @@ const Controls: React.FC<ControlsProps> = ({
             <NextIcon className="w-7 h-7" />
           </button>
 
-          {/* 6. Settings (Replaces Like) */}
+          {/* 7. Settings (Replaces Like) */}
           <div className="relative" ref={settingsContainerRef}>
             <button
               onClick={() => setShowSettingsPopup(!showSettingsPopup)}
@@ -719,7 +731,7 @@ const Controls: React.FC<ControlsProps> = ({
             )}
           </div>
 
-          {/* 7. Playlist/Queue */}
+          {/* 8. Playlist/Queue */}
           <button
             onClick={onTogglePlaylist}
             className={`p-2.5 rounded-full transition-colors ${

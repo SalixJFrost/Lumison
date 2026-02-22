@@ -136,6 +136,10 @@ export default {
     failed: "歌詞の読み込みに失敗しました",
     importLyrics: "歌詞ファイルをインポート",
     fontSize: "フォントサイズ",
+    effects: "歌詞エフェクト",
+    blur: "ぼかし",
+    glow: "グロー",
+    shadow: "シャドウ",
   },
 
   // キーボードショートカット

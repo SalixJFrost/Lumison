@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { SearchIcon, InfoIcon, FullscreenIcon, SettingsIcon, ThemeIcon } from "./Icons";
+import { InfoIcon, FullscreenIcon, SettingsIcon, ThemeIcon } from "./Icons";
 import AboutDialog from "./AboutDialog";
 import ImportMusicDialog from "./ImportMusicDialog";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -7,19 +7,29 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useI18n } from "../contexts/I18nContext";
 
 interface TopBarProps {
-  onSearchClick: () => void;
   disabled?: boolean;
   lyricsFontSize: number;
   onLyricsFontSizeChange: (size: number) => void;
   onImportUrl: (url: string) => Promise<boolean>;
+  lyricsBlur: boolean;
+  onLyricsBlurChange: (enabled: boolean) => void;
+  lyricsGlow: boolean;
+  onLyricsGlowChange: (enabled: boolean) => void;
+  lyricsShadow: boolean;
+  onLyricsShadowChange: (enabled: boolean) => void;
 }
 
 const TopBar: React.FC<TopBarProps> = ({
-  onSearchClick,
   disabled,
   lyricsFontSize,
   onLyricsFontSizeChange,
   onImportUrl,
+  lyricsBlur,
+  onLyricsBlurChange,
+  lyricsGlow,
+  onLyricsGlowChange,
+  lyricsShadow,
+  onLyricsShadowChange,
 }) => {
   const { theme, toggleTheme } = useTheme();
   const { t } = useI18n();
@@ -135,9 +145,6 @@ const TopBar: React.FC<TopBarProps> = ({
         <div
           className={`flex gap-3 ${baseTransitionClasses} delay-75 ${mobileActiveClasses} ${hoverSupportClasses}`}
         >
-          {/* Language Switcher */}
-          <LanguageSwitcher />
-
           {/* Settings Button */}
           <div className="relative" ref={settingsContainerRef}>
             <button
@@ -173,6 +180,43 @@ const TopBar: React.FC<TopBarProps> = ({
                     />
                   </div>
 
+                  {/* Lyrics Effects */}
+                  <div className="space-y-2">
+                    <label className="text-white/70 text-xs">{t("lyrics.effects")}</label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => onLyricsBlurChange(!lyricsBlur)}
+                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                          lyricsBlur
+                            ? 'bg-white/20 text-white border border-white/20'
+                            : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        {t("lyrics.blur")}
+                      </button>
+                      <button
+                        onClick={() => onLyricsGlowChange(!lyricsGlow)}
+                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                          lyricsGlow
+                            ? 'bg-white/20 text-white border border-white/20'
+                            : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        {t("lyrics.glow")}
+                      </button>
+                      <button
+                        onClick={() => onLyricsShadowChange(!lyricsShadow)}
+                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                          lyricsShadow
+                            ? 'bg-white/20 text-white border border-white/20'
+                            : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        {t("lyrics.shadow")}
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Theme Button */}
                   <button
                     onClick={toggleTheme}
@@ -199,15 +243,6 @@ const TopBar: React.FC<TopBarProps> = ({
           </div>
 
 
-
-          {/* Search Button */}
-          <button
-            onClick={onSearchClick}
-            className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all shadow-sm"
-            title={`${t("topBar.search")} (Cmd+K)`}
-          >
-            <SearchIcon className="w-5 h-5" />
-          </button>
 
           {/* Fullscreen Button */}
           <button

@@ -136,6 +136,10 @@ export default {
     failed: "歌词加载失败",
     importLyrics: "导入歌词文件",
     fontSize: "字体大小",
+    effects: "歌词效果",
+    blur: "模糊",
+    glow: "发光",
+    shadow: "阴影",
   },
 
   // 键盘快捷键

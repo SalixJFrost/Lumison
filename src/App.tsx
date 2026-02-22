@@ -82,6 +82,9 @@ const App: React.FC = () => {
     return window.innerWidth;
   });
   const [lyricsFontSize, setLyricsFontSize] = useState(48);
+  const [lyricsBlur, setLyricsBlur] = useState(false);
+  const [lyricsGlow, setLyricsGlow] = useState(false);
+  const [lyricsShadow, setLyricsShadow] = useState(true);
 
   // Speed change handler with indicator
   const handleSpeedChange = (newSpeed: number) => {
@@ -306,6 +309,7 @@ const App: React.FC = () => {
           setShowVolumePopup={setShowVolumePopup}
           showSettingsPopup={showSettingsPopup}
           setShowSettingsPopup={setShowSettingsPopup}
+          onSearchClick={() => setShowSearch(true)}
         />
 
         {/* Floating Playlist Panel */}
@@ -328,7 +332,7 @@ const App: React.FC = () => {
   const lyricsKey = currentSong ? `${currentSong.id}-${lyricsVersion}` : "no-song";
 
   const lyricsSection = (
-    <div className="w-full h-full relative z-20 flex flex-col justify-center px-4 lg:pl-12">
+    <div className="w-full h-full relative z-20 flex flex-col justify-center px-4 lg:pl-4">
       <LyricsView
         key={lyricsKey}
         lyrics={currentSong?.lyrics || []}
@@ -338,6 +342,9 @@ const App: React.FC = () => {
         onSeekRequest={handleSeek}
         matchStatus={matchStatus}
         fontSize={lyricsFontSize}
+        blur={lyricsBlur}
+        glow={lyricsGlow}
+        shadow={lyricsShadow}
       />
     </div>
   );
@@ -402,10 +409,15 @@ const App: React.FC = () => {
 
       {/* Top Bar */}
       <TopBar
-        onSearchClick={() => setShowSearch(true)}
         lyricsFontSize={lyricsFontSize}
         onLyricsFontSizeChange={setLyricsFontSize}
         onImportUrl={handleImportUrl}
+        lyricsBlur={lyricsBlur}
+        onLyricsBlurChange={setLyricsBlur}
+        lyricsGlow={lyricsGlow}
+        onLyricsGlowChange={setLyricsGlow}
+        lyricsShadow={lyricsShadow}
+        onLyricsShadowChange={setLyricsShadow}
       />
 
       {/* Search Modal - Always rendered to preserve state, visibility handled internally */}

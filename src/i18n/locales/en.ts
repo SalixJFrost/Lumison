@@ -136,6 +136,10 @@ export default {
     failed: "Failed to load lyrics",
     importLyrics: "Import Lyrics File",
     fontSize: "Font Size",
+    effects: "Lyrics Effects",
+    blur: "Blur",
+    glow: "Glow",
+    shadow: "Shadow",
   },
 
   // Keyboard Shortcuts
