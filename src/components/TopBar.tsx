@@ -364,6 +364,53 @@ const TopBar: React.FC<TopBarProps> = ({
                     />
                   </div>
 
+                  {/* Theme Button */}
+                  <button
+                    onClick={toggleTheme}
+                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <span className="text-sm">{theme === 'dark' ? t("theme.light") : t("theme.dark")}</span>
+                    <ThemeIcon className="w-4 h-4 transition-transform duration-500 hover:rotate-180" />
+                  </button>
+
+                  {/* Language Switcher */}
+                  <LanguageSwitcher variant="settings" />
+
+                  {/* About Button */}
+                  <button
+                    onClick={handleAboutClick}
+                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <span className="text-sm">{t("topBar.about")}</span>
+                    <InfoIcon className="w-4 h-4 transition-transform duration-300" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Lab Button */}
+          <div className="relative" ref={labContainerRef} onPointerDown={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setIsLabOpen(!isLabOpen)}
+              className={`w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center transition-all duration-300 ease-out shadow-sm hover:scale-110 active:scale-95 ${
+                isLabOpen ? "text-white bg-white/20 scale-110" : "text-white/80 hover:bg-white/20 hover:text-white"
+              }`}
+              title={t("topBar.lab")}
+              aria-label={t("topBar.lab")}
+            >
+              <LabIcon className={`w-5 h-5 transition-transform duration-500 ease-out ${isLabOpen ? 'rotate-12' : ''}`} />
+            </button>
+
+            {/* Lab Popup */}
+            {isLabOpen && (
+              <div className="absolute top-full right-0 mt-3 w-72 rounded-2xl bg-black/40 backdrop-blur-2xl saturate-150 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="p-4 space-y-6">
+                  <h3 className="text-white font-semibold mb-4 text-sm flex items-center gap-2">
+                    <LabIcon className="w-4 h-4" />
+                    {t("topBar.lab")}
+                  </h3>
+                  
                   {/* Lyrics Effects */}
                   <div className="space-y-2">
                     <label className="text-white/70 text-xs">{t("lyrics.effects")}</label>
@@ -409,61 +456,6 @@ const TopBar: React.FC<TopBarProps> = ({
                         </div>
                       )}
                     </button>
-                  </div>
-
-                  {/* Theme Button */}
-                  <button
-                    onClick={toggleTheme}
-                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <span className="text-sm">{theme === 'dark' ? t("theme.light") : t("theme.dark")}</span>
-                    <ThemeIcon className="w-4 h-4 transition-transform duration-500 hover:rotate-180" />
-                  </button>
-
-                  {/* Language Switcher */}
-                  <LanguageSwitcher variant="settings" />
-
-                  {/* About Button */}
-                  <button
-                    onClick={handleAboutClick}
-                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <span className="text-sm">{t("topBar.about")}</span>
-                    <InfoIcon className="w-4 h-4 transition-transform duration-300" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Lab Button */}
-          <div className="relative" ref={labContainerRef} onPointerDown={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setIsLabOpen(!isLabOpen)}
-              className={`w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center transition-all duration-300 ease-out shadow-sm hover:scale-110 active:scale-95 ${
-                isLabOpen ? "text-white bg-white/20 scale-110" : "text-white/80 hover:bg-white/20 hover:text-white"
-              }`}
-              title={t("topBar.lab")}
-              aria-label={t("topBar.lab")}
-            >
-              <LabIcon className={`w-5 h-5 transition-transform duration-500 ease-out ${isLabOpen ? 'rotate-12' : ''}`} />
-            </button>
-
-            {/* Lab Popup */}
-            {isLabOpen && (
-              <div className="absolute top-full right-0 mt-3 w-72 rounded-2xl bg-black/40 backdrop-blur-2xl saturate-150 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="p-4 space-y-4">
-                  <h3 className="text-white font-semibold mb-4 text-sm flex items-center gap-2">
-                    <LabIcon className="w-4 h-4" />
-                    {t("topBar.lab")}
-                  </h3>
-                  
-                  <div className="text-white/60 text-xs text-center py-8">
-                    实验性功能即将推出...
-                    <br />
-                    <span className="text-white/40 text-[10px] mt-2 block">
-                      Experimental features coming soon...
-                    </span>
                   </div>
                 </div>
               </div>
