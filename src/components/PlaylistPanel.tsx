@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTransition, animated } from '@react-spring/web';
 import { Song } from '../types';
-import { CheckIcon, PlusIcon, QueueIcon, TrashIcon, SelectAllIcon, CloudDownloadIcon } from './Icons';
+import { CheckIcon, PlusIcon, QueueIcon, TrashIcon, SelectAllIcon, CloudDownloadIcon, SearchIcon } from './Icons';
 import { useKeyboardScope } from '../hooks/useKeyboardScope';
 import ImportMusicDialog from './ImportMusicDialog';
 import SmartImage from './SmartImage';
@@ -44,6 +44,7 @@ interface PlaylistPanelProps {
     onRemove: (ids: string[]) => void;
     accentColor: string;
     onFilesSelected?: (files: FileList) => void;
+    onSearchClick: () => void;
 }
 
 const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
@@ -55,7 +56,8 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
     onImport,
     onRemove,
     accentColor,
-    onFilesSelected
+    onFilesSelected,
+    onSearchClick
 }) => {
     const { t } = useI18n();
     const [isAdding, setIsAdding] = useState(false);
@@ -259,6 +261,13 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                                 </>
                             ) : (
                                 <>
+                                    <button
+                                        onClick={onSearchClick}
+                                        className="w-8 h-8 rounded-full flex items-center justify-center transition-all text-white/50 hover:text-white hover:bg-white/10"
+                                        title={`${t("topBar.search")} (Cmd+K)`}
+                                    >
+                                        <SearchIcon className="w-5 h-5" />
+                                    </button>
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
                                         className="w-8 h-8 rounded-full flex items-center justify-center transition-all text-white/50 hover:text-white hover:bg-white/10"

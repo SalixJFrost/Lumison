@@ -81,7 +81,7 @@ const App: React.FC = () => {
     if (typeof window === "undefined") return 0;
     return window.innerWidth;
   });
-  const [lyricsFontSize, setLyricsFontSize] = useState(48);
+  const [lyricsFontSize, setLyricsFontSize] = useState(46);
   const [lyricsBlur, setLyricsBlur] = useState(false);
   const [lyricsGlow, setLyricsGlow] = useState(false);
   const [lyricsShadow, setLyricsShadow] = useState(true);
@@ -309,7 +309,6 @@ const App: React.FC = () => {
           setShowVolumePopup={setShowVolumePopup}
           showSettingsPopup={showSettingsPopup}
           setShowSettingsPopup={setShowSettingsPopup}
-          onSearchClick={() => setShowSearch(true)}
         />
 
         {/* Floating Playlist Panel */}
@@ -323,6 +322,7 @@ const App: React.FC = () => {
           onRemove={playlist.removeSongs}
           accentColor={accentColor}
           onFilesSelected={handleFileChange}
+          onSearchClick={() => setShowSearch(true)}
         />
       </div>
     </div>

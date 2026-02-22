@@ -12,13 +12,10 @@ const CoverCard: React.FC<CoverCardProps> = memo(({ coverUrl, isPlaying }) => {
   const { t } = useI18n();
   const coverRef = useRef<HTMLDivElement>(null);
 
-  // 3D Card Effect State
-  const [{ rotateX, rotateY, glareX, glareY, glareOpacity }, cardApi] = useSpring(() => ({
+  // 3D Card Effect State (只保留旋转，移除光效)
+  const [{ rotateX, rotateY }, cardApi] = useSpring(() => ({
     rotateX: 0,
     rotateY: 0,
-    glareX: 50,
-    glareY: 50,
-    glareOpacity: 0,
     config: { tension: 300, friction: 40 },
   }));
 
@@ -56,7 +53,7 @@ const CoverCard: React.FC<CoverCardProps> = memo(({ coverUrl, isPlaying }) => {
     return () => clearTimeout(timeout);
   }, [coverUrl, isPlaying, coverApi]);
 
-  // 3D Card Mouse Move Handler
+  // 3D Card Mouse Move Handler (只处理旋转)
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!coverRef.current) return;
 
@@ -70,15 +67,9 @@ const CoverCard: React.FC<CoverCardProps> = memo(({ coverUrl, isPlaying }) => {
     const rotateXValue = ((y - centerY) / centerY) * -10;
     const rotateYValue = ((x - centerX) / centerX) * 10;
 
-    const glareXValue = (x / rect.width) * 100;
-    const glareYValue = (y / rect.height) * 100;
-
     cardApi.start({
       rotateX: rotateXValue,
       rotateY: rotateYValue,
-      glareX: glareXValue,
-      glareY: glareYValue,
-      glareOpacity: 0.4,
     });
   };
 
@@ -86,9 +77,6 @@ const CoverCard: React.FC<CoverCardProps> = memo(({ coverUrl, isPlaying }) => {
     cardApi.start({
       rotateX: 0,
       rotateY: 0,
-      glareX: 50,
-      glareY: 50,
-      glareOpacity: 0,
       config: { tension: 200, friction: 30 },
     });
   };
@@ -130,32 +118,6 @@ const CoverCard: React.FC<CoverCardProps> = memo(({ coverUrl, isPlaying }) => {
 
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none"></div>
-
-        {/* 3D Glare Effect */}
-        <animated.div
-          style={{
-            background: to(
-              [glareX, glareY],
-              (x, y) =>
-                `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.2) 20%, transparent 60%)`
-            ),
-            opacity: glareOpacity,
-          }}
-          className="absolute inset-0 pointer-events-none mix-blend-overlay"
-        />
-
-        {/* Shine Effect */}
-        <animated.div
-          style={{
-            background: to(
-              [glareX, glareY],
-              (x, y) =>
-                `linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.1) ${x}%, transparent 60%)`
-            ),
-            opacity: glareOpacity.to((o) => o * 0.6),
-          }}
-          className="absolute inset-0 pointer-events-none"
-        />
       </animated.div>
     </div>
   );

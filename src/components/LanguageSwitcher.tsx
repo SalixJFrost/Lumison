@@ -6,9 +6,13 @@ import { useTheme } from "../contexts/ThemeContext";
 
 interface LanguageSwitcherProps {
   className?: string;
+  variant?: 'default' | 'settings'; // 新增：支持不同样式
 }
 
-const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ className = "" }) => {
+const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ 
+  className = "", 
+  variant = 'default' 
+}) => {
   const { locale, setLocale, t } = useI18n();
   const { theme } = useTheme();
   const [showMenu, setShowMenu] = useState(false);
@@ -41,6 +45,78 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ className = "" }) =
 
   const locales: Locale[] = ["en", "zh", "ja"];
 
+  // Settings 样式（在设置弹窗中使用）
+  if (variant === 'settings') {
+    return (
+      <div ref={containerRef} className={`relative ${className}`}>
+        <button
+          onClick={() => setShowMenu(!showMenu)}
+          className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all"
+        >
+          <span className="text-sm">{t("topBar.language")}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-white/90">{localeNames[locale]}</span>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`transition-transform duration-200 ${showMenu ? 'rotate-180' : ''}`}
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+        </button>
+
+        {menuTransitions((style, item) =>
+          item ? (
+            <animated.div
+              style={style}
+              className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl bg-black/60 backdrop-blur-2xl saturate-150 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden"
+            >
+              {locales.map((loc) => (
+                <button
+                  key={loc}
+                  onClick={() => handleLocaleChange(loc)}
+                  className={`
+                    w-full px-4 py-2.5 text-left text-sm font-medium
+                    transition-colors duration-150
+                    flex items-center justify-between
+                    ${locale === loc
+                      ? "bg-white/20 text-white"
+                      : "text-white/70 hover:bg-white/10 hover:text-white"
+                    }
+                  `}
+                >
+                  <span>{localeNames[loc]}</span>
+                  {locale === loc && (
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </animated.div>
+          ) : null
+        )}
+      </div>
+    );
+  }
+
+  // Default 样式（原有样式）
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       <button

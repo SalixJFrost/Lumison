@@ -226,6 +226,11 @@ const TopBar: React.FC<TopBarProps> = ({
                     <ThemeIcon className="w-4 h-4" />
                   </button>
 
+                  {/* Language Switcher */}
+                  <div className="w-full">
+                    <LanguageSwitcher variant="settings" />
+                  </div>
+
                   {/* About Button */}
                   <button
                     onClick={() => {
