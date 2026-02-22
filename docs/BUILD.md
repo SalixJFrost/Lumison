@@ -97,6 +97,13 @@ npm run tauri:android:init
 
 这会创建 `src-tauri/gen/android` 目录。
 
+**重要提示**: Android 构建需要以下文件：
+- `src-tauri/src/lib.rs` - Library 入口点
+- `src-tauri/src/mobile.rs` - 移动平台特定代码
+- `Cargo.toml` 中的 `[lib]` 配置
+
+这些文件已经配置好，无需手动创建。
+
 #### 构建 APK（用于测试和直接安装）
 
 ```bash
@@ -125,6 +132,7 @@ npm run tauri:build:android:aab
 2. 需要配置签名密钥才能发布到 Google Play
 3. APK 需要签名后才能安装到设备
 4. 某些功能可能需要在 `AndroidManifest.xml` 中添加权限
+5. 自动更新插件在移动平台不可用（仅桌面平台支持）
 
 ## 签名和发布
 
