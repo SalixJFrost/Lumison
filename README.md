@@ -20,7 +20,7 @@ A high-fidelity, immersive music player inspired by Apple Music with advanced pl
 - 🎵 **3D Spatial Audio** - Cinema-style immersive sound with 5-band EQ
 - 🎚️ **Variable Speed (0.5x-3x)** - Smooth playback control with pitch preservation
 - 📊 **Real-time Visualizer** - Spectrum analyzer with enhanced animations
-- 🌐 **Multi-platform** - Netease Cloud Music, Bilibili, and local files
+- 🌐 **Multi-platform** - Netease Cloud Music, Internet Archive, and local files
 - 🌍 **i18n Support** - English, 简体中文 (Simplified Chinese), 日本語 (Japanese)
 - ⌨️ **Keyboard Shortcuts** - Comprehensive keyboard controls
 - 📱 **Responsive Design** - Optimized for desktop and mobile
@@ -45,7 +45,7 @@ npm run build
 ### Import Music
 - **Local Files**: Drag and drop or click import button
 - **Online Search**: Press `Ctrl + K` to search
-- **URL Import**: Paste Netease or Bilibili URLs
+- **URL Import**: Paste Netease, Internet Archive, or direct audio URLs
 
 ### Keyboard Shortcuts
 - `Space` - Play/Pause
@@ -67,7 +67,7 @@ npm run build
 
 - [Speed Optimization](./docs/SPEED_OPTIMIZATION.md) - Variable speed playback
 - [Performance & i18n](./docs/PERFORMANCE_I18N.md) - Optimization and internationalization
-- [Bilibili Integration](./docs/BILIBILI_HARDWARE_DECODE.md) - Audio extraction
+- [Lyrics Effects](./docs/LYRICS_EFFECTS.md) - Lyrics visual effects system
 
 ## 🤝 Contributing
 

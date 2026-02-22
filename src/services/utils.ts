@@ -238,39 +238,6 @@ export const extractColors = async (imageSrc: string): Promise<string[]> => {
   }
 };
 
-export const parseBilibiliLink = (
-  input: string,
-): { type: "video" | "audio"; id: string } | null => {
-  try {
-    const url = new URL(input);
-    
-    // Handle bilibili.com/video/BV... or bilibili.com/video/av...
-    if (url.hostname.includes("bilibili.com")) {
-      // Video format: https://www.bilibili.com/video/BV1xx411c7XD
-      const videoMatch = url.pathname.match(/\/video\/(BV[\w]+|av\d+)/);
-      if (videoMatch) {
-        return { type: "video", id: videoMatch[1] };
-      }
-      
-      // Audio format: https://www.bilibili.com/audio/au...
-      const audioMatch = url.pathname.match(/\/audio\/(au\d+)/);
-      if (audioMatch) {
-        return { type: "audio", id: audioMatch[1] };
-      }
-    }
-    
-    // Handle short link: b23.tv/...
-    if (url.hostname.includes("b23.tv")) {
-      // Return the short code, will need to be resolved
-      return { type: "video", id: url.pathname.slice(1) };
-    }
-    
-    return null;
-  } catch (e) {
-    return null;
-  }
-};
-
 /**
  * Check if browser supports a specific audio format
  */

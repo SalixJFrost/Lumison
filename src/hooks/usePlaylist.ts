@@ -4,7 +4,6 @@ import {
   extractColors,
   parseAudioMetadata,
   parseNeteaseLink,
-  parseBilibiliLink,
 } from "../services/utils";
 import { parseLyrics } from "../services/lyrics";
 import {
@@ -13,9 +12,8 @@ import {
   getNeteaseAudioUrl,
 } from "../services/music/lyricsService";
 import {
-  fetchBilibiliVideo,
-  getBilibiliAudioUrl,
-} from "../services/music/bilibiliService";
+  fetchAudioFromUrl,
+} from "../services/music/audioStreamService";
 import { audioResourceCache } from "../services/cache";
 
 // Levenshtein distance for fuzzy matching
@@ -283,81 +281,46 @@ export const usePlaylist = () => {
         return { success: true, songs: newSongs };
       }
 
-      // Try Bilibili
-      const bilibiliLink = parseBilibiliLink(input);
-      if (bilibiliLink) {
-        const newSongs: Song[] = [];
-        try {
-          if (bilibiliLink.type === "video" || bilibiliLink.type === "audio") {
-            const video = await fetchBilibiliVideo(bilibiliLink.id);
-            if (video) {
-              // Get audio URL with streaming support
-              const result = await getBilibiliAudioUrl(video.id);
-              
-              if (!result || !result.url) {
-                const error = result?.error;
-                let errorMessage = "Failed to extract audio from Bilibili video.";
-                
-                if (error) {
-                  switch (error.code) {
-                    case 'RESTRICTED':
-                      errorMessage = "This video is restricted and cannot be played. It may be region-locked or require login.";
-                      break;
-                    case 'NO_AUDIO':
-                      errorMessage = "No audio stream found in this video. The video may not have a separate audio track.";
-                      break;
-                    case 'NETWORK_ERROR':
-                      errorMessage = `Network error: ${error.details || 'Please check your connection and try again.'}`;
-                      break;
-                    default:
-                      errorMessage = error.message || errorMessage;
-                  }
-                }
-                
-                return {
-                  success: false,
-                  message: errorMessage,
-                  songs: [],
-                };
-              }
-              
-              newSongs.push({
-                ...video,
-                fileUrl: result.url,
-                lyrics: [],
-                colors: video.coverUrl ? await extractColors(video.coverUrl) : [],
-                needsLyricsMatch: true,
-              });
-            }
-          }
-        } catch (err) {
-          console.error("Failed to fetch Bilibili video", err);
+      // Try Audio Stream (Internet Archive or Self-hosted)
+      try {
+        const { track, error } = await fetchAudioFromUrl(input);
+        
+        if (track) {
+          const colors = track.coverUrl ? await extractColors(track.coverUrl) : [];
+          
+          const newSong: Song = {
+            id: track.id,
+            title: track.title,
+            artist: track.artist || 'Unknown Artist',
+            fileUrl: track.audioUrl,
+            coverUrl: track.coverUrl,
+            lyrics: [],
+            colors,
+            needsLyricsMatch: true,
+            isAudioStream: true,
+            audioStreamSource: track.source,
+          };
+          
+          appendSongs([newSong]);
+          return { success: true, songs: [newSong] };
+        }
+        
+        if (error) {
           return {
             success: false,
-            message: err instanceof Error 
-              ? `Failed to load video: ${err.message}` 
-              : "Failed to load video from Bilibili URL. Please check the URL and try again.",
+            message: error.message,
             songs: [],
           };
         }
-
-        appendSongs(newSongs);
-        if (newSongs.length === 0) {
-          return {
-            success: false,
-            message: "Failed to load video from Bilibili URL",
-            songs: [],
-          };
-        }
-
-        return { success: true, songs: newSongs };
+      } catch (err) {
+        console.error("Failed to fetch audio stream", err);
       }
 
       // No valid link found
       return {
         success: false,
         message:
-          "Invalid URL. Supported: Netease Cloud Music (music.163.com) or Bilibili (bilibili.com)",
+          "Invalid URL. Supported: Netease Cloud Music, Internet Archive, or direct audio file URLs",
         songs: [],
       };
     },

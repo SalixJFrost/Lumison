@@ -66,10 +66,14 @@ const ImportMusicDialog: React.FC<ImportMusicDialogProps> = ({
             {t("import.description")}{" "}
             <span className="text-white/90 font-medium">
               {t("import.netease")}
-            </span>{" "}
-            {t("import.or")}{" "}
+            </span>
+            {", "}
             <span className="text-white/90 font-medium">
-              {t("import.bilibili")}
+              {t("import.internetArchive")}
+            </span>
+            {" "}{t("import.or")}{" "}
+            <span className="text-white/90 font-medium">
+              {t("import.directAudio")}
             </span>{" "}
             {t("import.linkToAdd")}
           </p>

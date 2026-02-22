@@ -27,10 +27,9 @@ export interface Song {
   // Netease specific fields
   isNetease?: boolean;
   neteaseId?: string;
-  // Bilibili specific fields
-  isBilibili?: boolean;
-  bilibiliId?: string;
-  bvid?: string;
+  // Audio stream specific fields
+  isAudioStream?: boolean;
+  audioStreamSource?: 'internet-archive' | 'self-hosted';
   album?: string;
 }
 
