@@ -59,21 +59,14 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),
+        // Fix jsmediatags module resolution for browser builds
+        'jsmediatags': path.resolve(__dirname, 'node_modules/jsmediatags/dist/jsmediatags.js'),
       },
     },
     
     // Optimize dependencies
     optimizeDeps: {
       include: ['jsmediatags'],
-      esbuildOptions: {
-        // Ensure jsmediatags is bundled correctly
-        mainFields: ['module', 'main'],
-      },
-    },
-    
-    // Handle SSR externals
-    ssr: {
-      noExternal: ['jsmediatags'],
     },
     
     // Optimize for desktop builds
@@ -81,17 +74,6 @@ export default defineConfig(({ mode }) => {
       target: isTauri ? 'esnext' : 'es2015',
       minify: mode === 'production',
       sourcemap: mode === 'development',
-      commonjsOptions: {
-        include: [/jsmediatags/, /node_modules/],
-        transformMixedEsModules: true,
-      },
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            'jsmediatags': ['jsmediatags'],
-          },
-        },
-      },
     },
   };
 });

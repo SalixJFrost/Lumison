@@ -10,8 +10,8 @@
 import { LyricLine } from './types';
 import { parseLyrics } from './index';
 
-// Import jsmediatags statically for better bundling
-import * as jsmediatags from 'jsmediatags';
+// Import jsmediatags - Vite will resolve to dist/jsmediatags.js via alias
+import jsmediatags from 'jsmediatags';
 
 /**
  * Extract lyrics from audio file metadata
