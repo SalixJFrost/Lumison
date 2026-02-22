@@ -27,27 +27,30 @@ async function fetchWithFallback(
   endpoint: string,
   config: ApiRequestConfig = {}
 ): Promise<any> {
-  const { timeout = 10000, retries = 2 } = config;
+  const { timeout = 12000, retries = 1 } = config; // 增加超时时间，减少重试次数
   const apis = [API_ENDPOINTS.primary, ...API_ENDPOINTS.backup];
   
   for (const baseUrl of apis) {
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         const url = endpoint.includes('http') ? endpoint : `${baseUrl}${endpoint}`;
-        console.log(`[Netease API] Trying: ${url} (attempt ${attempt + 1})`);
+        console.log(`Trying API: ${url}`);
         
-        const result = await Promise.race([
-          fetchViaProxy(url),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Request timeout')), timeout)
-          )
-        ]);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
         
-        return result;
+        try {
+          const result = await fetchViaProxy(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          return result;
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          throw fetchError;
+        }
       } catch (error) {
-        console.warn(`[Netease API] Failed: ${baseUrl} (attempt ${attempt + 1})`, error);
-        if (attempt === retries) continue;
-        await new Promise(resolve => setTimeout(resolve, 1000)); // 等待1秒后重试
+        console.warn(`API ${baseUrl} failed: ${error}`);
+        if (attempt === retries) continue; // 尝试下一个 API
+        await new Promise(resolve => setTimeout(resolve, 500)); // 减少等待时间
       }
     }
   }

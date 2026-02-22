@@ -12,9 +12,21 @@ export class UpdateService {
   private static checkingUpdate = false;
 
   /**
+   * 检查是否在 Tauri 环境中运行
+   */
+  private static isTauriEnvironment(): boolean {
+    return typeof window !== 'undefined' && '__TAURI__' in window;
+  }
+
+  /**
    * 静默检查更新（启动时调用）
    */
   static async checkForUpdates(): Promise<UpdateInfo> {
+    // 只在 Tauri 环境中检查更新
+    if (!this.isTauriEnvironment()) {
+      return { available: false, currentVersion: '1.0.0' };
+    }
+
     if (this.checkingUpdate) {
       return { available: false, currentVersion: '1.0.0' };
     }
@@ -54,6 +66,12 @@ export class UpdateService {
   static async downloadAndInstall(
     onProgress?: (progress: number) => void
   ): Promise<boolean> {
+    // 只在 Tauri 环境中执行更新
+    if (!this.isTauriEnvironment()) {
+      console.warn('Update is only available in Tauri environment');
+      return false;
+    }
+
     try {
       const update = await check();
       

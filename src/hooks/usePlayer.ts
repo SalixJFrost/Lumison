@@ -25,7 +25,7 @@ interface UsePlayerParams {
   setOriginalQueue: Dispatch<SetStateAction<Song[]>>;
 }
 
-const MATCH_TIMEOUT_MS = 8000;
+const MATCH_TIMEOUT_MS = 15000; // 增加到 15 秒，给网络请求更多时间
 
 const withTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
   return new Promise<T>((resolve, reject) => {

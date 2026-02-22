@@ -4,19 +4,38 @@
  */
 
 // List of public CORS proxies (use with caution in production)
+// 优先使用更可靠的代理服务
 const CORS_PROXIES = [
-  'https://cors-anywhere.herokuapp.com/',
   'https://api.allorigins.win/raw?url=',
   'https://corsproxy.io/?',
+  // 'https://cors-anywhere.herokuapp.com/', // 已移除，需要请求访问权限
 ];
 
 let currentProxyIndex = 0;
+const failedProxies = new Set<string>();
 
 /**
  * Get current CORS proxy URL
  */
 export const getCorsProxy = (): string => {
+  // 跳过已失败的代理
+  let attempts = 0;
+  while (failedProxies.has(CORS_PROXIES[currentProxyIndex]) && attempts < CORS_PROXIES.length) {
+    currentProxyIndex = (currentProxyIndex + 1) % CORS_PROXIES.length;
+    attempts++;
+  }
   return CORS_PROXIES[currentProxyIndex];
+};
+
+/**
+ * Mark proxy as failed
+ */
+const markProxyFailed = (proxy: string): void => {
+  failedProxies.add(proxy);
+  // 5分钟后重置失败标记
+  setTimeout(() => {
+    failedProxies.delete(proxy);
+  }, 5 * 60 * 1000);
 };
 
 /**
@@ -34,7 +53,7 @@ export const rotateProxy = (): void => {
 export const fetchWithCorsProxy = async (
   url: string,
   options?: RequestInit,
-  maxRetries: number = 3
+  maxRetries: number = 2 // 减少重试次数，加快失败响应
 ): Promise<Response> => {
   let lastError: Error | null = null;
   
@@ -49,18 +68,22 @@ export const fetchWithCorsProxy = async (
           ...options?.headers,
           'X-Requested-With': 'XMLHttpRequest',
         },
+        signal: AbortSignal.timeout(10000), // 10秒超时
       });
       
       if (response.ok) {
         return response;
       }
       
-      // If response is not ok, try next proxy
+      // If response is not ok, mark proxy as failed and try next
       console.warn(`Proxy ${proxy} failed with status ${response.status}`);
+      markProxyFailed(proxy);
       rotateProxy();
     } catch (error) {
       console.warn(`Proxy attempt ${i + 1} failed:`, error);
       lastError = error as Error;
+      const currentProxy = CORS_PROXIES[currentProxyIndex];
+      markProxyFailed(currentProxy);
       rotateProxy();
     }
   }
@@ -76,13 +99,22 @@ export const fetchWithFallback = async (
   options?: RequestInit
 ): Promise<Response> => {
   try {
-    // Try direct fetch first
-    const response = await fetch(url, options);
+    // Try direct fetch first with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超时
+    
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+    
     if (response.ok) {
       return response;
     }
   } catch (error) {
-    console.log('Direct fetch failed, trying CORS proxy...');
+    console.log('Direct fetch failed (likely CORS), trying proxy:', error);
   }
   
   // Fallback to CORS proxy

@@ -24,7 +24,10 @@ export const shuffleArray = <T>(array: T[]): T[] => {
 
 // Helper to request via CORS proxy (api.allorigins.win is reliable for GET requests)
 // Try direct request first, fallback to proxy if CORS fails
-export const fetchViaProxy = async (targetUrl: string): Promise<any> => {
+export const fetchViaProxy = async (
+  targetUrl: string,
+  options?: { signal?: AbortSignal }
+): Promise<any> => {
   let text: string;
 
   // 1. Try direct request first
@@ -35,6 +38,7 @@ export const fetchViaProxy = async (targetUrl: string): Promise<any> => {
         'Accept': 'application/json',
       },
       mode: 'cors',
+      signal: options?.signal,
     });
     if (!response.ok) {
       throw new Error(
@@ -44,8 +48,13 @@ export const fetchViaProxy = async (targetUrl: string): Promise<any> => {
     text = await response.text();
     return JSON.parse(text);
   } catch (directError) {
+    // 如果是 AbortError，直接抛出
+    if (directError instanceof Error && directError.name === 'AbortError') {
+      throw directError;
+    }
+
     // 2. Direct request failed (likely CORS), try proxy
-    console.warn(
+    console.log(
       "Direct fetch failed (likely CORS), trying proxy:",
       directError,
     );
@@ -63,6 +72,7 @@ export const fetchViaProxy = async (targetUrl: string): Promise<any> => {
           headers: {
             'Accept': 'application/json',
           },
+          signal: options?.signal,
         });
         if (!response.ok) {
           throw new Error(`Proxy fetch failed with status: ${response.status}`);
@@ -70,12 +80,16 @@ export const fetchViaProxy = async (targetUrl: string): Promise<any> => {
         text = await response.text();
         return JSON.parse(text);
       } catch (proxyError) {
+        // 如果是 AbortError，直接抛出
+        if (proxyError instanceof Error && proxyError.name === 'AbortError') {
+          throw proxyError;
+        }
         console.warn(`Proxy ${proxyUrl} failed:`, proxyError);
         continue;
       }
     }
 
-    console.error(
+    console.log(
       "All proxy requests failed for:",
       targetUrl,
     );
