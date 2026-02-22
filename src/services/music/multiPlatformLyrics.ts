@@ -17,6 +17,32 @@ const PLATFORM_CONFIG = {
   kugou: false,       // 酷狗音乐 - CORS 问题频繁，默认禁用
 };
 
+// 第三方 API 黑名单（失败的源会被临时禁用）
+const failedSources = new Set<string>();
+const BLACKLIST_DURATION = 5 * 60 * 1000; // 5 分钟
+
+/**
+ * 标记源为失败
+ */
+const markSourceFailed = (source: string) => {
+  if (!failedSources.has(source)) {
+    console.warn(`⚠️ Blacklisting source: ${source} for ${BLACKLIST_DURATION / 1000}s`);
+    failedSources.add(source);
+    // 5 分钟后移除黑名单
+    setTimeout(() => {
+      failedSources.delete(source);
+      console.log(`✓ Removed ${source} from blacklist`);
+    }, BLACKLIST_DURATION);
+  }
+};
+
+/**
+ * 检查源是否被禁用
+ */
+const isSourceBlacklisted = (source: string): boolean => {
+  return failedSources.has(source);
+};
+
 // API 端点配置
 const API_ENDPOINTS = {
   // QQ 音乐 API
@@ -258,6 +284,7 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
   
   // LrcLib API - 最大的开源歌词库
   const tryLrcLib = async (): Promise<LyricsResult | null> => {
+    if (isSourceBlacklisted('lrclib')) return null;
     try {
       const url = `https://lrclib.net/api/search?track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artist)}`;
       const response = await fetchViaProxy(url);
@@ -275,12 +302,14 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
       }
     } catch (error) {
       console.warn("LrcLib failed:", error);
+      markSourceFailed('lrclib');
     }
     return null;
   };
 
   // LRCAPI - 支持多语言歌词
   const tryLRCAPI = async (): Promise<LyricsResult | null> => {
+    if (isSourceBlacklisted('lrcapi')) return null;
     try {
       const url = `https://lrc.xms.mx/search?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`;
       const response = await fetchViaProxy(url);
@@ -297,13 +326,16 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
       }
     } catch (error) {
       console.warn("LRCAPI failed:", error);
+      markSourceFailed('lrcapi');
     }
     return null;
   };
 
   // Lyrics.ovh - 简单但覆盖广
   const tryLyricsOvh = async (): Promise<LyricsResult | null> => {
+    if (isSourceBlacklisted('lyrics.ovh')) return null;
     try {
+      // 修复：正确的参数顺序是 artist/title
       const url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
       const response = await fetchViaProxy(url);
       if (response && response.lyrics) {
@@ -324,12 +356,14 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
       }
     } catch (error) {
       console.warn("Lyrics.ovh failed:", error);
+      markSourceFailed('lyrics.ovh');
     }
     return null;
   };
 
   // Syair.info - 亚洲音乐覆盖好
   const trySyairInfo = async (): Promise<LyricsResult | null> => {
+    if (isSourceBlacklisted('syair.info')) return null;
     try {
       const url = `https://api.syair.info/lyrics/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
       const response = await fetchViaProxy(url);
@@ -350,24 +384,22 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
       }
     } catch (error) {
       console.warn("Syair.info failed:", error);
+      markSourceFailed('syair.info');
     }
     return null;
   };
 
   // ChartLyrics - 免费，支持部分同步歌词（使用 HTTPS）
   const tryChartLyrics = async (): Promise<LyricsResult | null> => {
+    if (isSourceBlacklisted('chartlyrics')) return null;
     try {
-      // 注意：ChartLyrics 官方 API 只支持 HTTP，但我们可以尝试 HTTPS
-      // 如果 HTTPS 不可用，这个源会失败（安全优先）
       const url = `https://api.chartlyrics.com/apiv1.asmx/SearchLyricDirect?artist=${encodeURIComponent(artist)}&song=${encodeURIComponent(title)}`;
       const response = await fetchViaProxy(url);
-      // ChartLyrics 返回 XML，需要解析
       if (response && typeof response === 'string' && response.includes('<Lyric>')) {
         const lyricMatch = response.match(/<Lyric>([\s\S]*?)<\/Lyric>/);
         if (lyricMatch && lyricMatch[1]) {
           const lyrics = lyricMatch[1].trim();
           if (lyrics && lyrics !== 'null') {
-            // 转换为 LRC 格式
             const lines = lyrics.split('\n').filter((line: string) => line.trim());
             const lrc = lines.map((line: string, index: number) => {
               const time = index * 3;
@@ -386,16 +418,15 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
       }
     } catch (error) {
       console.warn("ChartLyrics failed:", error);
+      markSourceFailed('chartlyrics');
     }
     return null;
   };
 
-  // Musixmatch - 全球最大歌词库（需要 API key，这里使用公共端点）
+  // Musixmatch - 全球最大歌词库
   const tryMusixmatch = async (): Promise<LyricsResult | null> => {
+    if (isSourceBlacklisted('musixmatch')) return null;
     try {
-      // 注意：Musixmatch 官方 API 需要 key，这里尝试使用公共搜索
-      // 实际使用可能需要用户提供自己的 API key
-      const searchQuery = `${artist} ${title}`;
       const url = `https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get?q_track=${encodeURIComponent(title)}&q_artist=${encodeURIComponent(artist)}&format=json&namespace=lyrics_synched`;
       const response = await fetchViaProxy(url);
       
@@ -404,7 +435,6 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
         if (subtitles && subtitles.length > 0) {
           const subtitle = subtitles[0].subtitle;
           if (subtitle?.subtitle_body) {
-            // Musixmatch 使用 JSON 格式的同步歌词
             const lrcLines = JSON.parse(subtitle.subtitle_body);
             if (Array.isArray(lrcLines)) {
               const lrc = lrcLines.map((line: any) => {
@@ -426,41 +456,16 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
       }
     } catch (error) {
       console.warn("Musixmatch failed:", error);
-    }
-    return null;
-  };
-
-  // Genius - 海量歌词，适合英文歌曲（不提供时间戳）
-  const tryGenius = async (): Promise<LyricsResult | null> => {
-    try {
-      // Genius 官方 API 需要 token，这里尝试使用公共搜索
-      const searchQuery = `${artist} ${title}`;
-      const url = `https://genius.com/api/search/multi?q=${encodeURIComponent(searchQuery)}`;
-      const response = await fetchViaProxy(url);
-      
-      if (response?.response?.sections) {
-        const songSection = response.response.sections.find((s: any) => s.type === 'song');
-        if (songSection?.hits && songSection.hits.length > 0) {
-          const songPath = songSection.hits[0].result?.path;
-          if (songPath) {
-            // 注意：Genius 不提供直接的歌词 API，需要爬取页面
-            // 这里只是占位，实际需要后端支持或使用第三方 Genius 歌词 API
-            console.log('Genius song found, but lyrics extraction requires backend support');
-          }
-        }
-      }
-    } catch (error) {
-      console.warn("Genius failed:", error);
+      markSourceFailed('musixmatch');
     }
     return null;
   };
 
   // OpenLyrics - 开源 LRC 歌词数据库
   const tryOpenLyrics = async (): Promise<LyricsResult | null> => {
+    if (isSourceBlacklisted('openlyrics')) return null;
     try {
-      // OpenLyrics 使用标准化的搜索格式
       const searchQuery = `${artist} - ${title}`;
-      // 尝试多个 OpenLyrics 镜像
       const mirrors = [
         'https://openlyrics.io/api/search',
         'https://api.openlyrics.org/search',
@@ -489,94 +494,15 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
       }
     } catch (error) {
       console.warn("OpenLyrics failed:", error);
-    }
-    return null;
-  };
-
-  // LyricWiki / Wikia - 歌词百科镜像
-  const tryLyricWiki = async (): Promise<LyricsResult | null> => {
-    try {
-      // LyricWiki 已关闭，但有社区镜像
-      const artistFormatted = artist.replace(/\s+/g, '_');
-      const titleFormatted = title.replace(/\s+/g, '_');
-      
-      // 尝试社区镜像
-      const mirrors = [
-        `https://lyrics.fandom.com/wiki/${encodeURIComponent(artistFormatted)}:${encodeURIComponent(titleFormatted)}`,
-        `https://lyrics.wikia.org/api.php?action=lyrics&artist=${encodeURIComponent(artist)}&song=${encodeURIComponent(title)}&fmt=json`,
-      ];
-      
-      for (const mirror of mirrors) {
-        try {
-          const response = await fetchViaProxy(mirror);
-          
-          // 检查是否是 JSON 响应
-          if (response?.lyrics) {
-            const lyrics = response.lyrics;
-            if (lyrics && lyrics !== 'Not found') {
-              // 转换为 LRC 格式
-              const lines = lyrics.split('\n').filter((line: string) => line.trim());
-              const lrc = lines.map((line: string, index: number) => {
-                const time = index * 3;
-                const minutes = Math.floor(time / 60);
-                const seconds = time % 60;
-                return `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.00]${line}`;
-              }).join('\n');
-              return {
-                lrc,
-                metadata: [],
-                source: "lyricwiki",
-                responseTime: Date.now() - startTime,
-              };
-            }
-          }
-        } catch (err) {
-          console.warn(`LyricWiki mirror ${mirror} failed:`, err);
-          continue;
-        }
-      }
-    } catch (error) {
-      console.warn("LyricWiki failed:", error);
-    }
-    return null;
-  };
-
-  // GitHub LRC 仓库 - 公共 LRC 文件库
-  const tryGitHubLRC = async (): Promise<LyricsResult | null> => {
-    try {
-      // 使用 GitHub API 搜索公共 LRC 仓库
-      // 注意：这个方法依赖于社区维护的 LRC 仓库
-      const searchQuery = `${artist} ${title} lrc`;
-      const url = `https://api.github.com/search/code?q=${encodeURIComponent(searchQuery)}+extension:lrc`;
-      const response = await fetchViaProxy(url);
-      
-      if (response?.items && Array.isArray(response.items) && response.items.length > 0) {
-        // 获取第一个匹配的 LRC 文件
-        const item = response.items[0];
-        if (item.html_url) {
-          // 转换为 raw URL
-          const rawUrl = item.html_url
-            .replace('github.com', 'raw.githubusercontent.com')
-            .replace('/blob/', '/');
-          
-          const lrcContent = await fetchViaProxy(rawUrl);
-          if (typeof lrcContent === 'string' && lrcContent.includes('[')) {
-            return {
-              lrc: lrcContent,
-              metadata: [`来自 GitHub: ${item.repository?.full_name || 'Unknown'}`],
-              source: "github-lrc",
-              responseTime: Date.now() - startTime,
-            };
-          }
-        }
-      }
-    } catch (error) {
-      console.warn("GitHub LRC failed:", error);
+      markSourceFailed('openlyrics');
     }
     return null;
   };
 
   // 并发请求所有第三方API，返回最快的结果
+  // 删除 LyricWiki（SSL 证书问题）和 Genius（需要后端支持）
+  // 并发请求所有第三方API，返回最快的结果
+  // 删除 LyricWiki（SSL 证书问题）、Genius（需要后端）、GitHub LRC（速率限制）
   const promises = [
     tryLrcLib(),
     tryLRCAPI(),
@@ -585,9 +511,6 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
     tryChartLyrics(),
     tryMusixmatch(),
     tryOpenLyrics(),
-    tryLyricWiki(),
-    // tryGitHubLRC(), // GitHub API 有速率限制，暂时禁用
-    // tryGenius(), // 需要后端支持，暂时禁用
   ];
 
   // 使用 Promise.race 获取最快的成功结果
