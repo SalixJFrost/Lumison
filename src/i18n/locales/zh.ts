@@ -165,6 +165,17 @@ export default {
     memoryHint: "关闭可节省 5-10MB 内存",
   },
 
+  // 音频过渡
+  audioTransition: {
+    label: "音频过渡",
+    fadeIn: "淡入",
+    fadeOut: "淡出",
+    gapless: "无缝切换",
+    fadeInDesc: "播放开始时音量渐强",
+    fadeOutDesc: "播放结束时音量渐弱",
+    gaplessDesc: "歌曲间无缝衔接",
+  },
+
   // 键盘快捷键
   shortcuts: {
     title: "键盘快捷键",

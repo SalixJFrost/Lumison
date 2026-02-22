@@ -18,6 +18,7 @@ import { useTheme } from "./contexts/ThemeContext";
 import { useI18n } from "./contexts/I18nContext";
 import { logSupportedFormats } from "./services/utils";
 import { usePerformanceOptimization, useOptimizedAudio } from "./hooks/usePerformanceOptimization";
+import { useAudioTransition, useGaplessPlayback } from "./hooks/useAudioTransition";
 import { UpdateService } from "./services/updateService";
 
 const App: React.FC = () => {
@@ -117,12 +118,26 @@ const App: React.FC = () => {
   // Visualizer state - disabled by default to save memory
   const [visualizerEnabled, setVisualizerEnabled] = useState(false);
 
+  // Audio transition states - experimental features
+  const [fadeInEnabled, setFadeInEnabled] = useState(false);
+  const [fadeOutEnabled, setFadeOutEnabled] = useState(false);
+  const [gaplessEnabled, setGaplessEnabled] = useState(false);
+
   // Update notification state
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updateVersion, setUpdateVersion] = useState('');
 
   // Optimize audio element
   useOptimizedAudio(audioRef);
+
+  // Audio transition hooks
+  const audioTransition = useAudioTransition(audioRef, {
+    enabled: fadeInEnabled || fadeOutEnabled,
+    fadeInDuration: 1000,
+    fadeOutDuration: 1000,
+  });
+
+  const gaplessPlayback = useGaplessPlayback(audioRef, gaplessEnabled);
 
   // Adaptive quality based on performance
   const effectiveLyricsBlur = useMemo(() => {
@@ -163,8 +178,9 @@ const App: React.FC = () => {
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
+      audioTransition.setTargetVolume(volume);
     }
-  }, [volume, audioRef]);
+  }, [volume, audioRef, audioTransition]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -218,6 +234,31 @@ const App: React.FC = () => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  // Handle song changes with fade out
+  useEffect(() => {
+    if (!currentSong || !audioRef.current) return;
+
+    // Apply fade in when song starts playing
+    if (fadeInEnabled && playState === PlayState.PLAYING) {
+      audioTransition.fadeIn(volume);
+    }
+
+    // Preload next track for gapless playback
+    if (gaplessEnabled && playlist.queue.length > 0) {
+      const currentIndex = playlist.queue.findIndex(s => s.id === currentSong.id);
+      const nextIndex = (currentIndex + 1) % playlist.queue.length;
+      const nextSong = playlist.queue[nextIndex];
+      
+      if (nextSong && nextSong.fileUrl) {
+        // Preload when 80% of current song is played
+        const preloadTime = duration * 0.8;
+        if (currentTime >= preloadTime && !gaplessPlayback.isPreloading()) {
+          gaplessPlayback.preloadNextTrack(nextSong.fileUrl);
+        }
+      }
+    }
+  }, [currentSong, fadeInEnabled, gaplessEnabled, playState, currentTime, duration, volume, audioRef, audioTransition, gaplessPlayback, playlist.queue]);
 
   const handleFileChange = async (files: FileList) => {
     const wasEmpty = playlist.queue.length === 0;
@@ -421,6 +462,16 @@ const App: React.FC = () => {
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleAudioEnded}
+        onPlay={() => {
+          if (fadeInEnabled && audioRef.current) {
+            audioTransition.fadeIn(volume);
+          }
+        }}
+        onPause={() => {
+          if (fadeOutEnabled && audioRef.current) {
+            audioTransition.clearFade();
+          }
+        }}
         crossOrigin="anonymous"
       />
 
@@ -480,6 +531,12 @@ const App: React.FC = () => {
         onSearchClick={() => setShowSearch(true)}
         visualizerEnabled={visualizerEnabled}
         onVisualizerToggle={setVisualizerEnabled}
+        fadeInEnabled={fadeInEnabled}
+        onFadeInToggle={setFadeInEnabled}
+        fadeOutEnabled={fadeOutEnabled}
+        onFadeOutToggle={setFadeOutEnabled}
+        gaplessEnabled={gaplessEnabled}
+        onGaplessToggle={setGaplessEnabled}
       />
 
       {/* Search Modal - Always rendered to preserve state, visibility handled internally */}

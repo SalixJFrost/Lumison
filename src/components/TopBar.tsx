@@ -21,6 +21,12 @@ interface TopBarProps {
   onSearchClick?: () => void;
   visualizerEnabled: boolean;
   onVisualizerToggle: (enabled: boolean) => void;
+  fadeInEnabled: boolean;
+  onFadeInToggle: (enabled: boolean) => void;
+  fadeOutEnabled: boolean;
+  onFadeOutToggle: (enabled: boolean) => void;
+  gaplessEnabled: boolean;
+  onGaplessToggle: (enabled: boolean) => void;
 }
 
 // 常量提取到组件外部
@@ -45,6 +51,12 @@ const TopBar: React.FC<TopBarProps> = ({
   onSearchClick,
   visualizerEnabled,
   onVisualizerToggle,
+  fadeInEnabled,
+  onFadeInToggle,
+  fadeOutEnabled,
+  onFadeOutToggle,
+  gaplessEnabled,
+  onGaplessToggle,
 }) => {
   const { theme, toggleTheme } = useTheme();
   const { t } = useI18n();
@@ -456,6 +468,66 @@ const TopBar: React.FC<TopBarProps> = ({
                         </div>
                       )}
                     </button>
+                  </div>
+
+                  {/* Audio Transitions */}
+                  <div className="space-y-2">
+                    <label className="text-white/70 text-xs">{t("audioTransition.label") || "音频过渡"}</label>
+                    <div className="space-y-2">
+                      {/* Fade In */}
+                      <button
+                        onClick={() => onFadeInToggle(!fadeInEnabled)}
+                        className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] ${
+                          fadeInEnabled
+                            ? 'bg-white/20 text-white border border-white/20 shadow-lg'
+                            : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
+                        }`}
+                        aria-pressed={fadeInEnabled}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span>{t("audioTransition.fadeIn") || "淡入"}</span>
+                          <span className="text-xs opacity-60">
+                            {fadeInEnabled ? '✓' : '○'}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* Fade Out */}
+                      <button
+                        onClick={() => onFadeOutToggle(!fadeOutEnabled)}
+                        className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] ${
+                          fadeOutEnabled
+                            ? 'bg-white/20 text-white border border-white/20 shadow-lg'
+                            : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
+                        }`}
+                        aria-pressed={fadeOutEnabled}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span>{t("audioTransition.fadeOut") || "淡出"}</span>
+                          <span className="text-xs opacity-60">
+                            {fadeOutEnabled ? '✓' : '○'}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* Gapless Playback */}
+                      <button
+                        onClick={() => onGaplessToggle(!gaplessEnabled)}
+                        className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] ${
+                          gaplessEnabled
+                            ? 'bg-white/20 text-white border border-white/20 shadow-lg'
+                            : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
+                        }`}
+                        aria-pressed={gaplessEnabled}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span>{t("audioTransition.gapless") || "无缝切换"}</span>
+                          <span className="text-xs opacity-60">
+                            {gaplessEnabled ? '✓' : '○'}
+                          </span>
+                        </div>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -165,6 +165,17 @@ export default {
     memoryHint: "Disable to save 5-10MB memory",
   },
 
+  // Audio Transition
+  audioTransition: {
+    label: "Audio Transitions",
+    fadeIn: "Fade In",
+    fadeOut: "Fade Out",
+    gapless: "Gapless",
+    fadeInDesc: "Gradually increase volume on play",
+    fadeOutDesc: "Gradually decrease volume on end",
+    gaplessDesc: "Seamless track transitions",
+  },
+
   // Keyboard Shortcuts
   shortcuts: {
     title: "Keyboard Shortcuts",
