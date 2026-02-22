@@ -18,15 +18,14 @@
         "minHeight": 600,
         "resizable": true,
         "fullscreen": false,
-        "decorations": false,
-        "transparent": true,
+        "decorations": true,
+        "transparent": false,
         "alwaysOnTop": false,
-        "shadow": false,
         "skipTaskbar": false
       }
     ],
     "security": {
-      "csp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://fonts.googleapis.com https://fonts.gstatic.com https://*.googleapis.com; media-src 'self' data: blob: https:; connect-src 'self' https: wss: data: blob:",
+      "csp": null,
       "capabilities": [
         {
           "identifier": "main-capability",
