@@ -1,6 +1,34 @@
 import path from 'path';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import fs from 'fs';
+
+// Plugin to dynamically update manifest.json based on base path
+function manifestPlugin(base: string): Plugin {
+  return {
+    name: 'manifest-plugin',
+    apply: 'build',
+    closeBundle() {
+      // Only modify if not root path
+      if (base === '/') return;
+      
+      const manifestPath = path.resolve(__dirname, 'dist/manifest.json');
+      if (fs.existsSync(manifestPath)) {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+        
+        // Update paths to include base
+        manifest.start_url = base;
+        manifest.icons = manifest.icons.map((icon: any) => ({
+          ...icon,
+          src: base + icon.src.slice(1) // Remove leading / and add base
+        }));
+        
+        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+        console.log('✓ Updated manifest.json for GitHub Pages');
+      }
+    }
+  };
+}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
@@ -19,7 +47,7 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
     },
     
-    plugins: [react()],
+    plugins: [react(), manifestPlugin(base)],
     
     // Ensure Tauri API is available in desktop mode
     define: {
