@@ -15,41 +15,7 @@ import {
   fetchAudioFromUrl,
 } from "../services/music/audioStreamService";
 import { audioResourceCache } from "../services/cache";
-
-// Levenshtein distance for fuzzy matching
-const levenshteinDistance = (str1: string, str2: string): number => {
-  const len1 = str1.length;
-  const len2 = str2.length;
-  const matrix: number[][] = [];
-
-  for (let i = 0; i <= len1; i++) {
-    matrix[i] = [i];
-  }
-  for (let j = 0; j <= len2; j++) {
-    matrix[0][j] = j;
-  }
-
-  for (let i = 1; i <= len1; i++) {
-    for (let j = 1; j <= len2; j++) {
-      const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
-      matrix[i][j] = Math.min(
-        matrix[i - 1][j] + 1, // deletion
-        matrix[i][j - 1] + 1, // insertion
-        matrix[i - 1][j - 1] + cost // substitution
-      );
-    }
-  }
-
-  return matrix[len1][len2];
-};
-
-// Calculate similarity score (0-1, higher is better)
-const calculateSimilarity = (str1: string, str2: string): number => {
-  const distance = levenshteinDistance(str1, str2);
-  const maxLen = Math.max(str1.length, str2.length);
-  if (maxLen === 0) return 1;
-  return 1 - distance / maxLen;
-};
+import { extractEmbeddedLyrics, findMatchingLRCFile, loadLRCFile, getLyricsPriority } from "../services/lyrics/id3Parser";
 
 export interface ImportResult {
   success: boolean;
@@ -139,7 +105,7 @@ export const usePlaylist = () => {
         let artist = "Unknown Artist";
         let coverUrl: string | undefined;
         let colors: string[] | undefined;
-        let localLyrics: { time: number; text: string }[] = [];
+        let lrcFileLyrics: { time: number; text: string }[] = [];
         let embeddedLyrics: { time: number; text: string }[] = [];
 
         const nameParts = title.split("-");
@@ -149,6 +115,7 @@ export const usePlaylist = () => {
         }
 
         try {
+          // 1. Extract basic metadata
           const metadata = await parseAudioMetadata(file);
           if (metadata.title) title = metadata.title;
           if (metadata.artist) artist = metadata.artist;
@@ -157,71 +124,64 @@ export const usePlaylist = () => {
             colors = await extractColors(coverUrl);
           }
 
-          // 保存嵌入歌词作为备用，但不立即使用
-          if (metadata.lyrics && metadata.lyrics.trim().length > 0) {
-            try {
-              embeddedLyrics = parseLyrics(metadata.lyrics);
-              console.log("Found embedded lyrics (will be used as fallback)");
-            } catch (err) {
-              console.warn("Failed to parse embedded lyrics", err);
+          // 2. Try to find matching LRC file (highest priority)
+          const matchedLRCFile = findMatchingLRCFile(file, lyricsFiles);
+          if (matchedLRCFile) {
+            lrcFileLyrics = await loadLRCFile(matchedLRCFile);
+            if (lrcFileLyrics.length > 0) {
+              console.log(`✓ Found matching LRC file: ${matchedLRCFile.name}`);
             }
           }
 
-          // 保存本地.lrc文件作为备用，但不立即使用
-          const songTitle = title.toLowerCase().trim();
-
-          // Try exact match first
-          let matchedLyricsFile = lyricsMap.get(songTitle);
-
-          // If no exact match, try fuzzy matching
-          if (!matchedLyricsFile && lyricsMap.size > 0) {
-            let bestMatch: { file: File; score: number } | null = null;
-            const minSimilarity = 0.75;
-
-            for (const [lyricsTitle, lyricsFile] of lyricsMap.entries()) {
-              const similarity = calculateSimilarity(songTitle, lyricsTitle);
-
-              if (similarity >= minSimilarity) {
-                if (!bestMatch || similarity > bestMatch.score) {
-                  bestMatch = { file: lyricsFile, score: similarity };
-                }
-              }
-            }
-
-            if (bestMatch) {
-              matchedLyricsFile = bestMatch.file;
-            }
+          // 3. Extract embedded lyrics from ID3/FLAC tags
+          const { lyrics: id3Lyrics, source: id3Source } = await extractEmbeddedLyrics(file);
+          if (id3Lyrics.length > 0) {
+            embeddedLyrics = id3Lyrics;
+            console.log(`✓ Found ${id3Source} embedded lyrics`);
           }
 
-          // Load matched lyrics file as fallback
-          if (matchedLyricsFile) {
-            const reader = new FileReader();
-            const lrcText = await new Promise<string>((resolve) => {
-              reader.onload = (e) =>
-                resolve((e.target?.result as string) || "");
-              reader.readAsText(matchedLyricsFile!);
-            });
-            if (lrcText) {
-              localLyrics = parseLyrics(lrcText);
-              console.log("Found local .lrc file (will be used as fallback)");
-            }
+          // 4. Determine lyrics priority
+          const { lyrics: finalLyrics, source: lyricsSource } = getLyricsPriority({
+            lrcFile: lrcFileLyrics,
+            embedded: embeddedLyrics,
+          });
+
+          // Log lyrics source
+          if (finalLyrics.length > 0) {
+            console.log(`📝 Using ${lyricsSource} lyrics for: ${title}`);
+          } else {
+            console.log(`⚠️ No local lyrics found for: ${title}, will try online`);
           }
+
+          newSongs.push({
+            id: `local-${Date.now()}-${i}`,
+            title,
+            artist,
+            fileUrl: url,
+            coverUrl,
+            // Use local lyrics if available, otherwise leave empty for online fetch
+            lyrics: finalLyrics,
+            colors: colors && colors.length > 0 ? colors : undefined,
+            // Only fetch online if no local lyrics found
+            needsLyricsMatch: finalLyrics.length === 0,
+            // Store all sources as fallback
+            localLyrics: lrcFileLyrics.length > 0 ? lrcFileLyrics : embeddedLyrics,
+          });
         } catch (err) {
           console.warn("Local metadata extraction failed", err);
+          
+          // Fallback: create song without lyrics
+          newSongs.push({
+            id: `local-${Date.now()}-${i}`,
+            title,
+            artist,
+            fileUrl: url,
+            coverUrl,
+            lyrics: [],
+            colors: colors && colors.length > 0 ? colors : undefined,
+            needsLyricsMatch: true,
+          });
         }
-
-        newSongs.push({
-          id: `local-${Date.now()}-${i}`,
-          title,
-          artist,
-          fileUrl: url,
-          coverUrl,
-          lyrics: [], // 不使用本地歌词，留空让在线API获取
-          colors: colors && colors.length > 0 ? colors : undefined,
-          needsLyricsMatch: true, // 总是标记为需要在线匹配
-          // 保存本地歌词作为备用（添加到元数据中）
-          localLyrics: localLyrics.length > 0 ? localLyrics : embeddedLyrics.length > 0 ? embeddedLyrics : undefined,
-        });
       }
 
       appendSongs(newSongs);
