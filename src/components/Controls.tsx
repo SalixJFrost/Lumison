@@ -765,9 +765,9 @@ const VolumePopup: React.FC<VolumePopupProps> = ({
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
           style={
             {
-              WebkitAppearance: "slider-vertical",
-              appearance: "slider-vertical",
-            } as any
+              writingMode: "vertical-lr",
+              direction: "rtl",
+            } as React.CSSProperties
           }
         />
 
@@ -867,9 +867,9 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
             onChange={(e) => onSpeedChange(parseFloat(e.target.value))}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
             style={{
-              WebkitAppearance: "slider-vertical",
-              appearance: "slider-vertical",
-            } as any}
+              writingMode: "vertical-lr",
+              direction: "rtl",
+            } as React.CSSProperties}
           />
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 pointer-events-none text-[10px] font-bold text-white mix-blend-difference">
             {speed.toFixed(2)}x

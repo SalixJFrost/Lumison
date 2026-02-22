@@ -10,8 +10,12 @@
 import { LyricLine } from './types';
 import { parseLyrics } from './index';
 
-// Import jsmediatags - Vite will resolve to dist/jsmediatags.js via alias
-import jsmediatags from 'jsmediatags';
+// Import jsmediatags - Vite will resolve to dist/jsmediatags.min.js via alias
+// The minified version exports as a UMD module
+import * as jsmediat from 'jsmediatags';
+
+// Handle both default and named exports
+const jsmediatags = (jsmediat as any).default || jsmediat;
 
 /**
  * Extract lyrics from audio file metadata
@@ -21,6 +25,12 @@ export const extractEmbeddedLyrics = async (
   file: File
 ): Promise<{ lyrics: LyricLine[]; source: 'id3' | 'flac' | 'none' }> => {
   try {
+    // Check if jsmediatags is available
+    if (!jsmediatags || typeof jsmediatags.read !== 'function') {
+      console.warn('jsmediatags not properly loaded');
+      return { lyrics: [], source: 'none' };
+    }
+
     return new Promise((resolve) => {
       jsmediatags.read(file, {
         onSuccess: (tag: any) => {

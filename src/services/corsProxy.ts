@@ -6,9 +6,12 @@
 // List of public CORS proxies (use with caution in production)
 // 优先使用更可靠的代理服务
 const CORS_PROXIES = [
+  'https://api.codetabs.com/v1/proxy?quest=',
   'https://api.allorigins.win/raw?url=',
   'https://corsproxy.io/?',
-  // 'https://cors-anywhere.herokuapp.com/', // 已移除，需要请求访问权限
+  // 备用代理
+  'https://cors.eu.org/',
+  'https://thingproxy.freeboard.io/fetch/',
 ];
 
 let currentProxyIndex = 0;
@@ -53,14 +56,25 @@ export const rotateProxy = (): void => {
 export const fetchWithCorsProxy = async (
   url: string,
   options?: RequestInit,
-  maxRetries: number = 2 // 减少重试次数，加快失败响应
+  maxRetries: number = CORS_PROXIES.length // 尝试所有代理
 ): Promise<Response> => {
   let lastError: Error | null = null;
+  const attemptedProxies: string[] = [];
   
   for (let i = 0; i < maxRetries; i++) {
     try {
       const proxy = getCorsProxy();
+      
+      // 避免重复尝试同一个代理
+      if (attemptedProxies.includes(proxy)) {
+        rotateProxy();
+        continue;
+      }
+      
+      attemptedProxies.push(proxy);
       const proxiedUrl = proxy + encodeURIComponent(url);
+      
+      console.log(`Trying proxy ${i + 1}/${maxRetries}: ${proxy}`);
       
       const response = await fetch(proxiedUrl, {
         ...options,
@@ -68,27 +82,29 @@ export const fetchWithCorsProxy = async (
           ...options?.headers,
           'X-Requested-With': 'XMLHttpRequest',
         },
-        signal: AbortSignal.timeout(10000), // 10秒超时
+        signal: AbortSignal.timeout(8000), // 8秒超时
       });
       
       if (response.ok) {
+        console.log(`✓ Proxy ${proxy} succeeded`);
         return response;
       }
       
       // If response is not ok, mark proxy as failed and try next
-      console.warn(`Proxy ${proxy} failed with status ${response.status}`);
+      console.warn(`Proxy ${proxy} failed with status: ${response.status}`);
       markProxyFailed(proxy);
       rotateProxy();
     } catch (error) {
-      console.warn(`Proxy attempt ${i + 1} failed:`, error);
-      lastError = error as Error;
       const currentProxy = CORS_PROXIES[currentProxyIndex];
+      console.warn(`Proxy ${currentProxy} failed:`, error);
+      lastError = error as Error;
       markProxyFailed(currentProxy);
       rotateProxy();
     }
   }
   
-  throw lastError || new Error('All CORS proxy attempts failed');
+  console.error('All proxy requests failed for:', url);
+  throw new Error('All proxy requests failed');
 };
 
 /**
