@@ -59,8 +59,8 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),
-        // Fix jsmediatags module resolution for browser builds
-        'jsmediatags': path.resolve(__dirname, 'node_modules/jsmediatags/dist/jsmediatags.js'),
+        // Fix jsmediatags module resolution - use minified browser build
+        'jsmediatags': path.resolve(__dirname, 'node_modules/jsmediatags/dist/jsmediatags.min.js'),
       },
     },
     
