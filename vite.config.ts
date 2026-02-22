@@ -7,8 +7,8 @@ export default defineConfig(({ mode }) => {
   const isTauri = process.env.TAURI_ENV_PLATFORM !== undefined;
   
   return {
-    // Use root path for both Tauri and GitHub Pages
-    base: '/',
+    // Use root path for Tauri, repo name for GitHub Pages
+    base: isTauri ? '/' : '/Lumison/',
     root: '.',
     
     // Tauri uses a different server configuration

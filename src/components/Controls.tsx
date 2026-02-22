@@ -82,6 +82,7 @@ const Controls: React.FC<ControlsProps> = ({
   showSettingsPopup,
   setShowSettingsPopup,
   isBuffering,
+  visualizerEnabled,
 }) => {
   const { theme } = useTheme();
   const { t } = useI18n();

@@ -91,15 +91,11 @@ const TopBar: React.FC<TopBarProps> = ({
   }, [onSearchClick]);
 
   const handleMinimize = useCallback(async () => {
-    console.log('Minimize button clicked');
     try {
       // For Tauri - use Window.getCurrent()
       const appWindow = Window.getCurrent();
-      console.log('Got window instance:', appWindow);
       await appWindow.minimize();
-      console.log('Minimize called successfully');
     } catch (error) {
-      console.error('Minimize error:', error);
       // Fallback for Electron
       if (window.electronAPI?.minimize) {
         window.electronAPI.minimize();
@@ -108,12 +104,10 @@ const TopBar: React.FC<TopBarProps> = ({
   }, []);
 
   const handleMaximize = useCallback(async () => {
-    console.log('Maximize button clicked');
     try {
       // For Tauri
       const appWindow = Window.getCurrent();
       const maximized = await appWindow.isMaximized();
-      console.log('Is maximized:', maximized);
       if (maximized) {
         await appWindow.unmaximize();
         setIsMaximized(false);
@@ -122,7 +116,6 @@ const TopBar: React.FC<TopBarProps> = ({
         setIsMaximized(true);
       }
     } catch (error) {
-      console.error('Maximize error:', error);
       // Fallback for Electron
       if (window.electronAPI?.maximize) {
         window.electronAPI.maximize();
@@ -135,13 +128,11 @@ const TopBar: React.FC<TopBarProps> = ({
   }, [isMaximized, toggleFullscreen]);
 
   const handleClose = useCallback(async () => {
-    console.log('Close button clicked');
     try {
       // For Tauri
       const appWindow = Window.getCurrent();
       await appWindow.close();
     } catch (error) {
-      console.error('Close error:', error);
       // Fallback for Electron
       if (window.electronAPI?.close) {
         window.electronAPI.close();
