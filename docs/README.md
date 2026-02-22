@@ -26,6 +26,35 @@ Welcome to the Lumison documentation! This directory contains all the guides and
   - Service layer
   - State management
 
+- **[API Reference](API_REFERENCE.md)** - API documentation
+  - Service APIs
+  - Component props
+  - Hooks usage
+
+- **[Lyrics System](LYRICS_SYSTEM.md)** - Lyrics system documentation
+  - Priority system (LRC > Embedded > Online)
+  - Supported formats (ID3v2, FLAC)
+  - Implementation details
+  - Troubleshooting
+
+- **[Lyrics Priority Verification](LYRICS_PRIORITY_VERIFICATION.md)** - Priority system verification
+  - Code implementation proof
+  - Unit test results
+  - Console log examples
+  - How to add embedded lyrics
+
+- **[Streaming Integration](STREAMING_INTEGRATION.md)** - Streaming service integration
+  - YouTube Music support
+  - Architecture overview
+
+- **[YouTube Music](YOUTUBE_MUSIC.md)** - YouTube Music integration details
+  - Features and limitations
+  - Implementation notes
+
+- **[Performance Optimization](PERFORMANCE_OPTIMIZATION.md)** - Performance improvements
+  - Optimization strategies
+  - Benchmarks
+
 - **[Deployment Guide](DEPLOYMENT.md)** - How to deploy Lumison
   - Web deployment (GitHub Pages)
   - Desktop builds

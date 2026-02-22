@@ -6,20 +6,14 @@ Lumison 采用多源歌词系统，参考 Poweramp 和 Salt Music 的实现，�
 
 ## 歌词来源优先级
 
-### 1️⃣ 外部 LRC 文件（最高优先级）
-- **格式**: `.lrc` 或 `.txt`
-- **匹配方式**: 
-  - 精确匹配：文件名与音频文件名完全相同
-  - 模糊匹配：使用 Levenshtein 距离算法（相似度 ≥ 70%）
-- **优势**: 用户明确提供，最准确
+系统会按照以下优先级自动选择最佳歌词来源：
 
-**示例**:
-```
-Artist - Song.mp3
-Artist - Song.lrc  ✓ 精确匹配
-```
+### 1️⃣ 内嵌歌词（ID3/FLAC 标签）- 最高优先级
+- **优先级**: 最高
+- **优势**: 歌词随音频文件一起，最可靠，无需额外文件或网络
+- **推荐**: 对于本地音乐库，这是最方便和最可靠的方式
+- **使用场景**: 当你的音频文件已经包含歌词标签时
 
-### 2️⃣ 内嵌歌词（ID3/FLAC 标签）
 支持以下标签格式：
 
 #### MP3 (ID3v2)
@@ -35,12 +29,40 @@ Artist - Song.lrc  ✓ 精确匹配
 - 使用 `jsmediatags` 库解析 ID3 标签
 - 自动检测并提取所有支持的歌词格式
 - SYLT 格式保留精确时间戳
+- 导入音频文件时自动提取，无需手动操作
 
-### 3️⃣ 在线歌词 API（备用）
-- **来源**: 网易云音乐 API、Musixmatch 等
-- **触发条件**: 本地无歌词时自动查询
+### 2️⃣ 在线歌词 API - 次优先级（备用）
+- **来源**: 网易云音乐、QQ音乐、酷狗音乐等多平台
+- **触发条件**: 仅当没有内嵌歌词时才会自动查询
 - **匹配方式**: 标题 + 艺术家
 - **缓存**: 自动缓存到本地
+- **注意**: 在线歌词可能不准确或缺失
+
+### 3️⃣ 外部 LRC 文件 - 最低优先级（最后备用）
+- **格式**: `.lrc` 或 `.txt`
+- **匹配方式**: 
+  - 精确匹配：文件名与音频文件名完全相同
+  - 模糊匹配：使用 Levenshtein 距离算法（相似度 ≥ 70%）
+- **使用场景**: 当内嵌歌词和在线API都失败时的最后备用
+
+**示例**:
+```
+Artist - Song.mp3
+Artist - Song.lrc  ✓ 作为最后备用
+```
+
+### 优先级总结
+
+```
+内嵌ID3/FLAC歌词 > 在线API > 外部LRC文件
+    (最高)         (次优)     (最低)
+```
+
+**重要提示**: 
+- ✅ 如果音频文件包含内嵌歌词，系统会优先使用，不会进行在线搜索
+- ✅ 只有当没有内嵌歌词时，才会尝试在线获取
+- ✅ 在线搜索失败时，会回退到LRC文件（如果有）
+- ✅ 推荐使用内嵌歌词，最可靠且无需网络
 
 ## 歌词解析
 
@@ -98,15 +120,44 @@ const files = [
 ```
 
 ### 2. 歌词优先级选择
+
+系统会按照以下流程自动选择最佳歌词：
+
 ```typescript
-if (lrcFile.exists && lrcFile.lyrics.length > 0) {
-  return lrcFile.lyrics;  // 使用外部 LRC
-} else if (embedded.lyrics.length > 0) {
-  return embedded.lyrics;  // 使用内嵌歌词
+// 步骤1: 导入音频文件时
+1. 提取ID3/FLAC内嵌歌词（最高优先级）
+2. 查找同名LRC文件（作为最后备用）
+
+// 步骤2: 优先级判断
+if (embedded.lyrics.length > 0) {
+  // 优先使用内嵌歌词
+  useLyrics = embedded.lyrics;
+  needsOnlineSearch = false;  // 有内嵌歌词就不搜索在线
 } else {
-  fetchOnlineLyrics();  // 在线获取
+  // 无内嵌歌词，标记需要在线搜索
+  useLyrics = [];
+  needsOnlineSearch = true;
+  // LRC文件作为最后备用保存
+  fallbackLyrics = lrcFile.lyrics;
+}
+
+// 步骤3: 播放时（仅当needsOnlineSearch=true）
+if (needsOnlineSearch && useLyrics.length === 0) {
+  const onlineLyrics = await fetchOnlineLyrics();
+  
+  if (onlineLyrics) {
+    useLyrics = onlineLyrics;  // 使用在线歌词
+  } else if (fallbackLyrics.length > 0) {
+    useLyrics = fallbackLyrics;  // 在线失败，使用LRC文件
+  }
 }
 ```
+
+**关键点**:
+- ✅ 内嵌歌词会阻止在线搜索
+- ✅ 只有无内嵌歌词时才会联网
+- ✅ 在线搜索失败会回退到LRC文件
+- ✅ LRC文件仅作为最后备用
 
 ### 3. 显示和同步
 ```typescript
@@ -196,20 +247,73 @@ Artist - Song Title.lrc
 ## 故障排除
 
 ### 歌词不显示
-1. 检查文件名是否匹配
-2. 检查 LRC 文件编码（应为 UTF-8）
-3. 检查时间戳格式是否正确
-4. 查看控制台日志
+1. **检查文件名是否匹配** - LRC文件名应与音频文件名相同
+2. **检查 LRC 文件编码** - 应为 UTF-8（不带BOM）
+3. **检查时间戳格式** - 应为 `[mm:ss.xx]` 格式
+4. **查看控制台日志** - 打开开发者工具查看详细信息
+
+### 内嵌歌词未被识别
+1. **确认文件格式** - 仅支持 MP3 (ID3v2) 和 FLAC (Vorbis Comments)
+2. **检查 ID3 版本** - 推荐使用 ID3v2.3 或 ID3v2.4
+3. **使用专业工具检查** - 推荐使用 [Mp3tag](https://www.mp3tag.de/) 或 [MusicBrainz Picard](https://picard.musicbrainz.org/)
+4. **查看支持的标签**:
+   - MP3: USLT, SYLT, LYRICS
+   - FLAC: LYRICS, UNSYNCEDLYRICS
+
+### 系统使用了在线歌词而不是内嵌歌词
+这种情况**不应该发生**。如果出现，请：
+
+1. **查看控制台日志** - 应该显示歌词来源
+   ```
+   ✓ Found ID3 USLT lyrics
+   📝 Using embedded ID3/FLAC lyrics (highest priority) for: Song Title
+   ```
+
+2. **确认内嵌歌词格式** - 使用 Mp3tag 检查歌词标签是否存在且非空
+
+3. **重新导入文件** - 删除歌曲后重新导入
+
+4. **报告问题** - 如果问题持续，请在 GitHub 提交 issue
+
+### 系统使用了LRC文件而不是内嵌歌词
+这种情况**不应该发生**（内嵌歌词优先级最高）。如果出现，请：
+
+1. **查看控制台日志** - 确认内嵌歌词是否被提取
+2. **检查内嵌歌词** - 使用 Mp3tag 确认歌词标签存在
+3. **重新导入文件** - 删除后重新导入
+4. **报告问题** - 如果问题持续，请提交 issue
 
 ### 歌词不同步
-1. 检查音频文件是否完整
-2. 检查 LRC 时间戳是否准确
-3. 尝试重新导入歌词
+1. **检查音频文件是否完整** - 损坏的文件可能导致时间不准
+2. **检查 LRC 时间戳是否准确** - 使用歌词编辑器调整
+3. **尝试重新导入歌词** - 删除后重新添加
 
-### 内嵌歌词无法读取
-1. 确认文件格式（MP3/FLAC）
-2. 检查 ID3 版本
-3. 使用专业工具（如 Mp3tag）检查标签
+### 在线搜索失败
+1. **检查网络连接** - 确保可以访问互联网
+2. **检查歌曲信息** - 标题和艺术家应该准确
+3. **使用本地歌词** - 推荐使用内嵌歌词或LRC文件，更可靠
+
+### 优先级验证
+
+想确认系统是否正确使用了内嵌歌词？查看控制台日志：
+
+```javascript
+// 正确的优先级流程：
+
+// 1. 导入时
+✓ Found ID3 USLT lyrics
+📝 Using embedded ID3/FLAC lyrics (highest priority) for: Song Title
+
+// 2. 播放时
+🎵 Lyrics matching check for: "Song Title" by "Artist"
+   - needsLyricsMatch: false  // ← 应该是 false
+   - existing lyrics: 45 lines  // ← 应该有歌词
+   ✅ Using existing embedded lyrics (highest priority)
+
+// 如果看到这个，说明优先级正确！
+```
+
+如果日志显示 `needsLyricsMatch: true` 但你确定有内嵌歌词，说明提取失败，请检查文件格式和标签。
 
 ## 参考资料
 

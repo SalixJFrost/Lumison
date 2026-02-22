@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTransition, animated } from '@react-spring/web';
 import { Song } from '../types';
-import { CheckIcon, PlusIcon, QueueIcon, TrashIcon, SelectAllIcon, CloudDownloadIcon, SearchIcon } from './Icons';
+import { CheckIcon, PlusIcon, QueueIcon, TrashIcon, SelectAllIcon, CloudDownloadIcon, SearchIcon, InfoIcon } from './Icons';
 import { useKeyboardScope } from '../hooks/useKeyboardScope';
 import ImportMusicDialog from './ImportMusicDialog';
 import SmartImage from './SmartImage';
@@ -61,6 +61,7 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
 }) => {
     const { t } = useI18n();
     const [isAdding, setIsAdding] = useState(false);
+    const [showInfoId, setShowInfoId] = useState<string | null>(null);
 
     const [isEditing, setIsEditing] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -134,6 +135,17 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [isOpen, onClose, isAdding]);
+
+    // Close info popup when scrolling
+    useEffect(() => {
+        if (showInfoId && listRef.current) {
+            const handleScroll = () => setShowInfoId(null);
+            listRef.current.addEventListener('scroll', handleScroll);
+            return () => {
+                listRef.current?.removeEventListener('scroll', handleScroll);
+            };
+        }
+    }, [showInfoId]);
 
     const handleImport = async (url: string) => {
         const success = await onImport(url);
@@ -313,10 +325,6 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                                     return (
                                         <div
                                             key={`${song.id}-${index}`}
-                                            onClick={() => {
-                                                if (isEditing) toggleSelection(song.id);
-                                                else onPlay(index);
-                                            }}
                                             className={`
                                     absolute left-0 right-0 h-[66px]
                                     group flex items-center gap-3 p-2 mx-2 rounded-2xl cursor-pointer transition-all duration-200
@@ -343,7 +351,13 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                                             )}
 
                                             {/* Cover & Indicator */}
-                                            <div className="relative w-11 h-11 rounded-lg overflow-hidden flex-shrink-0 bg-gray-800 border border-white/5 shadow-sm">
+                                            <div 
+                                                onClick={() => {
+                                                    if (isEditing) toggleSelection(song.id);
+                                                    else onPlay(index);
+                                                }}
+                                                className="relative w-11 h-11 rounded-lg overflow-hidden flex-shrink-0 bg-gray-800 border border-white/5 shadow-sm"
+                                            >
                                                 {song.coverUrl ? (
                                                     <SmartImage
                                                         src={song.coverUrl}
@@ -372,7 +386,13 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                                             </div>
 
                                             {/* Text */}
-                                            <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
+                                            <div 
+                                                onClick={() => {
+                                                    if (isEditing) toggleSelection(song.id);
+                                                    else onPlay(index);
+                                                }}
+                                                className="flex-1 min-w-0 flex flex-col justify-center gap-0.5"
+                                            >
                                                 <div className={`text-[15px] font-semibold truncate leading-tight transition-colors duration-300`}
                                                     style={{ color: isCurrent ? accentColor : 'rgba(255,255,255,0.9)' }}>
                                                     {song.title}
@@ -381,6 +401,102 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                                                     {song.artist}
                                                 </div>
                                             </div>
+
+                                            {/* Info Icon */}
+                                            {!isEditing && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setShowInfoId(showInfoId === song.id ? null : song.id);
+                                                    }}
+                                                    className="w-7 h-7 rounded-full flex items-center justify-center transition-all text-white/30 hover:text-white/70 hover:bg-white/10 opacity-0 group-hover:opacity-100 mr-1"
+                                                    title={t("playlist.songInfo")}
+                                                >
+                                                    <InfoIcon className="w-4 h-4" />
+                                                </button>
+                                            )}
+
+                                            {/* Info Popup */}
+                                            {showInfoId === song.id && !isEditing && (
+                                                <div 
+                                                    className="absolute right-12 top-0 z-50 w-64 bg-black/90 backdrop-blur-xl rounded-2xl p-4 shadow-2xl border border-white/10"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <div className="flex flex-col gap-3">
+                                                        <div className="flex items-start gap-3">
+                                                            {song.coverUrl && (
+                                                                <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-800 border border-white/5">
+                                                                    <SmartImage
+                                                                        src={song.coverUrl}
+                                                                        alt={song.title}
+                                                                        containerClassName="w-full h-full"
+                                                                        imgClassName="w-full h-full object-cover"
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="text-white text-sm font-semibold truncate">{song.title}</div>
+                                                                <div className="text-white/60 text-xs truncate">{song.artist}</div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="h-px bg-white/10" />
+                                                        
+                                                        <div className="space-y-2 text-xs">
+                                                            {song.album && (
+                                                                <div>
+                                                                    <div className="text-white/40 mb-0.5">{t("playlist.album")}</div>
+                                                                    <div className="text-white/80">{song.album}</div>
+                                                                </div>
+                                                            )}
+                                                            
+                                                            {song.lyrics && song.lyrics.length > 0 && (
+                                                                <div>
+                                                                    <div className="text-white/40 mb-0.5">Lyrics</div>
+                                                                    <div className="text-white/80">
+                                                                        {song.lyrics.length} lines
+                                                                        {song.localLyrics && song.localLyrics.length > 0 && (
+                                                                            <span className="text-white/50"> • {t("playlist.lyricsFromEmbedded")}</span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            
+                                                            {(!song.lyrics || song.lyrics.length === 0) && song.localLyrics && song.localLyrics.length > 0 && (
+                                                                <div>
+                                                                    <div className="text-white/40 mb-0.5">Lyrics</div>
+                                                                    <div className="text-white/80">
+                                                                        {song.localLyrics.length} lines • {t("playlist.lyricsFromLrc")}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            
+                                                            {song.isNetease && (
+                                                                <div>
+                                                                    <div className="text-white/40 mb-0.5">Source</div>
+                                                                    <div className="text-white/80">{t("playlist.sourceNetease")}</div>
+                                                                </div>
+                                                            )}
+                                                            
+                                                            {song.fileUrl && song.fileUrl.startsWith('blob:') && (
+                                                                <div>
+                                                                    <div className="text-white/40 mb-0.5">Source</div>
+                                                                    <div className="text-white/80">{t("playlist.sourceLocal")}</div>
+                                                                </div>
+                                                            )}
+                                                            
+                                                            {song.duration && (
+                                                                <div>
+                                                                    <div className="text-white/40 mb-0.5">{t("playlist.duration")}</div>
+                                                                    <div className="text-white/80">
+                                                                        {Math.floor(song.duration / 60000)}:{String(Math.floor((song.duration % 60000) / 1000)).padStart(2, '0')}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}

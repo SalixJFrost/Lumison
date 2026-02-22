@@ -114,6 +114,14 @@ export default {
     done: "完成",
     addFromUrl: "从链接添加",
     editList: "编辑列表",
+    songInfo: "歌曲信息",
+    album: "专辑",
+    lyricsCount: "{count} 行歌词",
+    lyricsFromEmbedded: "来自内嵌 ID3/FLAC",
+    lyricsFromLrc: "来自 LRC 文件（备用）",
+    sourceNetease: "网易云音乐",
+    sourceLocal: "本地文件",
+    duration: "时长",
   },
 
   // 搜索

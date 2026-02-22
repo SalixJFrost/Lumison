@@ -117,8 +117,15 @@ npm run tauri:build
 
 ### Import Music
 - **Local Files**: Drag and drop or click import button
+  - Automatically extracts ID3/FLAC metadata (title, artist, album, cover)
+  - Embedded lyrics priority: Reads lyrics from ID3v2 (MP3) and Vorbis Comments (FLAC) - highest priority
+  - Online lyrics fallback: Searches online APIs when no embedded lyrics found
+  - Auto-matches .lrc files with same filename (last resort fallback)
+  - **Lyrics Priority**: Embedded ID3/FLAC lyrics > Online API > External LRC file
 - **Online Search**: Press `Ctrl + K` to search Netease Cloud Music
 - **URL Import**: Paste direct audio URLs
+
+See [Lyrics System Documentation](docs/LYRICS_SYSTEM.md) for details.
 
 ### Playback Controls
 - Variable speed (0.25x - 2.0x) with pitch preservation

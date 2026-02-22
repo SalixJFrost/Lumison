@@ -324,7 +324,15 @@ export const usePlayer = ({
     console.log(`🎵 Lyrics matching check for: "${currentSong.title}" by "${currentSong.artist}"`);
     console.log(`   - needsLyricsMatch: ${currentSong.needsLyricsMatch}`);
     console.log(`   - existing lyrics: ${currentSong.lyrics?.length || 0} lines`);
-    console.log(`   - local lyrics: ${currentSong.localLyrics?.length || 0} lines`);
+    console.log(`   - LRC file (lowest priority fallback): ${currentSong.localLyrics?.length || 0} lines`);
+    
+    if (currentSong.lyrics && currentSong.lyrics.length > 0) {
+      console.log(`   ✅ Using existing embedded lyrics (highest priority)`);
+    } else if (!currentSong.needsLyricsMatch) {
+      console.log(`   ⏭️ No lyrics needed for this song`);
+    } else {
+      console.log(`   🔍 Will search online (no embedded lyrics found)`);
+    }
 
     const songId = currentSong.id;
     const songTitle = currentSong.title;
@@ -381,9 +389,9 @@ export const usePlayer = ({
             markMatchSuccess();
           } else {
             console.warn("❌ Failed to fetch lyrics by ID");
-            // 网易云歌曲失败，尝试使用本地歌词
+            // 网易云歌曲失败，尝试使用LRC文件作为最后备用
             if (currentSong.localLyrics && currentSong.localLyrics.length > 0) {
-              console.log("📝 Using local lyrics as fallback");
+              console.log("📝 Using LRC file as last resort fallback");
               updateSongInQueue(songId, {
                 lyrics: currentSong.localLyrics,
                 needsLyricsMatch: false,
@@ -409,25 +417,25 @@ export const usePlayer = ({
             markMatchSuccess();
           } else {
             console.warn("❌ Online search failed");
-            // 在线搜索失败，尝试使用本地歌词
+            // 在线搜索失败，使用LRC文件作为最后备用
             if (currentSong.localLyrics && currentSong.localLyrics.length > 0) {
-              console.log("📝 Online search failed, using local lyrics as fallback");
+              console.log("📝 Online search failed, using LRC file as last resort fallback");
               updateSongInQueue(songId, {
                 lyrics: currentSong.localLyrics,
                 needsLyricsMatch: false,
               });
               markMatchSuccess();
             } else {
-              console.log("❌ No local lyrics available");
+              console.log("❌ No LRC file available");
               markMatchFailed();
             }
           }
         }
       } catch (error) {
         console.error("💥 Lyrics matching error:", error);
-        // 出错时也尝试使用本地歌词
+        // 出错时也尝试使用LRC文件
         if (currentSong.localLyrics && currentSong.localLyrics.length > 0) {
-          console.log("📝 Error occurred, using local lyrics as fallback");
+          console.log("📝 Error occurred, using LRC file as last resort fallback");
           updateSongInQueue(songId, {
             lyrics: currentSong.localLyrics,
             needsLyricsMatch: false,

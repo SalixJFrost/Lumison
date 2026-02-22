@@ -114,6 +114,14 @@ export default {
     done: "Done",
     addFromUrl: "Add from URL",
     editList: "Edit List",
+    songInfo: "Song Info",
+    album: "Album",
+    lyricsCount: "{count} lines",
+    lyricsFromEmbedded: "From embedded ID3/FLAC",
+    lyricsFromLrc: "From LRC file (fallback)",
+    sourceNetease: "Netease Cloud Music",
+    sourceLocal: "Local File",
+    duration: "Duration",
   },
 
   // Search

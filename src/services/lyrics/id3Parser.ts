@@ -231,27 +231,28 @@ export const loadLRCFile = async (file: File): Promise<LyricLine[]> => {
 
 /**
  * Priority order for lyrics sources:
- * 1. External LRC file (highest priority - user explicitly provided)
- * 2. ID3 SYLT (synchronized lyrics)
- * 3. ID3 USLT (unsynchronized lyrics)
- * 4. FLAC Vorbis Comments
- * 5. Online API (fallback)
+ * 1. Embedded ID3/FLAC lyrics (highest priority - most reliable)
+ * 2. Online API (fallback when no embedded lyrics)
+ * 3. External LRC file (lowest priority)
  */
 export const getLyricsPriority = (sources: {
   lrcFile?: LyricLine[];
   embedded?: LyricLine[];
   online?: LyricLine[];
 }): { lyrics: LyricLine[]; source: string } => {
-  if (sources.lrcFile && sources.lrcFile.length > 0) {
-    return { lyrics: sources.lrcFile, source: 'lrc-file' };
-  }
-
+  // 1. 最高优先级：内嵌歌词
   if (sources.embedded && sources.embedded.length > 0) {
     return { lyrics: sources.embedded, source: 'embedded' };
   }
 
+  // 2. 次优先级：在线API
   if (sources.online && sources.online.length > 0) {
     return { lyrics: sources.online, source: 'online' };
+  }
+
+  // 3. 最低优先级：外部LRC文件
+  if (sources.lrcFile && sources.lrcFile.length > 0) {
+    return { lyrics: sources.lrcFile, source: 'lrc-file' };
   }
 
   return { lyrics: [], source: 'none' };

@@ -124,7 +124,7 @@ export const usePlaylist = () => {
             colors = await extractColors(coverUrl);
           }
 
-          // 2. Try to find matching LRC file (highest priority)
+          // 2. Try to find matching LRC file (will be used as lowest priority fallback)
           const matchedLRCFile = findMatchingLRCFile(file, lyricsFiles);
           if (matchedLRCFile) {
             lrcFileLyrics = await loadLRCFile(matchedLRCFile);
@@ -133,24 +133,27 @@ export const usePlaylist = () => {
             }
           }
 
-          // 3. Extract embedded lyrics from ID3/FLAC tags
+          // 3. Extract embedded lyrics from ID3/FLAC tags (highest priority)
           const { lyrics: id3Lyrics, source: id3Source } = await extractEmbeddedLyrics(file);
           if (id3Lyrics.length > 0) {
             embeddedLyrics = id3Lyrics;
             console.log(`✓ Found ${id3Source} embedded lyrics`);
           }
 
-          // 4. Determine lyrics priority
-          const { lyrics: finalLyrics, source: lyricsSource } = getLyricsPriority({
-            lrcFile: lrcFileLyrics,
-            embedded: embeddedLyrics,
-          });
-
-          // Log lyrics source
-          if (finalLyrics.length > 0) {
-            console.log(`📝 Using ${lyricsSource} lyrics for: ${title}`);
+          // 4. Determine initial lyrics (embedded only, online search will happen during playback)
+          let initialLyrics: { time: number; text: string }[] = [];
+          let needsOnlineSearch = false;
+          
+          if (embeddedLyrics.length > 0) {
+            // Use embedded lyrics (highest priority)
+            initialLyrics = embeddedLyrics;
+            needsOnlineSearch = false;
+            console.log(`📝 Using embedded ID3/FLAC lyrics (highest priority) for: ${title}`);
           } else {
-            console.log(`⚠️ No local lyrics found for: ${title}, will try online`);
+            // No embedded lyrics, will try online search during playback
+            initialLyrics = [];
+            needsOnlineSearch = true;
+            console.log(`⚠️ No embedded lyrics, will search online during playback for: ${title}`);
           }
 
           newSongs.push({
@@ -159,13 +162,13 @@ export const usePlaylist = () => {
             artist,
             fileUrl: url,
             coverUrl,
-            // Use local lyrics if available, otherwise leave empty for online fetch
-            lyrics: finalLyrics,
+            // Use embedded lyrics if available, otherwise empty (will search online)
+            lyrics: initialLyrics,
             colors: colors && colors.length > 0 ? colors : undefined,
-            // Only fetch online if no local lyrics found
-            needsLyricsMatch: finalLyrics.length === 0,
-            // Store all sources as fallback
-            localLyrics: lrcFileLyrics.length > 0 ? lrcFileLyrics : embeddedLyrics,
+            // Search online only if no embedded lyrics
+            needsLyricsMatch: needsOnlineSearch,
+            // Store LRC file as lowest priority fallback
+            localLyrics: lrcFileLyrics,
           });
         } catch (err) {
           console.warn("Local metadata extraction failed", err);
