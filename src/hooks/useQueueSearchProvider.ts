@@ -12,7 +12,7 @@ export const useQueueSearchProvider = ({
   const provider: SearchProvider = useMemo(
     () => ({
       id: "queue",
-      label: "Current Queue",
+      label: "Queue", // Not used in UI, translated directly in SearchModal
       requiresExplicitSearch: false,
       isLoading: false,
       hasMore: false,

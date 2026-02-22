@@ -542,7 +542,7 @@ const LyricsView: React.FC<LyricsViewProps> = ({
         ) : (
           <>
             <div className="text-4xl mb-4 opacity-50">♪</div>
-            <div>Play music to view lyrics</div>
+            <div>{t("lyrics.playMusicToViewLyrics")}</div>
           </>
         )}
       </div>

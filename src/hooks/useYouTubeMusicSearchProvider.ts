@@ -105,7 +105,7 @@ export function useYouTubeMusicSearchProvider(): SearchProvider {
 
   return {
     id: 'youtube-music',
-    label: 'YouTube Music',
+    label: 'YouTube', // Not used in UI, translated directly in SearchModal
     requiresExplicitSearch: true,
     search,
     loadMore,

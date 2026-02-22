@@ -155,6 +155,7 @@ export default {
     originalOnly: "仅原文",
     translation: "译",
     original: "原",
+    playMusicToViewLyrics: "播放音乐以查看歌词",
   },
   
   // 可视化器

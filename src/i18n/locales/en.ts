@@ -155,6 +155,7 @@ export default {
     originalOnly: "Original Only",
     translation: "Trans",
     original: "Orig",
+    playMusicToViewLyrics: "Play music to view lyrics",
   },
   
   // Visualizer

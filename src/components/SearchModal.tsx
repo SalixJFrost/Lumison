@@ -378,7 +378,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
                         ${search.activeTab === "queue" ? "text-white" : "text-white/50 hover:text-white/70"}
                     `}
             >
-              {search.queueProvider.label}
+              {t("search.queue")}
             </button>
             <button
               onClick={() => {

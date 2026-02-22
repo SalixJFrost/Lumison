@@ -15,6 +15,7 @@ import { usePlayer } from "./hooks/usePlayer";
 import { keyboardRegistry } from "./services/ui/keyboardRegistry";
 import MediaSessionController from "./components/MediaSessionController";
 import { useTheme } from "./contexts/ThemeContext";
+import { useI18n } from "./contexts/I18nContext";
 import { logSupportedFormats } from "./services/utils";
 import { usePerformanceOptimization, useOptimizedAudio } from "./hooks/usePerformanceOptimization";
 import { UpdateService } from "./services/updateService";
@@ -22,6 +23,7 @@ import { UpdateService } from "./services/updateService";
 const App: React.FC = () => {
   const { toast } = useToast();
   const { theme } = useTheme();
+  const { t } = useI18n();
   
   // Performance monitoring
   const perfState = usePerformanceOptimization();
@@ -334,8 +336,8 @@ const App: React.FC = () => {
           currentTime={currentTime}
           duration={duration}
           onSeek={handleSeek}
-          title={currentSong?.title || "Welcome to Lumison"}
-          artist={currentSong?.artist || "Select a song"}
+          title={currentSong?.title || t("player.welcomeTitle")}
+          artist={currentSong?.artist || t("player.selectSong")}
           audioRef={audioRef}
           onNext={playNext}
           onPrev={playPrev}

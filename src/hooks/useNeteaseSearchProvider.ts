@@ -76,7 +76,7 @@ export const useNeteaseSearchProvider = (): NeteaseSearchProviderExtended => {
 
   const provider: NeteaseSearchProviderExtended = {
     id: "netease",
-    label: "Cloud Music",
+    label: "Netease", // Not used in UI, translated directly in SearchModal
     requiresExplicitSearch: true,
     isLoading,
     hasMore,
