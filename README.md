@@ -212,48 +212,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 **If you find this project useful, please consider giving it a star ⭐**
 
-Contributions are welcome! Please see [DEVELOPMENT.md](docs/DEVELOPMENT.md) for how to get started.
-
-### Contribution Process
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- Built with [Tauri](https://tauri.app/) for desktop applications
-- Built with [React](https://reactjs.org/) for user interface
-- Music metadata from [Netease Cloud Music API](https://neteasecloudmusicapi.vercel.app/)
-- Design inspired by Apple Music
-
-## 📞 Contact
-
-- GitHub Issues: [Submit an issue](https://github.com/SalixJFrost/Lumison/issues)
-- GitHub Discussions: [Join the discussion](https://github.com/SalixJFrost/Lumison/discussions)
-
-## 🗺️ Roadmap
-
-- [ ] macOS support
-- [ ] Linux support
-- [ ] More music platform integrations
-- [ ] Playback history
-- [ ] Smart recommendations
-- [ ] Equalizer
-- [ ] Plugin system
-
-## ⭐ Star History
-
-If you like this project, please give it a star!
-
-[![Star History Chart](https://api.star-history.com/svg?repos=SalixJFrost/Lumison&type=Date)](https://star-history.com/#SalixJFrost/Lumison&Date)
-
 ---
 
 <div align="center">

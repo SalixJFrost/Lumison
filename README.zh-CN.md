@@ -203,39 +203,14 @@ Lumison 支持深色和浅色主题，会根据专辑封面自动提取主题色
 
 欢迎贡献！请查看 [DEVELOPMENT.md](docs/DEVELOPMENT.md) 了解如何开始。
 
-### 贡献流程
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
-
 ## 📄 许可证
 
 本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
 
 ## 🙏 致谢
 
-- 使用 [Tauri](https://tauri.app/) 构建桌面应用
-- 使用 [React](https://reactjs.org/) 构建用户界面
-- 音乐元数据来自 [网易云音乐 API](https://neteasecloudmusicapi.vercel.app/)
-- 设计灵感来自 Apple Music
-
-## 📞 联系方式
-
-- GitHub Issues: [提交问题](https://github.com/SalixJFrost/Lumison/issues)
-- GitHub Discussions: [参与讨论](https://github.com/SalixJFrost/Lumison/discussions)
-
-## 🗺️ 路线图
-
-- [ ] macOS 支持
-- [ ] Linux 支持
-- [ ] 更多音乐平台集成
-- [ ] 播放历史记录
-- [ ] 智能推荐
-- [ ] 均衡器
-- [ ] 插件系统
+- **Shader**: [Shadertoy - wdyczG](https://www.shadertoy.com/view/wdyczG)
+- **设计灵感**: Apple Music
 
 ## ⭐ Star History
 

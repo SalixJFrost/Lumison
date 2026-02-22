@@ -592,7 +592,7 @@ const LyricsView: React.FC<LyricsViewProps> = ({
       
       {/* Translation Toggle Buttons */}
       <div 
-        className={`absolute top-4 right-4 flex gap-2 transition-opacity duration-300 ${
+        className={`absolute top-8 right-4 flex gap-2 transition-opacity duration-300 ${
           showButtons ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onMouseEnter={() => setShowButtons(true)}
