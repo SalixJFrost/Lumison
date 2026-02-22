@@ -39,12 +39,16 @@ const App: React.FC = () => {
     console.log('\n🎵 Lyrics Platform Configuration:');
     console.log('   Primary sources (parallel search):');
     console.log(`     ${platformConfig.netease ? '✅' : '❌'} Netease Music (网易云音乐) - Word-by-word lyrics`);
-    console.log(`     ${platformConfig.thirdParty ? '✅' : '❌'} Third-party APIs (LrcLib, LRCAPI, Lyrics.ovh, Syair.info)`);
+    console.log(`     ${platformConfig.thirdParty ? '✅' : '❌'} Third-party APIs (8 sources)`);
+    console.log('       • LrcLib, LRCAPI, Lyrics.ovh, Syair.info');
+    console.log('       • ChartLyrics, Musixmatch');
+    console.log('       • OpenLyrics, LyricWiki (open-source databases)');
     console.log('   Fallback sources:');
     console.log(`     ${platformConfig.qq ? '✅' : '❌'} QQ Music (QQ音乐) ${!platformConfig.qq ? '- Disabled due to CORS' : ''}`);
     console.log(`     ${platformConfig.kugou ? '✅' : '❌'} Kugou Music (酷狗音乐) ${!platformConfig.kugou ? '- Disabled due to CORS' : ''}`);
-    console.log('\n💡 Strategy: Parallel search for faster results');
-    console.log('   • Netease + Third-party APIs search simultaneously');
+    console.log('\n💡 Strategy: Parallel search for maximum coverage');
+    console.log('   • Netease + 8 third-party sources search simultaneously');
+    console.log('   • Includes commercial APIs and open-source databases');
     console.log('   • Best for songs unavailable on Netease (e.g., Jay Chou)');
     if (!platformConfig.qq || !platformConfig.kugou) {
       console.log('\n💡 To enable QQ/Kugou: updatePlatformConfig({ qq: true, kugou: true })');

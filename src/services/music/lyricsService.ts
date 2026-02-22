@@ -441,6 +441,12 @@ export const searchAndMatchLyrics = async (
         'lrcapi': 'LRCAPI',
         'lyrics.ovh': 'Lyrics.ovh',
         'syair.info': 'Syair.info',
+        'chartlyrics': 'ChartLyrics',
+        'musixmatch': 'Musixmatch',
+        'genius': 'Genius',
+        'openlyrics': 'OpenLyrics',
+        'lyricwiki': 'LyricWiki',
+        'github-lrc': 'GitHub LRC',
       };
       return {
         lrc: multiPlatformResult.lrc,
