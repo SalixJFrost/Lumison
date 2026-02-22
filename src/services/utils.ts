@@ -28,8 +28,6 @@ export const fetchViaProxy = async (
   targetUrl: string,
   options?: { signal?: AbortSignal }
 ): Promise<any> => {
-  let text: string;
-
   // 1. Try direct request first
   try {
     const response = await fetch(targetUrl, {
@@ -42,10 +40,10 @@ export const fetchViaProxy = async (
     });
     if (!response.ok) {
       throw new Error(
-        `Direct fetch failed with status: ${response.status} ${targetUrl}`,
+        `Direct fetch failed with status: ${response.status}`,
       );
     }
-    text = await response.text();
+    const text = await response.text();
     return JSON.parse(text);
   } catch (directError) {
     // 如果是 AbortError，直接抛出
@@ -53,47 +51,32 @@ export const fetchViaProxy = async (
       throw directError;
     }
 
-    // 2. Direct request failed (likely CORS), try proxy
-    console.log(
-      "Direct fetch failed (likely CORS), trying proxy:",
-      directError,
-    );
+    // 2. Direct request failed (likely CORS), try single reliable proxy
+    console.log("Direct fetch failed (likely CORS), trying proxy:", directError);
 
-    // Try multiple proxy services
-    const proxies = [
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
-      `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
-    ];
-
-    for (const proxyUrl of proxies) {
-      try {
-        const response = await fetch(proxyUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-          },
-          signal: options?.signal,
-        });
-        if (!response.ok) {
-          throw new Error(`Proxy fetch failed with status: ${response.status}`);
-        }
-        text = await response.text();
-        return JSON.parse(text);
-      } catch (proxyError) {
-        // 如果是 AbortError，直接抛出
-        if (proxyError instanceof Error && proxyError.name === 'AbortError') {
-          throw proxyError;
-        }
-        console.warn(`Proxy ${proxyUrl} failed:`, proxyError);
-        continue;
+    try {
+      // 使用最可靠的代理服务
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        signal: options?.signal,
+      });
+      if (!response.ok) {
+        throw new Error(`Proxy fetch failed with status: ${response.status}`);
       }
+      const text = await response.text();
+      return JSON.parse(text);
+    } catch (proxyError) {
+      // 如果是 AbortError，直接抛出
+      if (proxyError instanceof Error && proxyError.name === 'AbortError') {
+        throw proxyError;
+      }
+      console.warn(`Proxy failed:`, proxyError);
+      throw new Error("All proxy requests failed");
     }
-
-    console.log(
-      "All proxy requests failed for:",
-      targetUrl,
-    );
-    throw new Error("All proxy requests failed");
   }
 };
 

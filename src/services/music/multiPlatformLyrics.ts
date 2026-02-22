@@ -354,10 +354,12 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
     return null;
   };
 
-  // ChartLyrics - 免费，支持部分同步歌词
+  // ChartLyrics - 免费，支持部分同步歌词（使用 HTTPS）
   const tryChartLyrics = async (): Promise<LyricsResult | null> => {
     try {
-      const url = `http://api.chartlyrics.com/apiv1.asmx/SearchLyricDirect?artist=${encodeURIComponent(artist)}&song=${encodeURIComponent(title)}`;
+      // 注意：ChartLyrics 官方 API 只支持 HTTP，但我们可以尝试 HTTPS
+      // 如果 HTTPS 不可用，这个源会失败（安全优先）
+      const url = `https://api.chartlyrics.com/apiv1.asmx/SearchLyricDirect?artist=${encodeURIComponent(artist)}&song=${encodeURIComponent(title)}`;
       const response = await fetchViaProxy(url);
       // ChartLyrics 返回 XML，需要解析
       if (response && typeof response === 'string' && response.includes('<Lyric>')) {
