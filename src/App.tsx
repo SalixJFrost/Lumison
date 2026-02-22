@@ -377,15 +377,16 @@ const App: React.FC = () => {
   const mobileTranslate = baseOffset + dragOffsetX;
 
   return (
-    <div className="relative w-full h-screen flex flex-col overflow-hidden theme-transition bg-black">
-      <FluidBackground
-        key={isMobileLayout ? "mobile" : "desktop"}
-        colors={currentSong?.colors || []}
-        coverUrl={currentSong?.coverUrl}
-        isPlaying={playState === PlayState.PLAYING}
-        isMobileLayout={isMobileLayout}
-        theme={theme}
-      />
+    <div className="relative w-full h-screen flex items-center justify-center overflow-hidden bg-black/95 p-2">
+      <div className="relative w-full h-full flex flex-col overflow-hidden rounded-2xl shadow-2xl theme-transition bg-black border border-white/5">
+        <FluidBackground
+          key={isMobileLayout ? "mobile" : "desktop"}
+          colors={currentSong?.colors || []}
+          coverUrl={currentSong?.coverUrl}
+          isPlaying={playState === PlayState.PLAYING}
+          isMobileLayout={isMobileLayout}
+          theme={theme}
+        />
 
       <audio
         ref={audioRef}
@@ -512,6 +513,7 @@ const App: React.FC = () => {
           {lyricsSection}
         </div>
       )}
+      </div>
     </div>
   );
 };

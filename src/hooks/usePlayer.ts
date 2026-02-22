@@ -454,60 +454,40 @@ export const usePlayer = ({
       const audioElement = event.target as HTMLAudioElement;
       const error = audioElement.error;
       
-      console.error("🔴 Audio playback error detected");
-      
-      if (error) {
+      if (error && currentSong) {
         let errorMessage = "Unknown audio error";
-        let errorDetails = "";
+        let toastMessage = "";
         
         switch (error.code) {
           case MediaError.MEDIA_ERR_ABORTED:
             errorMessage = "Audio loading aborted";
-            errorDetails = "The audio loading was aborted by the user";
+            // Don't show toast for user-initiated aborts
             break;
           case MediaError.MEDIA_ERR_NETWORK:
-            errorMessage = "Network error";
-            errorDetails = "A network error occurred while loading the audio";
+            errorMessage = "Network error while loading audio";
+            toastMessage = "Network error - check your connection";
             break;
           case MediaError.MEDIA_ERR_DECODE:
-            errorMessage = "Audio decode error";
-            errorDetails = "The audio format is not supported or the file is corrupted. Try converting to MP3 or FLAC.";
-            console.error("💡 Suggestion: This WAV file might use an unsupported codec. Try converting to standard PCM WAV or MP3.");
+            errorMessage = "Audio decode error - unsupported codec or corrupted file";
+            toastMessage = "Cannot play this file - try converting to MP3";
             break;
           case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
             errorMessage = "Audio format not supported";
-            errorDetails = "The audio format or MIME type is not supported by your browser. Try converting to MP3.";
-            console.error("💡 Suggestion: Convert the file to a more compatible format like MP3 or FLAC.");
+            toastMessage = "Unsupported format - convert to MP3 or FLAC";
             break;
           default:
             errorMessage = "Audio playback error";
-            errorDetails = error.message || "Unknown error";
+            toastMessage = "Cannot play this file";
         }
         
-        console.error(`   Error Code: ${error.code}`);
-        console.error(`   Error Message: ${errorMessage}`);
-        console.error(`   Details: ${errorDetails}`);
+        // Compact console logging
+        const fileUrl = currentSong.fileUrl;
+        const extension = fileUrl?.split('.').pop()?.toLowerCase() || 'unknown';
+        console.error(`🔴 Audio Error: ${errorMessage} | File: ${currentSong.title} | Format: ${extension}`);
         
-        if (currentSong) {
-          console.error(`   File: ${currentSong.title} - ${currentSong.artist}`);
-          console.error(`   URL: ${currentSong.fileUrl}`);
-          
-          // Try to detect file format
-          const fileUrl = currentSong.fileUrl;
-          if (fileUrl) {
-            const extension = fileUrl.split('.').pop()?.toLowerCase();
-            console.error(`   Format: ${extension || 'unknown'}`);
-            
-            // Provide format-specific suggestions
-            if (extension === 'wav') {
-              console.error("   ⚠️ WAV files can have compatibility issues.");
-              console.error("   💡 Try converting to: MP3 (best compatibility) or FLAC (lossless)");
-              console.error("   🔧 Conversion command: ffmpeg -i input.wav -codec:a libmp3lame -qscale:a 2 output.mp3");
-            } else if (extension === 'wma' || extension === 'ape') {
-              console.error(`   ⚠️ ${extension?.toUpperCase()} format has limited browser support.`);
-              console.error("   💡 Convert to MP3 or FLAC for better compatibility");
-            }
-          }
+        // Show user-friendly toast notification
+        if (toastMessage && error.code !== MediaError.MEDIA_ERR_ABORTED) {
+          showToast(toastMessage, 'error');
         }
       }
       
