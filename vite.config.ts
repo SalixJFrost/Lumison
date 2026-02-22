@@ -5,10 +5,11 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   const isTauri = process.env.TAURI_ENV_PLATFORM !== undefined;
+  const base = isTauri ? '/' : '/Lumison/';
   
   return {
     // Use root path for Tauri, repo name for GitHub Pages
-    base: isTauri ? '/' : '/Lumison/',
+    base,
     root: '.',
     
     // Tauri uses a different server configuration
