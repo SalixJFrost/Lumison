@@ -5,11 +5,10 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   const isTauri = process.env.TAURI_ENV_PLATFORM !== undefined;
-  const productionBase = env.VITE_BASE_PATH || '/Lumison/';
   
   return {
-    // Use root path for Tauri, GitHub Pages path for web
-    base: isTauri ? '/' : (mode === 'production' ? productionBase : '/'),
+    // Use root path for both Tauri and GitHub Pages
+    base: '/',
     root: '.',
     
     // Tauri uses a different server configuration
