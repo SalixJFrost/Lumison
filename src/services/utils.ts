@@ -270,11 +270,15 @@ export const getSupportedAudioFormats = (): Record<string, boolean> => {
     wav: canPlayAudioFormat('audio/wav') || canPlayAudioFormat('audio/wave'),
     flac: canPlayAudioFormat('audio/flac'),
     m4a: canPlayAudioFormat('audio/mp4') || canPlayAudioFormat('audio/x-m4a'),
-    aac: canPlayAudioFormat('audio/aac'),
-    ogg: canPlayAudioFormat('audio/ogg'),
-    opus: canPlayAudioFormat('audio/opus'),
-    webm: canPlayAudioFormat('audio/webm'),
-    aiff: canPlayAudioFormat('audio/aiff') || canPlayAudioFormat('audio/x-aiff'),
+    aac: canPlayAudioFormat('audio/aac') || canPlayAudioFormat('audio/aacp'),
+    ogg: canPlayAudioFormat('audio/ogg') || canPlayAudioFormat('audio/ogg; codecs="vorbis"'),
+    opus: canPlayAudioFormat('audio/ogg; codecs="opus"') || 
+          canPlayAudioFormat('audio/webm; codecs="opus"') || 
+          canPlayAudioFormat('audio/opus'),
+    webm: canPlayAudioFormat('audio/webm') || canPlayAudioFormat('audio/webm; codecs="opus"'),
+    aiff: canPlayAudioFormat('audio/aiff') || 
+          canPlayAudioFormat('audio/x-aiff') || 
+          canPlayAudioFormat('audio/aif'),
   };
 };
 
@@ -287,6 +291,18 @@ export const logSupportedFormats = (): void => {
   Object.entries(formats).forEach(([format, supported]) => {
     console.log(`   ${supported ? '✅' : '❌'} ${format.toUpperCase()}`);
   });
+  
+  // Add helpful note about unsupported formats
+  const unsupported = Object.entries(formats)
+    .filter(([_, supported]) => !supported)
+    .map(([format]) => format.toUpperCase());
+  
+  if (unsupported.length > 0) {
+    console.log('\n💡 Note: Unsupported formats depend on your browser and OS.');
+    console.log('   • OPUS: Try using .ogg or .webm containers');
+    console.log('   • AIFF: Limited browser support (mainly Safari)');
+    console.log('   • Consider converting to MP3, FLAC, or M4A for best compatibility');
+  }
 };
 
 /**

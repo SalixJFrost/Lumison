@@ -425,35 +425,30 @@ export const searchAndMatchLyrics = async (
   artist: string,
 ): Promise<{ lrc: string; yrc?: string; tLrc?: string; metadata: string[] } | null> => {
   try {
-    // 优先使用多平台搜索（网易云音乐 > QQ音乐 > 酷狗音乐）
-    // 网易云音乐优先是因为支持逐字歌词(YRC)和翻译
+    // 使用多平台并行搜索
+    // 策略：网易云音乐和第三方API同时搜索，优先使用网易云的逐字歌词
+    // 适合网易云没有版权的歌曲（如周杰伦）
     console.log("Using multi-platform lyrics search...");
     const multiPlatformResult = await multiPlatformSearch(title, artist);
     
     if (multiPlatformResult) {
       console.log(`✓ Found lyrics from ${multiPlatformResult.source}`);
+      const sourceMap: Record<string, string> = {
+        'qq': 'QQ音乐',
+        'kugou': '酷狗音乐',
+        'netease': '网易云音乐',
+        'lrclib': 'LrcLib',
+        'lrcapi': 'LRCAPI',
+        'lyrics.ovh': 'Lyrics.ovh',
+        'syair.info': 'Syair.info',
+      };
       return {
         lrc: multiPlatformResult.lrc,
         yrc: multiPlatformResult.yrc,
         tLrc: multiPlatformResult.tLrc,
         metadata: [
           ...multiPlatformResult.metadata,
-          `来源: ${multiPlatformResult.source === 'qq' ? 'QQ音乐' : multiPlatformResult.source === 'kugou' ? '酷狗音乐' : '网易云音乐'}`,
-        ],
-      };
-    }
-
-    // 如果多平台搜索失败，尝试专门的歌词API
-    console.log("Multi-platform search failed, trying dedicated lyrics APIs...");
-    const dedicatedResult = await searchDedicatedLyricsAPIs(title, artist);
-    
-    if (dedicatedResult) {
-      console.log(`✓ Found lyrics from dedicated API: ${dedicatedResult.source}`);
-      return {
-        lrc: dedicatedResult.lrc,
-        metadata: [
-          ...dedicatedResult.metadata,
-          `来源: ${dedicatedResult.source}`,
+          `来源: ${sourceMap[multiPlatformResult.source] || multiPlatformResult.source}`,
         ],
       };
     }

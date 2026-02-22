@@ -2,9 +2,20 @@ import { fetchViaProxy } from "../utils";
 
 /**
  * 多平台歌词服务
- * 优先级：网易云音乐 > QQ音乐 > 酷狗音乐 > 其他歌词API
- * 网易云音乐最可靠，优先使用
+ * 策略：网易云音乐和第三方API并行搜索，谁先返回用谁
+ * 优先使用网易云的逐字歌词，但不会因为网易云没有而放弃搜索
+ * 第三方API包含多个源，适合网易云没有版权的歌曲（如周杰伦）
+ * QQ音乐和酷狗音乐因CORS问题默认禁用
  */
+
+// 平台启用配置
+// 由于 QQ 音乐和酷狗音乐经常遇到 CORS 问题，默认禁用
+const PLATFORM_CONFIG = {
+  netease: true,      // 网易云音乐 - 最稳定，支持逐字歌词
+  thirdParty: true,   // 第三方歌词 API
+  qq: false,          // QQ 音乐 - CORS 问题频繁，默认禁用
+  kugou: false,       // 酷狗音乐 - CORS 问题频繁，默认禁用
+};
 
 // API 端点配置
 const API_ENDPOINTS = {
@@ -240,8 +251,163 @@ const fetchNeteaseMusicLyrics = async (songId: string, coverUrl?: string): Promi
 };
 
 /**
+ * 第三方歌词API搜索
+ */
+const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promise<LyricsResult | null> => {
+  const startTime = Date.now();
+  
+  // LrcLib API - 最大的开源歌词库
+  const tryLrcLib = async (): Promise<LyricsResult | null> => {
+    try {
+      const url = `https://lrclib.net/api/search?track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artist)}`;
+      const response = await fetchViaProxy(url);
+      if (Array.isArray(response) && response.length > 0) {
+        const result = response[0];
+        const lrc = result.syncedLyrics || result.plainLyrics;
+        if (lrc) {
+          return {
+            lrc,
+            metadata: [],
+            source: "lrclib",
+            responseTime: Date.now() - startTime,
+          };
+        }
+      }
+    } catch (error) {
+      console.warn("LrcLib failed:", error);
+    }
+    return null;
+  };
+
+  // LRCAPI - 支持多语言歌词
+  const tryLRCAPI = async (): Promise<LyricsResult | null> => {
+    try {
+      const url = `https://lrc.xms.mx/search?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`;
+      const response = await fetchViaProxy(url);
+      if (response?.data && Array.isArray(response.data) && response.data.length > 0) {
+        const result = response.data[0];
+        if (result.lrc) {
+          return {
+            lrc: result.lrc,
+            metadata: [],
+            source: "lrcapi",
+            responseTime: Date.now() - startTime,
+          };
+        }
+      }
+    } catch (error) {
+      console.warn("LRCAPI failed:", error);
+    }
+    return null;
+  };
+
+  // Lyrics.ovh - 简单但覆盖广
+  const tryLyricsOvh = async (): Promise<LyricsResult | null> => {
+    try {
+      const url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
+      const response = await fetchViaProxy(url);
+      if (response && response.lyrics) {
+        // 转换为 LRC 格式（简单时间戳）
+        const lines = response.lyrics.split('\n').filter((line: string) => line.trim());
+        const lrc = lines.map((line: string, index: number) => {
+          const time = index * 3;
+          const minutes = Math.floor(time / 60);
+          const seconds = time % 60;
+          return `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.00]${line}`;
+        }).join('\n');
+        return {
+          lrc,
+          metadata: [],
+          source: "lyrics.ovh",
+          responseTime: Date.now() - startTime,
+        };
+      }
+    } catch (error) {
+      console.warn("Lyrics.ovh failed:", error);
+    }
+    return null;
+  };
+
+  // Syair.info - 亚洲音乐覆盖好
+  const trySyairInfo = async (): Promise<LyricsResult | null> => {
+    try {
+      const url = `https://api.syair.info/lyrics/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
+      const response = await fetchViaProxy(url);
+      if (response && response.lyrics) {
+        const lines = response.lyrics.split('\n').filter((line: string) => line.trim());
+        const lrc = lines.map((line: string, index: number) => {
+          const time = index * 3;
+          const minutes = Math.floor(time / 60);
+          const seconds = time % 60;
+          return `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.00]${line}`;
+        }).join('\n');
+        return {
+          lrc,
+          metadata: [],
+          source: "syair.info",
+          responseTime: Date.now() - startTime,
+        };
+      }
+    } catch (error) {
+      console.warn("Syair.info failed:", error);
+    }
+    return null;
+  };
+
+  // Megalobiz - 另一个可靠的歌词源
+  const tryMegalobiz = async (): Promise<LyricsResult | null> => {
+    try {
+      const searchQuery = `${artist} ${title}`;
+      const url = `https://www.megalobiz.com/search/all?qry=${encodeURIComponent(searchQuery)}&display=more`;
+      // 注意：这个 API 可能需要 HTML 解析，这里只是占位
+      // 实际使用时可能需要后端支持
+      return null;
+    } catch (error) {
+      console.warn("Megalobiz failed:", error);
+    }
+    return null;
+  };
+
+  // 并发请求所有第三方API，返回最快的结果
+  const promises = [
+    tryLrcLib(),
+    tryLRCAPI(),
+    tryLyricsOvh(),
+    trySyairInfo(),
+    // tryMegalobiz(), // 暂时禁用，需要 HTML 解析
+  ];
+
+  // 使用 Promise.race 获取最快的成功结果
+  const racePromise = Promise.race(
+    promises.map(async (p) => {
+      const result = await p;
+      if (result) return result;
+      throw new Error('No result');
+    })
+  ).catch(() => null);
+
+  // 同时等待所有结果，以防 race 失败
+  const allResults = await Promise.allSettled(promises);
+  
+  // 先尝试 race 的结果（最快的）
+  const fastestResult = await racePromise;
+  if (fastestResult) {
+    return fastestResult;
+  }
+
+  // 如果 race 失败，返回第一个成功的结果
+  for (const result of allResults) {
+    if (result.status === 'fulfilled' && result.value) {
+      return result.value;
+    }
+  }
+
+  return null;
+};
+
+/**
  * 多平台搜索并获取歌词
- * 策略：同时请求所有平台，哪个先返回用哪个（优先网易云）
+ * 策略：网易云和第三方API并行搜索，谁先返回用谁（优先网易云的逐字歌词）
  */
 export const searchAndFetchLyrics = async (
   title: string,
@@ -250,93 +416,141 @@ export const searchAndFetchLyrics = async (
   const keyword = `${title} ${artist}`;
   console.log(`Searching lyrics for: ${keyword}`);
 
-  // 创建所有平台的搜索 Promise
-  const searchPromises = [
-    // 网易云音乐（优先）
-    (async () => {
-      try {
-        console.log("Trying Netease Music...");
-        const neteaseSong = await searchNeteaseMusic(keyword);
-        if (neteaseSong?.id) {
-          const coverUrl = neteaseSong.al?.picUrl;
-          const lyrics = await fetchNeteaseMusicLyrics(neteaseSong.id.toString(), coverUrl);
-          if (lyrics) {
-            console.log(`✓ Found lyrics on Netease Music (${lyrics.responseTime}ms)`);
-            return lyrics;
-          }
-        }
-        return null;
-      } catch (error) {
-        console.warn("Netease Music failed:", error);
-        return null;
-      }
-    })(),
-    
-    // QQ 音乐
-    (async () => {
-      try {
-        console.log("Trying QQ Music...");
-        const qqSong = await searchQQMusic(keyword);
-        if (qqSong?.songmid) {
-          const albumMid = qqSong?.albummid;
-          const lyrics = await fetchQQMusicLyrics(qqSong.songmid, albumMid);
-          if (lyrics) {
-            console.log(`✓ Found lyrics on QQ Music (${lyrics.responseTime}ms)`);
-            return lyrics;
-          }
-        }
-        return null;
-      } catch (error) {
-        console.warn("QQ Music failed:", error);
-        return null;
-      }
-    })(),
-    
-    // 酷狗音乐
-    (async () => {
-      try {
-        console.log("Trying Kugou Music...");
-        const kugouSong = await searchKugouMusic(keyword);
-        if (kugouSong?.FileHash) {
-          const imgUrl = kugouSong?.ImgUrl;
-          const lyrics = await fetchKugouMusicLyrics(kugouSong.FileHash, imgUrl);
-          if (lyrics) {
-            console.log(`✓ Found lyrics on Kugou Music (${lyrics.responseTime}ms)`);
-            return lyrics;
-          }
-        }
-        return null;
-      } catch (error) {
-        console.warn("Kugou Music failed:", error);
-        return null;
-      }
-    })(),
-  ];
+  // 并行搜索：网易云音乐 + 第三方API
+  const primaryPromises: Promise<LyricsResult | null>[] = [];
 
-  // 使用 Promise.race 获取最快的结果
-  // 但如果第一个返回 null，继续等待其他的
-  try {
-    const results = await Promise.allSettled(searchPromises);
-    
-    // 优先返回网易云的结果（如果有）
-    const neteaseResult = results[0].status === 'fulfilled' ? results[0].value : null;
-    if (neteaseResult) {
-      return neteaseResult;
-    }
-    
-    // 否则返回任何成功的结果
-    for (const result of results) {
-      if (result.status === 'fulfilled' && result.value) {
-        return result.value;
-      }
-    }
-    
-    console.warn("No lyrics found on any platform");
-    return null;
-  } catch (error) {
-    console.error("All platforms failed:", error);
-    return null;
+  // 网易云音乐（支持逐字歌词和翻译）
+  if (PLATFORM_CONFIG.netease) {
+    primaryPromises.push(
+      (async () => {
+        try {
+          console.log("Trying Netease Music...");
+          const neteaseSong = await searchNeteaseMusic(keyword);
+          if (neteaseSong?.id) {
+            const coverUrl = neteaseSong.al?.picUrl;
+            const lyrics = await fetchNeteaseMusicLyrics(neteaseSong.id.toString(), coverUrl);
+            if (lyrics) {
+              console.log(`✓ Found lyrics on Netease Music (${lyrics.responseTime}ms)`);
+              return lyrics;
+            }
+          }
+          return null;
+        } catch (error) {
+          console.warn("Netease Music failed:", error);
+          return null;
+        }
+      })()
+    );
   }
+
+  // 第三方歌词API（并行搜索多个源）
+  if (PLATFORM_CONFIG.thirdParty) {
+    primaryPromises.push(
+      (async () => {
+        try {
+          console.log("Trying third-party lyrics APIs...");
+          const thirdPartyResult = await searchThirdPartyLyricsAPIs(title, artist);
+          if (thirdPartyResult) {
+            console.log(`✓ Found lyrics on ${thirdPartyResult.source} (${thirdPartyResult.responseTime}ms)`);
+            return thirdPartyResult;
+          }
+          return null;
+        } catch (error) {
+          console.warn("Third-party APIs failed:", error);
+          return null;
+        }
+      })()
+    );
+  }
+
+  // 等待所有主要平台的结果
+  if (primaryPromises.length > 0) {
+    try {
+      const results = await Promise.allSettled(primaryPromises);
+      
+      // 优先返回网易云的结果（如果有），因为它支持逐字歌词和翻译
+      if (PLATFORM_CONFIG.netease && results[0].status === 'fulfilled' && results[0].value) {
+        return results[0].value;
+      }
+      
+      // 否则返回任何成功的结果
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value) {
+          return result.value;
+        }
+      }
+    } catch (error) {
+      console.error("Primary platforms failed:", error);
+    }
+  }
+
+  // 备用方案：QQ音乐和酷狗音乐（默认禁用）
+  const fallbackPromises: Promise<LyricsResult | null>[] = [];
+  
+  if (PLATFORM_CONFIG.qq) {
+    fallbackPromises.push(
+      (async () => {
+        try {
+          console.log("Trying QQ Music...");
+          const qqSong = await searchQQMusic(keyword);
+          if (qqSong?.songmid) {
+            const albumMid = qqSong?.albummid;
+            const lyrics = await fetchQQMusicLyrics(qqSong.songmid, albumMid);
+            if (lyrics) {
+              console.log(`✓ Found lyrics on QQ Music (${lyrics.responseTime}ms)`);
+              return lyrics;
+            }
+          }
+          return null;
+        } catch (error) {
+          console.warn("QQ Music failed:", error);
+          return null;
+        }
+      })()
+    );
+  }
+  
+  if (PLATFORM_CONFIG.kugou) {
+    fallbackPromises.push(
+      (async () => {
+        try {
+          console.log("Trying Kugou Music...");
+          const kugouSong = await searchKugouMusic(keyword);
+          if (kugouSong?.FileHash) {
+            const imgUrl = kugouSong?.ImgUrl;
+            const lyrics = await fetchKugouMusicLyrics(kugouSong.FileHash, imgUrl);
+            if (lyrics) {
+              console.log(`✓ Found lyrics on Kugou Music (${lyrics.responseTime}ms)`);
+              return lyrics;
+            }
+          }
+          return null;
+        } catch (error) {
+          console.warn("Kugou Music failed:", error);
+          return null;
+        }
+      })()
+    );
+  }
+
+  // 如果有启用的备用平台，尝试它们
+  if (fallbackPromises.length > 0) {
+    try {
+      const results = await Promise.allSettled(fallbackPromises);
+      
+      // 返回任何成功的结果
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value) {
+          return result.value;
+        }
+      }
+    } catch (error) {
+      console.error("Fallback platforms failed:", error);
+    }
+  }
+  
+  console.warn("No lyrics found on any platform");
+  return null;
 };
 
 /**
@@ -413,4 +627,23 @@ export const resetApiStats = () => {
     stat.failCount = 0;
   });
   console.log("API stats reset");
+};
+
+/**
+ * 获取平台配置
+ * 可用于检查哪些平台已启用
+ */
+export const getPlatformConfig = () => {
+  return { ...PLATFORM_CONFIG };
+};
+
+/**
+ * 更新平台配置
+ * 注意：需要重新加载页面才能生效
+ */
+export const updatePlatformConfig = (config: Partial<typeof PLATFORM_CONFIG>) => {
+  Object.assign(PLATFORM_CONFIG, config);
+  console.log("Platform config updated:", PLATFORM_CONFIG);
+  console.log("💡 Tip: QQ Music and Kugou Music are disabled by default due to frequent CORS issues.");
+  console.log("   Enable them only if you have a working proxy setup.");
 };
