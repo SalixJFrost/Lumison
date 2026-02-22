@@ -1,8 +1,6 @@
 // Prevents additional console window on Windows in release builds
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::Manager;
-
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
@@ -13,6 +11,8 @@ fn main() {
             }
             Ok(())
         })
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         // Future extension point: Register Tauri commands here
         // Example:
         // .invoke_handler(tauri::generate_handler![

@@ -39,6 +39,11 @@ body {
   -webkit-perspective: 1000px;
 }
 
+html {
+  background-color: transparent;
+  overflow: hidden;
+}
+
 .hw-accelerate {
   transform: translateZ(0);
   -webkit-transform: translateZ(0);

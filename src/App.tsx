@@ -9,6 +9,7 @@ import KeyboardShortcuts from "./components/KeyboardShortcuts";
 import TopBar from "./components/TopBar";
 import SearchModal from "./components/SearchModal";
 import SpeedIndicator from "./components/SpeedIndicator";
+import UpdateNotification from "./components/UpdateNotification";
 import { usePlaylist } from "./hooks/usePlaylist";
 import { usePlayer } from "./hooks/usePlayer";
 import { keyboardRegistry } from "./services/ui/keyboardRegistry";
@@ -16,6 +17,7 @@ import MediaSessionController from "./components/MediaSessionController";
 import { useTheme } from "./contexts/ThemeContext";
 import { logSupportedFormats } from "./services/utils";
 import { usePerformanceOptimization, useOptimizedAudio } from "./hooks/usePerformanceOptimization";
+import { UpdateService } from "./services/updateService";
 
 const App: React.FC = () => {
   const { toast } = useToast();
@@ -27,6 +29,26 @@ const App: React.FC = () => {
   // Log supported audio formats on app start
   useEffect(() => {
     logSupportedFormats();
+  }, []);
+
+  // Check for updates on app start (silent check)
+  useEffect(() => {
+    const checkUpdates = async () => {
+      try {
+        const updateInfo = await UpdateService.checkForUpdates();
+        if (updateInfo.available && updateInfo.latestVersion) {
+          // Wait 3 seconds before showing notification (don't interrupt startup)
+          setTimeout(() => {
+            setUpdateVersion(updateInfo.latestVersion!);
+            setUpdateAvailable(true);
+          }, 3000);
+        }
+      } catch (error) {
+        console.error('Update check failed:', error);
+      }
+    };
+
+    checkUpdates();
   }, []);
   
   const playlist = usePlaylist();
@@ -92,6 +114,10 @@ const App: React.FC = () => {
   
   // Visualizer state - disabled by default to save memory
   const [visualizerEnabled, setVisualizerEnabled] = useState(false);
+
+  // Update notification state
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [updateVersion, setUpdateVersion] = useState('');
 
   // Optimize audio element
   useOptimizedAudio(audioRef);
@@ -377,7 +403,7 @@ const App: React.FC = () => {
   const mobileTranslate = baseOffset + dragOffsetX;
 
   return (
-    <div className="relative w-full h-screen flex flex-col overflow-hidden rounded-2xl shadow-2xl theme-transition bg-black border border-white/5">
+    <div className="relative w-full h-screen flex flex-col overflow-hidden theme-transition bg-black">
       <FluidBackground
         key={isMobileLayout ? "mobile" : "desktop"}
         colors={currentSong?.colors || []}
@@ -415,6 +441,15 @@ const App: React.FC = () => {
       />
 
       <SpeedIndicator speed={player.speed} show={showSpeedIndicator} />
+
+      {/* Update Notification */}
+      {updateAvailable && (
+        <UpdateNotification
+          version={updateVersion}
+          onClose={() => setUpdateAvailable(false)}
+          onUpdate={() => {}}
+        />
+      )}
 
       <MediaSessionController
         currentSong={currentSong ?? null}
