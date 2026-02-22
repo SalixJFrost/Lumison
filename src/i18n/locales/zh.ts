@@ -137,7 +137,7 @@ export default {
     importLyrics: "导入歌词文件",
     fontSize: "字体大小",
     effects: "歌词效果",
-    blur: "模糊",
+    gradient: "渐变",
     glow: "发光",
     shadow: "阴影",
   },

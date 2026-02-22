@@ -137,7 +137,7 @@ export default {
     importLyrics: "Import Lyrics File",
     fontSize: "Font Size",
     effects: "Lyrics Effects",
-    blur: "Blur",
+    gradient: "Gradient",
     glow: "Glow",
     shadow: "Shadow",
   },

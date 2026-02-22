@@ -21,7 +21,7 @@ A high-fidelity, immersive music player inspired by Apple Music with advanced pl
 - 🎚️ **Variable Speed (0.5x-3x)** - Smooth playback control with pitch preservation
 - 📊 **Real-time Visualizer** - Spectrum analyzer with enhanced animations
 - 🌐 **Multi-platform** - Netease Cloud Music, Bilibili, and local files
-- 🌍 **i18n Support** - English, 简体中文, 日本語
+- 🌍 **i18n Support** - English, 简体中文 (Simplified Chinese), 日本語 (Japanese)
 - ⌨️ **Keyboard Shortcuts** - Comprehensive keyboard controls
 - 📱 **Responsive Design** - Optimized for desktop and mobile
 

@@ -129,7 +129,7 @@ export default {
     addToQueue: "キューに追加",
   },
 
-  // 歌詞
+  // 歌词
   lyrics: {
     noLyrics: "歌詞がありません",
     loading: "歌詞を読み込み中...",
@@ -137,7 +137,7 @@ export default {
     importLyrics: "歌詞ファイルをインポート",
     fontSize: "フォントサイズ",
     effects: "歌詞エフェクト",
-    blur: "ぼかし",
+    gradient: "グラデーション",
     glow: "グロー",
     shadow: "シャドウ",
   },
