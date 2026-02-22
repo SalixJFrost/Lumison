@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { SearchIcon, PlayIcon, PlusIcon } from "./Icons";
+import { SearchIcon, PlayIcon, PlusIcon, MoreVerticalIcon, NextIcon } from "./Icons";
 import SmartImage from "./SmartImage";
 import { Song } from "../types";
 import {
@@ -9,6 +9,7 @@ import {
 } from "../services/music/lyricsService";
 import { useKeyboardScope } from "../hooks/useKeyboardScope";
 import { useSearchModal } from "../hooks/useSearchModal";
+import { useI18n } from "../contexts/I18nContext";
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -80,9 +81,12 @@ const SearchModal: React.FC<SearchModalProps> = ({
   isPlaying,
   accentColor,
 }) => {
+  const { t } = useI18n();
   // Animation State
   const [isRendering, setIsRendering] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [menuTrackId, setMenuTrackId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
 
   // Refs
   const listRef = useRef<HTMLDivElement>(null);
@@ -133,6 +137,27 @@ const SearchModal: React.FC<SearchModalProps> = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [search.contextMenu]);
+
+  // --- Close track menu on outside click ---
+  useEffect(() => {
+    if (!menuTrackId) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".track-menu")) {
+        closeMenu();
+      }
+    };
+
+    const timer = setTimeout(() => {
+      document.addEventListener("mousedown", handleClickOutside);
+    }, 0);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuTrackId]);
 
   // --- Keyboard Scope (High Priority: 100) ---
   useKeyboardScope(
@@ -231,6 +256,18 @@ const SearchModal: React.FC<SearchModalProps> = ({
     onAddToQueue(song);
   };
 
+  const handleMenuClick = (e: React.MouseEvent, trackId: string) => {
+    e.stopPropagation();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setMenuPosition({ x: rect.left, y: rect.bottom + 4 });
+    setMenuTrackId(trackId);
+  };
+
+  const closeMenu = () => {
+    setMenuTrackId(null);
+    setMenuPosition(null);
+  };
+
   // Reset refs
 
 
@@ -244,8 +281,9 @@ const SearchModal: React.FC<SearchModalProps> = ({
         if (!modalRef.current?.contains(target)) {
           onClose();
         }
-        if (!target.closest(".context-menu-container")) {
+        if (!target.closest(".context-menu-container") && !target.closest(".track-menu")) {
           search.closeContextMenu();
+          closeMenu();
         }
       }}
     >
@@ -575,7 +613,18 @@ const SearchModal: React.FC<SearchModalProps> = ({
                             {track.album}
                           </div>
                         </div>
-                        <div className="px-2">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => handleMenuClick(e, track.id)}
+                            className={`track-menu w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
+                              menuTrackId === track.id
+                                ? "bg-white/20 text-white"
+                                : "text-white/40 hover:bg-white/10 hover:text-white/70"
+                            }`}
+                            title="More options"
+                          >
+                            <MoreVerticalIcon className="w-4 h-4" />
+                          </button>
                           <span
                             className={`
                                             text-[10px] font-bold px-1.5 py-0.5 rounded border
@@ -636,7 +685,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
                 className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
               >
                 <PlayIcon className="w-4 h-4" />
-                Play Now
+                {t("search.playNow")}
               </button>
 
               {search.contextMenu.type === "netease" && (
@@ -651,9 +700,68 @@ const SearchModal: React.FC<SearchModalProps> = ({
                   className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
                 >
                   <PlusIcon className="w-4 h-4" />
-                  Add to Queue
+                  {t("search.addToQueue")}
                 </button>
               )}
+            </div>,
+            document.body,
+          )}
+
+        {/* Track Menu Portal */}
+        {menuTrackId && menuPosition &&
+          createPortal(
+            <div
+              className="track-menu fixed z-[10000] w-48 bg-[#1e1e1e]/60 backdrop-blur-[80px] saturate-150 border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top-left p-1.5 flex flex-col gap-0.5"
+              style={{ top: menuPosition.y, left: menuPosition.x }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const track = search.neteaseProvider.results.find(t => t.id === menuTrackId);
+                  if (track) {
+                    playNeteaseTrack(track);
+                    closeMenu();
+                    onClose();
+                  }
+                }}
+                className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
+              >
+                <PlayIcon className="w-4 h-4" />
+                {t("search.playNow")}
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const track = search.neteaseProvider.results.find(t => t.id === menuTrackId);
+                  if (track) {
+                    // TODO: Implement play next functionality
+                    // For now, just add to queue
+                    addNeteaseToQueue(track);
+                    closeMenu();
+                  }
+                }}
+                className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
+              >
+                <NextIcon className="w-4 h-4" />
+                {t("search.playNext")}
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const track = search.neteaseProvider.results.find(t => t.id === menuTrackId);
+                  if (track) {
+                    addNeteaseToQueue(track);
+                    closeMenu();
+                  }
+                }}
+                className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
+              >
+                <PlusIcon className="w-4 h-4" />
+                {t("search.addToQueue")}
+              </button>
             </div>,
             document.body,
           )}

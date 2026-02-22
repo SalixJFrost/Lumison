@@ -127,6 +127,7 @@ export default {
     queue: "現在のキュー",
     playNow: "今すぐ再生",
     addToQueue: "キューに追加",
+    playNext: "次に再生",
   },
 
   // 歌词

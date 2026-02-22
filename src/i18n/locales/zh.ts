@@ -127,6 +127,7 @@ export default {
     queue: "当前队列",
     playNow: "立即播放",
     addToQueue: "添加到队列",
+    playNext: "下一首播放",
   },
 
   // 歌词

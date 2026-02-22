@@ -127,6 +127,7 @@ export default {
     queue: "Current Queue",
     playNow: "Play Now",
     addToQueue: "Add to Queue",
+    playNext: "Play Next",
   },
 
   // Lyrics
