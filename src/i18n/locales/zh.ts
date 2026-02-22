@@ -141,6 +141,13 @@ export default {
     glow: "发光",
     shadow: "阴影",
   },
+  
+  // 可视化器
+  visualizer: {
+    label: "音频可视化",
+    toggle: "可视化器",
+    memoryHint: "关闭可节省 5-10MB 内存",
+  },
 
   // 键盘快捷键
   shortcuts: {

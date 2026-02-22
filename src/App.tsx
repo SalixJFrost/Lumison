@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useToast } from "./hooks/useToast";
 import { PlayState, Song } from "./types";
 import FluidBackground from "./components/FluidBackground";
@@ -15,10 +15,14 @@ import { keyboardRegistry } from "./services/ui/keyboardRegistry";
 import MediaSessionController from "./components/MediaSessionController";
 import { useTheme } from "./contexts/ThemeContext";
 import { logSupportedFormats } from "./services/utils";
+import { usePerformanceOptimization, useOptimizedAudio } from "./hooks/usePerformanceOptimization";
 
 const App: React.FC = () => {
   const { toast } = useToast();
   const { theme } = useTheme();
+  
+  // Performance monitoring
+  const perfState = usePerformanceOptimization();
   
   // Log supported audio formats on app start
   useEffect(() => {
@@ -85,6 +89,21 @@ const App: React.FC = () => {
   const [lyricsBlur, setLyricsBlur] = useState(false);
   const [lyricsGlow, setLyricsGlow] = useState(false);
   const [lyricsShadow, setLyricsShadow] = useState(true);
+  
+  // Visualizer state - disabled by default to save memory
+  const [visualizerEnabled, setVisualizerEnabled] = useState(false);
+
+  // Optimize audio element
+  useOptimizedAudio(audioRef);
+
+  // Adaptive quality based on performance
+  const effectiveLyricsBlur = useMemo(() => {
+    return perfState.shouldReduceEffects ? false : lyricsBlur;
+  }, [perfState.shouldReduceEffects, lyricsBlur]);
+
+  const effectiveLyricsGlow = useMemo(() => {
+    return perfState.shouldReduceEffects ? false : lyricsGlow;
+  }, [perfState.shouldReduceEffects, lyricsGlow]);
 
   // Speed change handler with indicator
   const handleSpeedChange = (newSpeed: number) => {
@@ -279,7 +298,8 @@ const App: React.FC = () => {
     setIsDragging(false);
   };
 
-  const controlsSection = (
+  // Memoize controls section to prevent unnecessary re-renders
+  const controlsSection = useMemo(() => (
     <div className="flex flex-col items-center justify-center w-full h-full z-30 relative p-4">
       <div className="relative flex flex-col items-center gap-8 w-full max-w-[360px]">
         <Controls
@@ -309,6 +329,7 @@ const App: React.FC = () => {
           setShowVolumePopup={setShowVolumePopup}
           showSettingsPopup={showSettingsPopup}
           setShowSettingsPopup={setShowSettingsPopup}
+          visualizerEnabled={visualizerEnabled}
         />
 
         {/* Floating Playlist Panel */}
@@ -326,12 +347,13 @@ const App: React.FC = () => {
         />
       </div>
     </div>
-  );
+  ), [playState, togglePlay, currentTime, duration, handleSeek, currentSong, audioRef, playNext, playPrev, playMode, toggleMode, accentColor, volume, player.speed, player.preservesPitch, handleSpeedChange, player.togglePreservesPitch, isBuffering, showVolumePopup, showSettingsPopup, showPlaylist, playlist.queue, playIndex, handleImportUrl, playlist.removeSongs, handleFileChange, visualizerEnabled]);
 
   const lyricsVersion = currentSong?.lyrics ? currentSong.lyrics.length : 0;
   const lyricsKey = currentSong ? `${currentSong.id}-${lyricsVersion}` : "no-song";
 
-  const lyricsSection = (
+  // Memoize lyrics section to prevent unnecessary re-renders
+  const lyricsSection = useMemo(() => (
     <div className="w-full h-full relative z-20 flex flex-col justify-center px-4 lg:pl-4">
       <LyricsView
         key={lyricsKey}
@@ -342,12 +364,12 @@ const App: React.FC = () => {
         onSeekRequest={handleSeek}
         matchStatus={matchStatus}
         fontSize={lyricsFontSize}
-        blur={lyricsBlur}
-        glow={lyricsGlow}
+        blur={effectiveLyricsBlur}
+        glow={effectiveLyricsGlow}
         shadow={lyricsShadow}
       />
     </div>
-  );
+  ), [lyricsKey, currentSong?.lyrics, audioRef, playState, currentTime, handleSeek, matchStatus, lyricsFontSize, effectiveLyricsBlur, effectiveLyricsGlow, lyricsShadow]);
 
   const fallbackWidth = typeof window !== "undefined" ? window.innerWidth : 0;
   const effectivePaneWidth = paneWidth || fallbackWidth;
@@ -355,7 +377,7 @@ const App: React.FC = () => {
   const mobileTranslate = baseOffset + dragOffsetX;
 
   return (
-    <div className="relative w-full h-screen flex flex-col overflow-hidden theme-transition">
+    <div className="relative w-full h-screen flex flex-col overflow-hidden theme-transition bg-black">
       <FluidBackground
         key={isMobileLayout ? "mobile" : "desktop"}
         colors={currentSong?.colors || []}
@@ -418,6 +440,9 @@ const App: React.FC = () => {
         onLyricsGlowChange={setLyricsGlow}
         lyricsShadow={lyricsShadow}
         onLyricsShadowChange={setLyricsShadow}
+        onSearchClick={() => setShowSearch(true)}
+        visualizerEnabled={visualizerEnabled}
+        onVisualizerToggle={setVisualizerEnabled}
       />
 
       {/* Search Modal - Always rendered to preserve state, visibility handled internally */}

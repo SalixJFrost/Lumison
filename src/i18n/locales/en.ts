@@ -141,6 +141,13 @@ export default {
     glow: "Glow",
     shadow: "Shadow",
   },
+  
+  // Visualizer
+  visualizer: {
+    label: "Audio Visualizer",
+    toggle: "Visualizer",
+    memoryHint: "Disable to save 5-10MB memory",
+  },
 
   // Keyboard Shortcuts
   shortcuts: {

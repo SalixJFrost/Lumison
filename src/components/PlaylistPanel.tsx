@@ -394,6 +394,8 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
 
             {/* Hidden File Input */}
             <input
+                id="file-input"
+                name="audioFiles"
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileChange}

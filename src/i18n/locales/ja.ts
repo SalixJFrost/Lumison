@@ -141,6 +141,13 @@ export default {
     glow: "グロー",
     shadow: "シャドウ",
   },
+  
+  // ビジュアライザー
+  visualizer: {
+    label: "オーディオビジュアライザー",
+    toggle: "ビジュアライザー",
+    memoryHint: "オフにすると5-10MBのメモリを節約",
+  },
 
   // キーボードショートカット
   shortcuts: {

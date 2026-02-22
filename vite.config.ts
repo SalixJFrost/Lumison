@@ -4,23 +4,41 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
+  const isTauri = process.env.TAURI_ENV_PLATFORM !== undefined;
   const productionBase = env.VITE_BASE_PATH || '/Lumison/';
+  
   return {
-    base: mode === 'production' ? productionBase : '/',
+    // Use root path for Tauri, GitHub Pages path for web
+    base: isTauri ? '/' : (mode === 'production' ? productionBase : '/'),
     root: '.',
+    
+    // Tauri uses a different server configuration
     server: {
-      port: 3000,
+      port: isTauri ? 1420 : 3000,
       host: '0.0.0.0',
+      strictPort: true,
     },
+    
     plugins: [react()],
+    
+    // Ensure Tauri API is available in desktop mode
     define: {
+      '__TAURI__': isTauri,
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
     },
+    
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),
       },
+    },
+    
+    // Optimize for desktop builds
+    build: {
+      target: isTauri ? 'esnext' : 'es2015',
+      minify: mode === 'production',
+      sourcemap: mode === 'development',
     },
   };
 });

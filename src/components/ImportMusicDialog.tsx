@@ -79,6 +79,8 @@ const ImportMusicDialog: React.FC<ImportMusicDialogProps> = ({
           </p>
 
           <input
+            id="import-url-input"
+            name="importUrl"
             type="text"
             value={importUrl}
             onChange={(e) => setImportUrl(e.target.value)}

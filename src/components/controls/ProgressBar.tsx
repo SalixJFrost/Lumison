@@ -129,6 +129,7 @@ const ProgressBar: React.FC<ProgressBarProps> = memo(({
 
         {/* Input Range */}
         <input
+          id="progress-bar-range"
           type="range"
           min={0}
           max={duration || 0}

@@ -26,6 +26,8 @@ A high-fidelity, immersive music player inspired by Apple Music with advanced pl
 
 ## 🚀 Quick Start
 
+### Web Version
+
 ```bash
 # Clone and install
 git clone https://github.com/salixjfrost/Lumison.git
@@ -38,6 +40,32 @@ npm run dev
 # Production build
 npm run build
 ```
+
+### Desktop Application
+
+Lumison is also available as a native desktop application for Windows.
+
+#### Prerequisites
+- [Rust toolchain](https://rustup.rs/) (for building from source)
+- Node.js 18+
+- Windows 10/11
+
+#### Development
+```bash
+# Start desktop app in development mode
+npm run tauri:dev
+```
+
+#### Building
+```bash
+# Build desktop application
+npm run tauri:build
+
+# Output: src-tauri/target/release/lumison.exe
+# Installers: src-tauri/target/release/bundle/
+```
+
+For detailed information about the desktop integration, see [docs/TAURI_INTEGRATION.md](docs/TAURI_INTEGRATION.md).
 
 ## 🎮 Usage
 
@@ -64,9 +92,14 @@ npm run build
 
 ## 📚 Documentation
 
-- [Speed Optimization](./docs/SPEED_OPTIMIZATION.md) - Variable speed playback
-- [Performance & i18n](./docs/PERFORMANCE_I18N.md) - Optimization and internationalization
-- [Lyrics Effects](./docs/LYRICS_EFFECTS.md) - Lyrics visual effects system
+Complete documentation is available in the [docs](./docs) directory:
+
+- **[User Guide](./docs/GUIDE.md)** - Complete usage guide with features, shortcuts, and FAQ
+- **[Development Guide](./docs/DEVELOPMENT.md)** - Technical implementation, performance optimization, and desktop app development
+
+For project structure and overview, see:
+- **[Project Structure](./PROJECT_STRUCTURE.md)** - Detailed project organization
+- **[Project Overview](./.github/PROJECT_OVERVIEW.md)** - High-level architecture and roadmap
 
 ## 🤝 Contributing
 

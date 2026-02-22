@@ -68,6 +68,9 @@ export const PRESETS: Record<string, Partial<SpatialAudioConfig>> = {
 };
 
 export class SpatialAudioEngine {
+  private static instanceCount = 0;
+  private instanceId: number;
+  
   private ctx: AudioContext;
   private source: MediaElementAudioSourceNode | null = null;
   private audioElement: HTMLAudioElement | null = null;
@@ -116,6 +119,10 @@ export class SpatialAudioEngine {
   private isConnected: boolean = false;
   
   constructor(audioContext?: AudioContext) {
+    SpatialAudioEngine.instanceCount++;
+    this.instanceId = SpatialAudioEngine.instanceCount;
+    console.log(`[SpatialAudioEngine #${this.instanceId}] Creating new instance (total: ${SpatialAudioEngine.instanceCount})`);
+    
     this.ctx = audioContext || new AudioContext();
     
     // Initialize default config
@@ -191,6 +198,14 @@ export class SpatialAudioEngine {
     this.analyzer = this.ctx.createAnalyser();
     this.analyzer.fftSize = 2048;
     this.analyzer.smoothingTimeConstant = 0.8;
+    
+    // Set initial gain values (disabled state)
+    this.inputGain.gain.value = 1;
+    this.outputGain.gain.value = 1;
+    this.dryGain.gain.value = 1; // Full dry signal when disabled
+    this.haasGain.gain.value = 0; // No spatial widening when disabled
+    this.reverbGain.gain.value = 0; // No reverb when disabled
+    this.exciterGain.gain.value = 0; // No exciter when disabled
     
     // Generate impulse response for reverb
     this.generateImpulseResponse();
@@ -310,15 +325,39 @@ export class SpatialAudioEngine {
    * Attach to an HTML audio element
    */
   public attachToAudioElement(audioElement: HTMLAudioElement): void {
-    if (this.source) {
-      this.source.disconnect();
+    console.log(`[SpatialAudioEngine #${this.instanceId}] Attempting to attach to audio element`);
+    
+    // Prevent double attachment to the same element
+    if (this.audioElement === audioElement && this.source) {
+      console.warn(`[SpatialAudioEngine #${this.instanceId}] Already attached to this audio element`);
+      return;
     }
     
-    this.audioElement = audioElement;
-    this.source = this.ctx.createMediaElementSource(audioElement);
-    this.source.connect(this.inputGain);
+    if (this.source) {
+      console.log(`[SpatialAudioEngine #${this.instanceId}] Disconnecting previous source`);
+      this.source.disconnect();
+      this.source = null;
+    }
     
-    this.connectNodes();
+    try {
+      this.audioElement = audioElement;
+      this.source = this.ctx.createMediaElementSource(audioElement);
+      this.source.connect(this.inputGain);
+      this.connectNodes();
+      console.log(`[SpatialAudioEngine #${this.instanceId}] Successfully attached to audio element`);
+    } catch (error) {
+      console.error(`[SpatialAudioEngine #${this.instanceId}] Failed to attach to audio element:`, error);
+      // If the element is already connected, audio will play through existing connection
+      if (error instanceof DOMException && error.name === 'InvalidStateError') {
+        console.warn(`[SpatialAudioEngine #${this.instanceId}] Audio element already has a source node.`);
+        console.warn(`[SpatialAudioEngine #${this.instanceId}] Audio will play without spatial effects.`);
+        this.source = null;
+        this.audioElement = null;
+        // Don't throw - let audio play through existing connection
+      } else {
+        throw error;
+      }
+    }
   }
   
   /**
@@ -492,6 +531,8 @@ export class SpatialAudioEngine {
    * Cleanup and disconnect
    */
   public destroy(): void {
+    console.log(`[SpatialAudioEngine #${this.instanceId}] Destroying instance`);
+    
     if (this.source) {
       this.source.disconnect();
     }

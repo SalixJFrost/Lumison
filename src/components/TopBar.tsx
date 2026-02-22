@@ -1,10 +1,11 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
-import { InfoIcon, FullscreenIcon, SettingsIcon, ThemeIcon } from "./Icons";
+import { InfoIcon, FullscreenIcon, SettingsIcon, ThemeIcon, MinimizeIcon, MaximizeIcon, RestoreIcon, CloseIcon } from "./Icons";
 import AboutDialog from "./AboutDialog";
 import ImportMusicDialog from "./ImportMusicDialog";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useTheme } from "../contexts/ThemeContext";
 import { useI18n } from "../contexts/I18nContext";
+import { Window } from "@tauri-apps/api/window";
 
 interface TopBarProps {
   disabled?: boolean;
@@ -17,10 +18,13 @@ interface TopBarProps {
   onLyricsGlowChange: (enabled: boolean) => void;
   lyricsShadow: boolean;
   onLyricsShadowChange: (enabled: boolean) => void;
+  onSearchClick?: () => void;
+  visualizerEnabled: boolean;
+  onVisualizerToggle: (enabled: boolean) => void;
 }
 
 // 常量提取到组件外部
-const TOPBAR_HIDE_DELAY = 5000;
+const TOPBAR_HIDE_DELAY = 15000; // 延长到15秒，让TopBar显示更久
 const SLIDER_CONFIG = {
   min: 24,
   max: 80,
@@ -38,6 +42,9 @@ const TopBar: React.FC<TopBarProps> = ({
   onLyricsGlowChange,
   lyricsShadow,
   onLyricsShadowChange,
+  onSearchClick,
+  visualizerEnabled,
+  onVisualizerToggle,
 }) => {
   const { theme, toggleTheme } = useTheme();
   const { t } = useI18n();
@@ -45,6 +52,7 @@ const TopBar: React.FC<TopBarProps> = ({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
   const [isTopBarActive, setIsTopBarActive] = useState(false);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settingsContainerRef = useRef<HTMLDivElement>(null);
@@ -68,10 +76,80 @@ const TopBar: React.FC<TopBarProps> = ({
       clearTimeout(hideTimeoutRef.current);
     }
     setIsTopBarActive(true);
-    hideTimeoutRef.current = setTimeout(() => {
-      setIsTopBarActive(false);
-      hideTimeoutRef.current = null;
-    }, TOPBAR_HIDE_DELAY);
+    
+    // 只在全屏模式下才设置自动隐藏
+    if (isFullscreen) {
+      hideTimeoutRef.current = setTimeout(() => {
+        setIsTopBarActive(false);
+        hideTimeoutRef.current = null;
+      }, TOPBAR_HIDE_DELAY);
+    }
+  }, [isFullscreen]);
+
+  const handleSearchClick = useCallback(() => {
+    onSearchClick?.();
+  }, [onSearchClick]);
+
+  const handleMinimize = useCallback(async () => {
+    console.log('Minimize button clicked');
+    try {
+      // For Tauri - use Window.getCurrent()
+      const appWindow = Window.getCurrent();
+      console.log('Got window instance:', appWindow);
+      await appWindow.minimize();
+      console.log('Minimize called successfully');
+    } catch (error) {
+      console.error('Minimize error:', error);
+      // Fallback for Electron
+      if (window.electronAPI?.minimize) {
+        window.electronAPI.minimize();
+      }
+    }
+  }, []);
+
+  const handleMaximize = useCallback(async () => {
+    console.log('Maximize button clicked');
+    try {
+      // For Tauri
+      const appWindow = Window.getCurrent();
+      const maximized = await appWindow.isMaximized();
+      console.log('Is maximized:', maximized);
+      if (maximized) {
+        await appWindow.unmaximize();
+        setIsMaximized(false);
+      } else {
+        await appWindow.maximize();
+        setIsMaximized(true);
+      }
+    } catch (error) {
+      console.error('Maximize error:', error);
+      // Fallback for Electron
+      if (window.electronAPI?.maximize) {
+        window.electronAPI.maximize();
+        setIsMaximized(!isMaximized);
+      } else {
+        // Fallback to fullscreen API
+        toggleFullscreen();
+      }
+    }
+  }, [isMaximized, toggleFullscreen]);
+
+  const handleClose = useCallback(async () => {
+    console.log('Close button clicked');
+    try {
+      // For Tauri
+      const appWindow = Window.getCurrent();
+      await appWindow.close();
+    } catch (error) {
+      console.error('Close error:', error);
+      // Fallback for Electron
+      if (window.electronAPI?.close) {
+        window.electronAPI.close();
+      } else {
+        // Fallback for web
+        window.close();
+      }
+    }
   }, []);
 
   const handlePointerDownCapture = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
@@ -97,13 +175,39 @@ const TopBar: React.FC<TopBarProps> = ({
   // Fullscreen change listener
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const isNowFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(isNowFullscreen);
+      
+      // 进入全屏时，TopBar 默认显示
+      // 退出全屏时，TopBar 常驻显示
+      if (!isNowFullscreen) {
+        setIsTopBarActive(true);
+        if (hideTimeoutRef.current) {
+          clearTimeout(hideTimeoutRef.current);
+          hideTimeoutRef.current = null;
+        }
+      }
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
+  }, []);
+
+  // Check if window is maximized on mount (for Tauri)
+  useEffect(() => {
+    const checkMaximized = async () => {
+      try {
+        const appWindow = Window.getCurrent();
+        const maximized = await appWindow.isMaximized();
+        setIsMaximized(maximized);
+      } catch (error) {
+        // Not in Tauri environment
+        console.debug('Not in Tauri environment');
+      }
+    };
+    checkMaximized();
   }, []);
 
   // Cleanup timeout on unmount
@@ -133,13 +237,19 @@ const TopBar: React.FC<TopBarProps> = ({
   }, [isSettingsOpen]);
 
   // 使用 useMemo 缓存样式类
-  const transitionClasses = useMemo(() => ({
-    base: "transition-all duration-500 ease-out",
-    mobileActive: isTopBarActive
-      ? "opacity-100 translate-y-0 pointer-events-auto"
-      : "opacity-0 -translate-y-2 pointer-events-none",
-    hoverSupport: "group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto",
-  }), [isTopBarActive]);
+  const transitionClasses = useMemo(() => {
+    // 非全屏模式：始终显示
+    // 全屏模式：根据 isTopBarActive 状态显示/隐藏
+    const shouldShow = !isFullscreen || isTopBarActive;
+    
+    return {
+      base: "transition-all duration-500 ease-out",
+      mobileActive: shouldShow
+        ? "opacity-100 translate-y-0 pointer-events-auto"
+        : "opacity-0 -translate-y-2 pointer-events-none",
+      hoverSupport: isFullscreen ? "group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto" : "",
+    };
+  }, [isTopBarActive, isFullscreen]);
 
   // 歌词效果按钮配置 - 移除无效果，添加新效果
   const lyricsEffects = useMemo(() => [
@@ -147,6 +257,14 @@ const TopBar: React.FC<TopBarProps> = ({
     { key: 'glow', active: lyricsGlow, onChange: onLyricsGlowChange, label: t("lyrics.glow") },
     { key: 'shadow', active: lyricsShadow, onChange: onLyricsShadowChange, label: t("lyrics.shadow") },
   ], [lyricsBlur, lyricsGlow, lyricsShadow, onLyricsBlurChange, onLyricsGlowChange, onLyricsShadowChange, t]);
+  
+  // 可视化器切换按钮
+  const visualizerToggle = useMemo(() => ({
+    key: 'visualizer',
+    active: visualizerEnabled,
+    onChange: onVisualizerToggle,
+    label: t("visualizer.toggle") || "可视化器",
+  }), [visualizerEnabled, onVisualizerToggle, t]);
 
   return (
     <div
@@ -155,38 +273,64 @@ const TopBar: React.FC<TopBarProps> = ({
     >
       {/* Blur Background Layer */}
       <div
-        className={`absolute inset-0 bg-white/5 backdrop-blur-2xl border-b border-white/10 transition-all duration-500 ${
-          isTopBarActive ? "opacity-100" : "opacity-0"
-        } group-hover:opacity-100`}
+        className={`absolute inset-0 bg-white/5 backdrop-blur-2xl transition-all duration-500 ${
+          !isFullscreen || isTopBarActive ? "opacity-100" : "opacity-0"
+        } ${isFullscreen ? "group-hover:opacity-100" : ""}`}
+        data-tauri-drag-region
       />
 
       {/* Content */}
       <div className="relative z-10 w-full h-full px-6 flex justify-between items-center pointer-events-auto">
         {/* Logo */}
-        <div className={`flex items-center gap-3 ${transitionClasses.base} ${transitionClasses.mobileActive} ${transitionClasses.hoverSupport}`}>
-          <h1 className="text-white/90 font-bold tracking-wider text-sm uppercase drop-shadow-md">
+        <div 
+          className={`flex items-center gap-3 ${transitionClasses.base} ${transitionClasses.mobileActive} ${transitionClasses.hoverSupport}`}
+          data-tauri-drag-region
+        >
+          <h1 className="text-white/90 font-bold tracking-wider text-sm uppercase drop-shadow-md select-none">
             Lumison
           </h1>
         </div>
 
+        {/* Search Bar */}
+        <div 
+          className={`flex-1 max-w-xl mx-8 ${transitionClasses.base} ${transitionClasses.mobileActive} ${transitionClasses.hoverSupport}`}
+          data-tauri-drag-region
+        >
+          <button
+            onClick={handleSearchClick}
+            className="w-full h-9 px-4 rounded-full bg-white/10 backdrop-blur-xl flex items-center gap-3 text-white/60 hover:bg-white/15 hover:text-white/80 transition-all duration-300 ease-out shadow-sm group/search pointer-events-auto hover:scale-[1.02] active:scale-[0.98]"
+            aria-label={t("search.placeholder")}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <span className="text-sm truncate">{t("search.placeholder")}</span>
+            <kbd className="ml-auto hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white/10 text-xs text-white/50 font-mono group-hover/search:bg-white/15 group-hover/search:text-white/60 transition-all">
+              <span>⌘</span>
+              <span>K</span>
+            </kbd>
+          </button>
+        </div>
+
         {/* Actions */}
-        <div className={`flex gap-3 ${transitionClasses.base} delay-75 ${transitionClasses.mobileActive} ${transitionClasses.hoverSupport}`}>
+        <div className={`flex gap-2 ${transitionClasses.base} delay-75 ${transitionClasses.mobileActive} ${transitionClasses.hoverSupport}`}>
           {/* Settings Button */}
-          <div className="relative" ref={settingsContainerRef}>
+          <div className="relative" ref={settingsContainerRef} onPointerDown={(e) => e.stopPropagation()}>
             <button
               onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-              className={`w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center transition-all shadow-sm ${
-                isSettingsOpen ? "text-white bg-white/20" : "text-white/80 hover:bg-white/20 hover:text-white"
+              className={`w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center transition-all duration-300 ease-out shadow-sm hover:scale-110 active:scale-95 ${
+                isSettingsOpen ? "text-white bg-white/20 scale-110" : "text-white/80 hover:bg-white/20 hover:text-white"
               }`}
               title={t("topBar.settings")}
               aria-label={t("topBar.settings")}
             >
-              <SettingsIcon className="w-5 h-5" />
+              <SettingsIcon className={`w-5 h-5 transition-transform duration-500 ease-out ${isSettingsOpen ? 'rotate-90' : ''}`} />
             </button>
 
             {/* Settings Popup */}
             {isSettingsOpen && (
-              <div className="absolute top-full right-0 mt-3 w-72 rounded-2xl bg-black/40 backdrop-blur-2xl saturate-150 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden z-50">
+              <div className="absolute top-full right-0 mt-3 w-72 rounded-2xl bg-black/40 backdrop-blur-2xl saturate-150 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="p-4 space-y-6">
                   <h3 className="text-white font-semibold mb-4 text-sm">{t("topBar.settings")}</h3>
                   
@@ -218,9 +362,9 @@ const TopBar: React.FC<TopBarProps> = ({
                         <button
                           key={key}
                           onClick={() => onChange(!active)}
-                          className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                          className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 ease-out hover:scale-105 active:scale-95 ${
                             active
-                              ? 'bg-white/20 text-white border border-white/20'
+                              ? 'bg-white/20 text-white border border-white/20 shadow-lg'
                               : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
                           }`}
                           aria-pressed={active}
@@ -231,13 +375,39 @@ const TopBar: React.FC<TopBarProps> = ({
                     </div>
                   </div>
 
+                  {/* Visualizer Toggle */}
+                  <div className="space-y-2">
+                    <label className="text-white/70 text-xs">{t("visualizer.label") || "音频可视化"}</label>
+                    <button
+                      onClick={() => visualizerToggle.onChange(!visualizerToggle.active)}
+                      className={`w-full px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] ${
+                        visualizerToggle.active
+                          ? 'bg-white/20 text-white border border-white/20 shadow-lg'
+                          : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
+                      }`}
+                      aria-pressed={visualizerToggle.active}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>{visualizerToggle.label}</span>
+                        <span className="text-xs opacity-60">
+                          {visualizerToggle.active ? '✓' : '○'}
+                        </span>
+                      </div>
+                      {!visualizerToggle.active && (
+                        <div className="text-xs opacity-50 mt-1 text-left">
+                          {t("visualizer.memoryHint") || "关闭可节省 5-10MB 内存"}
+                        </div>
+                      )}
+                    </button>
+                  </div>
+
                   {/* Theme Button */}
                   <button
                     onClick={toggleTheme}
-                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all"
+                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <span className="text-sm">{theme === 'dark' ? t("theme.light") : t("theme.dark")}</span>
-                    <ThemeIcon className="w-4 h-4" />
+                    <ThemeIcon className="w-4 h-4 transition-transform duration-500 hover:rotate-180" />
                   </button>
 
                   {/* Language Switcher */}
@@ -246,10 +416,10 @@ const TopBar: React.FC<TopBarProps> = ({
                   {/* About Button */}
                   <button
                     onClick={handleAboutClick}
-                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all"
+                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <span className="text-sm">{t("topBar.about")}</span>
-                    <InfoIcon className="w-4 h-4" />
+                    <InfoIcon className="w-4 h-4 transition-transform duration-300" />
                   </button>
                 </div>
               </div>
@@ -259,12 +429,50 @@ const TopBar: React.FC<TopBarProps> = ({
           {/* Fullscreen Button */}
           <button
             onClick={toggleFullscreen}
-            className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all shadow-sm"
+            onPointerDown={(e) => e.stopPropagation()}
+            className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center text-white/80 hover:bg-white/20 hover:text-white transition-all duration-300 ease-out shadow-sm hover:scale-110 active:scale-95"
             title={isFullscreen ? t("topBar.exitFullscreen") : t("topBar.enterFullscreen")}
             aria-label={isFullscreen ? t("topBar.exitFullscreen") : t("topBar.enterFullscreen")}
           >
-            <FullscreenIcon className="w-5 h-5" isFullscreen={isFullscreen} />
+            <FullscreenIcon className="w-5 h-5 transition-transform duration-300" isFullscreen={isFullscreen} />
           </button>
+
+          {/* Window Controls */}
+          <div className="flex gap-2 ml-2" onPointerDown={(e) => e.stopPropagation()}>
+            {/* Minimize Button */}
+            <button
+              onClick={handleMinimize}
+              className="w-10 h-10 rounded-full bg-white/5 backdrop-blur-xl flex items-center justify-center text-white/60 hover:bg-white/15 hover:text-white transition-all duration-300 ease-out hover:scale-110 active:scale-95"
+              title="Minimize"
+              aria-label="Minimize"
+            >
+              <MinimizeIcon className="w-4 h-4 transition-transform duration-200" />
+            </button>
+
+            {/* Maximize/Restore Button */}
+            <button
+              onClick={handleMaximize}
+              className="w-10 h-10 rounded-full bg-white/5 backdrop-blur-xl flex items-center justify-center text-white/60 hover:bg-white/15 hover:text-white transition-all duration-300 ease-out hover:scale-110 active:scale-95"
+              title={isMaximized ? "Restore" : "Maximize"}
+              aria-label={isMaximized ? "Restore" : "Maximize"}
+            >
+              {isMaximized ? (
+                <RestoreIcon className="w-4 h-4 transition-all duration-300" />
+              ) : (
+                <MaximizeIcon className="w-4 h-4 transition-all duration-300" />
+              )}
+            </button>
+
+            {/* Close Button */}
+            <button
+              onClick={handleClose}
+              className="w-10 h-10 rounded-full bg-white/5 backdrop-blur-xl flex items-center justify-center text-white/60 hover:bg-red-500/80 hover:text-white transition-all duration-300 ease-out hover:scale-110 active:scale-95"
+              title="Close"
+              aria-label="Close"
+            >
+              <CloseIcon className="w-4 h-4 transition-transform duration-200" />
+            </button>
+          </div>
         </div>
       </div>
 

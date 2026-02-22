@@ -99,7 +99,7 @@ const CoverCard: React.FC<CoverCardProps> = memo(({ coverUrl, isPlaying }) => {
           ),
           transformStyle: 'preserve-3d',
         }}
-        className="relative aspect-square w-80 md:w-96 lg:w-[420px] rounded-3xl bg-gradient-to-br from-gray-800 to-gray-900 shadow-lg shadow-black/30 ring-1 ring-white/10 overflow-hidden"
+        className="relative aspect-square w-64 md:w-72 lg:w-80 rounded-3xl bg-gradient-to-br from-gray-800 to-gray-900 shadow-lg shadow-black/30 ring-1 ring-white/10 overflow-hidden"
       >
         {coverUrl ? (
           <SmartImage

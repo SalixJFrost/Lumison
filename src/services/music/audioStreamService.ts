@@ -110,7 +110,15 @@ export const validateSelfHostedAudio = async (
   url: string
 ): Promise<AudioStreamTrackInfo | null> => {
   try {
-    const urlObj = new URL(url);
+    // Validate URL format
+    let urlObj: URL;
+    try {
+      urlObj = new URL(url);
+    } catch (error) {
+      console.log('Invalid URL format:', url);
+      return null;
+    }
+    
     const pathname = urlObj.pathname.toLowerCase();
     
     // Check if URL ends with audio extension

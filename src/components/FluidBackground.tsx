@@ -94,7 +94,11 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     }
     let cancelled = false;
     const generate = async () => {
-      const newLayers = await createFlowingLayers(normalizedColors, coverUrl, 4);
+      // Optimize layer count based on device memory
+      const deviceMemory = (navigator as any).deviceMemory || 4;
+      const layerCount = deviceMemory < 4 ? 2 : deviceMemory < 8 ? 3 : 4;
+      
+      const newLayers = await createFlowingLayers(normalizedColors, coverUrl, layerCount);
       if (cancelled) return;
       layersRef.current = newLayers;
     };

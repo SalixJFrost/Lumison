@@ -52,6 +52,7 @@ interface ControlsProps {
   showSettingsPopup: boolean;
   setShowSettingsPopup: (show: boolean) => void;
   isBuffering: boolean;
+  visualizerEnabled?: boolean;
 }
 
 const Controls: React.FC<ControlsProps> = ({
@@ -91,6 +92,7 @@ const Controls: React.FC<ControlsProps> = ({
   // Spatial Audio Engine
   const spatialEngineRef = useRef<SpatialAudioEngine | null>(null);
   const [spatialAudioEnabled, setSpatialAudioEnabled] = useState(false);
+  const isInitializingRef = useRef(false); // 防止重复初始化的标记
 
   // 3D Card Effect State (只保留旋转，移除光效)
   const [{ rotateX, rotateY }, cardApi] = useSpring(() => ({
@@ -103,19 +105,35 @@ const Controls: React.FC<ControlsProps> = ({
   useEffect(() => {
     if (!audioRef.current) return;
     
-    const engine = new SpatialAudioEngine();
-    engine.attachToAudioElement(audioRef.current);
-    engine.applyPreset('music');
-    spatialEngineRef.current = engine;
+    // Prevent double initialization in React Strict Mode
+    if (spatialEngineRef.current || isInitializingRef.current) {
+      console.log('[Controls] Skipping spatial audio initialization - already initialized');
+      return;
+    }
     
-    // Resume audio context on user interaction
-    const resumeContext = () => {
-      engine.resume();
-    };
-    document.addEventListener('click', resumeContext, { once: true });
+    isInitializingRef.current = true;
+    
+    try {
+      const engine = new SpatialAudioEngine();
+      engine.attachToAudioElement(audioRef.current);
+      engine.applyPreset('music');
+      engine.setEnabled(false); // Start with spatial audio disabled
+      spatialEngineRef.current = engine;
+      
+      // Resume audio context on user interaction
+      const resumeContext = () => {
+        engine.resume();
+      };
+      document.addEventListener('click', resumeContext, { once: true });
+    } catch (error) {
+      console.error('[Controls] Failed to initialize spatial audio:', error);
+      isInitializingRef.current = false;
+    }
     
     return () => {
-      engine.destroy();
+      // Don't destroy on unmount in Strict Mode - just disconnect
+      // The engine will be reused on remount
+      console.log('[Controls] Spatial audio cleanup (keeping engine for remount)');
     };
   }, [audioRef]);
   
@@ -448,7 +466,7 @@ const Controls: React.FC<ControlsProps> = ({
             ),
             transformStyle: 'preserve-3d',
           }}
-          className="relative aspect-square w-80 md:w-96 lg:w-[420px] rounded-3xl bg-gradient-to-br from-gray-800 to-gray-900 shadow-lg shadow-black/30 ring-1 ring-white/10 overflow-hidden"
+          className="relative aspect-square w-64 md:w-72 lg:w-80 rounded-3xl bg-gradient-to-br from-gray-800 to-gray-900 shadow-lg shadow-black/30 ring-1 ring-white/10 overflow-hidden"
         >
           {coverUrl ? (
             <SmartImage
@@ -480,9 +498,11 @@ const Controls: React.FC<ControlsProps> = ({
       </div>
 
       {/* Spectrum Visualizer */}
-      <div className="w-full max-w-xl flex justify-center h-12 mb-3">
-        <Visualizer audioRef={audioRef} isPlaying={isPlaying} spatialEngine={spatialEngineRef.current} />
-      </div>
+      {visualizerEnabled && (
+        <div className="w-full max-w-xl flex justify-center h-12 mb-3">
+          <Visualizer audioRef={audioRef} isPlaying={isPlaying} spatialEngine={spatialEngineRef.current} />
+        </div>
+      )}
 
       {/* Progress Bar */}
       <div className="w-full max-w-xl flex items-center gap-3 text-sm font-medium theme-text-secondary group/bar relative">
@@ -516,6 +536,7 @@ const Controls: React.FC<ControlsProps> = ({
 
           {/* Input Range */}
           <input
+            id="progress-range"
             type="range"
             min={0}
             max={duration || 0}
@@ -733,6 +754,7 @@ const VolumePopup: React.FC<VolumePopupProps> = ({
 
         {/* Input Overlay */}
         <input
+          id="volume-slider"
           type="range"
           min="0"
           max="1"
@@ -835,6 +857,7 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
             }}
           />
           <input
+            id="speed-slider"
             type="range"
             min="0.5"
             max="3"

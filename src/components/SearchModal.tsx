@@ -314,6 +314,8 @@ const SearchModal: React.FC<SearchModalProps> = ({
               <SearchIcon className="w-5 h-5 text-white/40" />
             </div>
             <input
+              id="search-input"
+              name="search"
               ref={inputRef}
               type="text"
               value={search.query}

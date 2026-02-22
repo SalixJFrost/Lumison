@@ -74,11 +74,51 @@ export const PERFORMANCE_CONFIG = {
   // Memory management
   memory: {
     // Maximum number of audio elements to keep in memory
-    maxAudioElements: 5,
+    maxAudioElements: 3, // Reduced from 5 for better memory usage
     // Maximum number of canvas contexts
-    maxCanvasContexts: 10,
+    maxCanvasContexts: 6, // Reduced from 10
     // Cleanup interval (ms)
-    cleanupInterval: 5 * 60 * 1000, // 5 minutes
+    cleanupInterval: 3 * 60 * 1000, // 3 minutes (more frequent cleanup)
+    // Enable aggressive garbage collection hints
+    enableGCHints: true,
+    // Maximum image cache size
+    maxImageCache: 10, // Limit to 10 images
+    // Maximum image memory (MB)
+    maxImageMemory: 50,
+  },
+  
+  // Canvas optimization
+  canvas: {
+    // Maximum pixel ratio (prevent excessive memory on 4K displays)
+    maxPixelRatio: 2,
+    // Use adaptive pixel ratio based on device memory
+    adaptivePixelRatio: true,
+    // Maximum canvas size (pixels)
+    maxCanvasSize: 4096,
+  },
+  
+  // Audio-specific optimizations
+  audio: {
+    // Preload strategy: 'none', 'metadata', 'auto'
+    preload: 'metadata',
+    // Buffer size for audio streaming (in seconds)
+    bufferSize: 10,
+    // Enable audio worklet for better performance
+    useAudioWorklet: true,
+    // Maximum concurrent audio decoding operations
+    maxConcurrentDecoding: 2,
+  },
+  
+  // Rendering optimizations
+  rendering: {
+    // Use requestIdleCallback for non-critical updates
+    useIdleCallback: true,
+    // Target frame rate for animations
+    targetFPS: 60,
+    // Enable hardware acceleration hints
+    enableHardwareAcceleration: true,
+    // Reduce motion for low-end devices
+    respectReducedMotion: true,
   },
 
   // Event listener optimization
@@ -130,45 +170,43 @@ export const isLowEndDevice = (): boolean => {
 };
 
 /**
- * Get optimized config for current device
+ * Get optimized pixel ratio based on device capabilities
  */
-export const getOptimizedConfig = () => {
-  const isLowEnd = isLowEndDevice();
+export const getOptimalPixelRatio = (): number => {
+  const devicePixelRatio = window.devicePixelRatio || 1;
+  const deviceMemory = (navigator as any).deviceMemory || 4;
+  
+  // Low memory devices: use 1x
+  if (deviceMemory < 4) {
+    return 1;
+  }
+  
+  // Medium memory devices: cap at 1.5x
+  if (deviceMemory < 8) {
+    return Math.min(devicePixelRatio, 1.5);
+  }
+  
+  // High memory devices: cap at 2x
+  return Math.min(devicePixelRatio, 2);
+};
 
-  return {
-    ...PERFORMANCE_CONFIG,
-    animation: {
-      ...PERFORMANCE_CONFIG.animation,
-      // Reduce animation complexity on low-end devices
-      spring: isLowEnd
-        ? {
-            default: { tension: 200, friction: 20 },
-            fast: { tension: 220, friction: 18 },
-            slow: { tension: 180, friction: 22 },
-            smooth: { tension: 150, friction: 25 },
-          }
-        : PERFORMANCE_CONFIG.animation.spring,
-    },
-    cache: {
-      ...PERFORMANCE_CONFIG.cache,
-      // Reduce cache size on low-end devices
-      colorExtraction: {
-        ...PERFORMANCE_CONFIG.cache.colorExtraction,
-        maxSize: isLowEnd ? 20 : 50,
-      },
-      lyrics: {
-        ...PERFORMANCE_CONFIG.cache.lyrics,
-        maxSize: isLowEnd ? 50 : 100,
-      },
-      image: {
-        ...PERFORMANCE_CONFIG.cache.image,
-        maxSize: isLowEnd ? 100 : 200,
-      },
-    },
-    virtualList: {
-      ...PERFORMANCE_CONFIG.virtualList,
-      // Reduce overscan on low-end devices
-      overscan: isLowEnd ? 1 : 3,
-    },
-  };
+/**
+ * Get optimal background layer count based on device
+ */
+export const getOptimalLayerCount = (isMobile: boolean): number => {
+  const deviceMemory = (navigator as any).deviceMemory || 4;
+  
+  if (isMobile) {
+    return deviceMemory < 4 ? 2 : 3;
+  }
+  
+  return deviceMemory < 4 ? 2 : deviceMemory < 8 ? 3 : 4;
+};
+
+/**
+ * Check if visualizer should be enabled by default
+ */
+export const shouldEnableVisualizer = (): boolean => {
+  const deviceMemory = (navigator as any).deviceMemory || 4;
+  return deviceMemory >= 4;
 };

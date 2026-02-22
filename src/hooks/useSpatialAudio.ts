@@ -11,6 +11,7 @@ export const useSpatialAudio = (
   options: UseSpatialAudioOptions = {}
 ) => {
   const engineRef = useRef<SpatialAudioEngine | null>(null);
+  const isInitializingRef = useRef(false);
   const [isReady, setIsReady] = useState(false);
   const [enabled, setEnabled] = useState(options.enabled ?? false);
   
@@ -18,29 +19,41 @@ export const useSpatialAudio = (
   useEffect(() => {
     if (!audioRef.current) return;
     
-    const engine = new SpatialAudioEngine();
-    engine.attachToAudioElement(audioRef.current);
-    
-    if (options.preset) {
-      engine.applyPreset(options.preset);
+    // Prevent double initialization in React Strict Mode
+    if (engineRef.current || isInitializingRef.current) {
+      console.log('[useSpatialAudio] Skipping initialization - already initialized');
+      return;
     }
     
-    engine.setEnabled(enabled);
-    engineRef.current = engine;
-    setIsReady(true);
+    isInitializingRef.current = true;
     
-    // Resume audio context on user interaction
-    const resumeContext = () => {
-      engine.resume();
-    };
-    document.addEventListener('click', resumeContext, { once: true });
+    try {
+      const engine = new SpatialAudioEngine();
+      engine.attachToAudioElement(audioRef.current);
+      
+      if (options.preset) {
+        engine.applyPreset(options.preset);
+      }
+      
+      engine.setEnabled(enabled);
+      engineRef.current = engine;
+      setIsReady(true);
+      
+      // Resume audio context on user interaction
+      const resumeContext = () => {
+        engine.resume();
+      };
+      document.addEventListener('click', resumeContext, { once: true });
+    } catch (error) {
+      console.error('[useSpatialAudio] Failed to initialize:', error);
+      isInitializingRef.current = false;
+    }
     
     return () => {
-      engine.destroy();
-      engineRef.current = null;
-      setIsReady(false);
+      // Don't destroy on unmount in Strict Mode
+      console.log('[useSpatialAudio] Cleanup (keeping engine for remount)');
     };
-  }, [audioRef]);
+  }, [audioRef]); // Remove 'enabled' from dependencies to prevent re-initialization
   
   // Update enabled state
   useEffect(() => {
