@@ -7,6 +7,7 @@ import {
   getNeteaseAudioUrl,
   NeteaseTrackInfo,
 } from "../services/music/lyricsService";
+import { YouTubeMusicSearchResult } from "../hooks/useYouTubeMusicSearchProvider";
 import { useKeyboardScope } from "../hooks/useKeyboardScope";
 import { useSearchModal } from "../hooks/useSearchModal";
 import { useI18n } from "../contexts/I18nContext";
@@ -186,6 +187,8 @@ const SearchModal: React.FC<SearchModalProps> = ({
             handleSelection(search.selectedIndex);
           } else if (search.activeTab === "netease" && search.query.trim()) {
             search.performNeteaseSearch();
+          } else if (search.activeTab === "youtube" && search.query.trim()) {
+            search.performYouTubeSearch();
           }
           return true;
         }
@@ -215,10 +218,16 @@ const SearchModal: React.FC<SearchModalProps> = ({
         onPlayQueueIndex(item.i);
         onClose();
       }
-    } else {
+    } else if (search.activeTab === "netease") {
       const track = search.neteaseProvider.results[index];
       if (track) {
         playNeteaseTrack(track);
+        onClose();
+      }
+    } else if (search.activeTab === "youtube") {
+      const track = search.youtubeResults[index];
+      if (track) {
+        playYouTubeTrack(track);
         onClose();
       }
     }
@@ -252,6 +261,44 @@ const SearchModal: React.FC<SearchModalProps> = ({
       album: track.album,
       lyrics: [],
       needsLyricsMatch: true,
+    };
+    onAddToQueue(song);
+  };
+
+  const playYouTubeTrack = (track: YouTubeMusicSearchResult) => {
+    const song: Song = {
+      id: track.id,
+      title: track.title,
+      artist: track.artist,
+      coverUrl: track.coverUrl,
+      fileUrl: track.fileUrl,
+      isYouTube: true,
+      youtubeId: track.youtubeId,
+      album: track.album,
+      lyrics: [],
+      needsLyricsMatch: true,
+      duration: track.duration,
+      viewCount: track.viewCount,
+      channelTitle: track.channelTitle,
+    };
+    onImportAndPlay(song);
+  };
+
+  const addYouTubeToQueue = (track: YouTubeMusicSearchResult) => {
+    const song: Song = {
+      id: track.id,
+      title: track.title,
+      artist: track.artist,
+      coverUrl: track.coverUrl,
+      fileUrl: track.fileUrl,
+      isYouTube: true,
+      youtubeId: track.youtubeId,
+      album: track.album,
+      lyrics: [],
+      needsLyricsMatch: true,
+      duration: track.duration,
+      viewCount: track.viewCount,
+      channelTitle: track.channelTitle,
     };
     onAddToQueue(song);
   };
@@ -312,13 +359,13 @@ const SearchModal: React.FC<SearchModalProps> = ({
         {/* Header Area */}
         <div className="flex flex-col px-5 pt-5 pb-3 gap-4 border-b border-white/10 shrink-0 bg-white/5 z-10">
           {/* Animated Tabs */}
-          <div className="relative flex items-center justify-center p-1 rounded-lg self-center w-full max-w-xs mb-1 bg-black/20 backdrop-blur-md shadow-inner">
+          <div className="relative flex items-center justify-center p-1 rounded-lg self-center w-full max-w-md mb-1 bg-black/20 backdrop-blur-md shadow-inner">
             {/* Gliding Pill */}
             <div
               className="absolute top-1 bottom-1 rounded-[6px] bg-white/15 shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
               style={{
-                left: search.activeTab === "queue" ? "4px" : "50%",
-                width: "calc(50% - 4px)",
+                left: search.activeTab === "queue" ? "4px" : search.activeTab === "netease" ? "calc(33.33% + 2px)" : "calc(66.66%)",
+                width: "calc(33.33% - 4px)",
               }}
             />
 
@@ -342,7 +389,18 @@ const SearchModal: React.FC<SearchModalProps> = ({
                         ${search.activeTab === "netease" ? "text-white" : "text-white/50 hover:text-white/70"}
                     `}
             >
-              {search.neteaseProvider.label}
+              {t("search.netease")}
+            </button>
+            <button
+              onClick={() => {
+                search.setActiveTab("youtube");
+              }}
+              className={`
+                        relative flex-1 py-1.5 text-[13px] font-medium transition-colors duration-200 z-10
+                        ${search.activeTab === "youtube" ? "text-white" : "text-white/50 hover:text-white/70"}
+                    `}
+            >
+              {t("search.youtube")}
             </button>
           </div>
 
@@ -359,9 +417,9 @@ const SearchModal: React.FC<SearchModalProps> = ({
               value={search.query}
               onChange={(e) => search.setQuery(e.target.value)}
               placeholder={
-                search.activeTab === "netease"
-                  ? "Search online..."
-                  : "Filter queue..."
+                search.activeTab === "queue"
+                  ? t("search.filterQueue")
+                  : t("search.searchOnline")
               }
               className="
                         w-full pl-12 pr-4 py-3.5
@@ -388,7 +446,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
             <div className="relative flex flex-col gap-1">
               {search.queueResults.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-white/20">
-                  <span className="text-lg">No songs in queue</span>
+                  <span className="text-lg">{t("search.noSongsInQueue")}</span>
                 </div>
               ) : (
                 <>
@@ -494,11 +552,11 @@ const SearchModal: React.FC<SearchModalProps> = ({
                 <div className="flex flex-col items-center justify-center h-64 text-white/30">
                   <SearchIcon className="w-12 h-12 mb-4 opacity-20" />
                   <span className="text-base font-medium">
-                    Press{" "}
+                    {t("shortcuts.pressEsc")}{" "}
                     <kbd className="px-2 py-1 bg-white/10 rounded text-white/60">
                       Enter
                     </kbd>{" "}
-                    to search
+                    {t("search.pressEnterToSearch")}
                   </span>
                 </div>
               )}
@@ -508,7 +566,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
                 <div className="flex flex-col items-center justify-center h-64 text-white/20">
                   <SearchIcon className="w-12 h-12 mb-4 opacity-20" />
                   <span className="text-base font-medium">
-                    No matches found
+                    {t("search.noMatchesFound")}
                   </span>
                 </div>
               )}
@@ -517,7 +575,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
               {search.showNeteaseLoading && (
                 <div className="flex flex-col items-center justify-center h-64 text-white/20">
                   <div className="w-8 h-8 border-2 border-white/20 border-t-white/60 rounded-full animate-spin mb-4"></div>
-                  <span className="text-base font-medium">Searching...</span>
+                  <span className="text-base font-medium">{t("search.searching")}</span>
                 </div>
               )}
 
@@ -526,7 +584,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
                 <div className="flex flex-col items-center justify-center h-64 text-white/20">
                   <SearchIcon className="w-12 h-12 mb-4 opacity-20" />
                   <span className="text-base font-medium">
-                    Search Cloud Music
+                    {t("search.searchCloudMusic")}
                   </span>
                 </div>
               )}
@@ -621,7 +679,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
                                 ? "bg-white/20 text-white"
                                 : "text-white/40 hover:bg-white/10 hover:text-white/70"
                             }`}
-                            title="More options"
+                            title={t("search.moreOptions")}
                           >
                             <MoreVerticalIcon className="w-4 h-4" />
                           </button>
@@ -648,8 +706,153 @@ const SearchModal: React.FC<SearchModalProps> = ({
                         <div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin"></div>
                       ) : (
                         <div className="text-white/20 text-xs">
-                          Scroll for more
+                          {t("search.scrollForMore")}
                         </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* YouTube Results */}
+          {search.activeTab === "youtube" && (
+            <div className="relative flex flex-col gap-1 pb-4">
+              {search.showYouTubePrompt && (
+                <div className="flex flex-col items-center justify-center h-64 text-white/30">
+                  <SearchIcon className="w-12 h-12 mb-4 opacity-20" />
+                  <span className="text-base font-medium">
+                    {t("shortcuts.pressEsc")}{" "}
+                    <kbd className="px-2 py-1 bg-white/10 rounded text-white/60">
+                      Enter
+                    </kbd>{" "}
+                    {t("search.pressEnterToSearch")}
+                  </span>
+                </div>
+              )}
+              {search.showYouTubeEmpty && (
+                <div className="flex flex-col items-center justify-center h-64 text-white/20">
+                  <SearchIcon className="w-12 h-12 mb-4 opacity-20" />
+                  <span className="text-base font-medium">{t("search.noMatchesFound")}</span>
+                </div>
+              )}
+              {search.showYouTubeLoading && (
+                <div className="flex flex-col items-center justify-center h-64 text-white/20">
+                  <div className="w-8 h-8 border-2 border-white/20 border-t-white/60 rounded-full animate-spin mb-4"></div>
+                  <span className="text-base font-medium">{t("search.searching")}</span>
+                </div>
+              )}
+              {search.showYouTubeInitial && (
+                <div className="flex flex-col items-center justify-center h-64 text-white/20">
+                  <SearchIcon className="w-12 h-12 mb-4 opacity-20" />
+                  <span className="text-base font-medium">{t("search.searchYouTubeMusic")}</span>
+                </div>
+              )}
+              {search.youtubeResults.length > 0 && (
+                <>
+                  {search.selectedIndex >= 0 && search.itemRefs.current[search.selectedIndex] && (
+                    <div
+                      className="absolute left-0 right-0 bg-white/25 backdrop-blur-md rounded-[10px] pointer-events-none transition-all duration-200 ease-out"
+                      style={{
+                        top: `${search.itemRefs.current[search.selectedIndex]?.offsetTop || 0}px`,
+                        height: `${search.itemRefs.current[search.selectedIndex]?.offsetHeight || 56}px`,
+                        zIndex: 0,
+                      }}
+                    />
+                  )}
+                  {search.youtubeResults.map((track: YouTubeMusicSearchResult, idx: number) => {
+                    const nowPlaying = search.isNowPlaying(track);
+                    return (
+                      <div
+                        key={`${track.id}-${idx}`}
+                        ref={(el) => {
+                          search.itemRefs.current[idx] = el;
+                        }}
+                        onClick={() => handleSelection(idx)}
+                        onContextMenu={(e) => search.openContextMenu(e, track, "youtube")}
+                        className={`
+                          relative z-10 group flex items-center gap-3 p-3 rounded-[10px] cursor-pointer
+                          ${search.selectedIndex === idx ? "text-white" : "hover:bg-white/5 hover:transition-colors hover:duration-150 text-white/90"}
+                        `}
+                      >
+                        <div className="relative w-10 h-10 rounded-[6px] bg-white/5 overflow-hidden shrink-0 shadow-sm group-hover:shadow-lg transition-shadow duration-200">
+                          {track.coverUrl && (
+                            <SmartImage
+                              src={track.coverUrl}
+                              alt={track.title}
+                              containerClassName="w-full h-full"
+                              imgClassName={`w-full h-full object-cover transition-opacity ${nowPlaying ? "opacity-40 blur-[1px]" : ""}`}
+                            />
+                          )}
+                          {!nowPlaying && (
+                            <div className={`absolute inset-0 flex items-center justify-center bg-black/50 ${search.selectedIndex === idx ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-hover:transition-opacity group-hover:duration-150"}`}>
+                              <PlayIcon className="w-4 h-4 fill-white drop-shadow-md" />
+                            </div>
+                          )}
+                          {nowPlaying && isPlaying && (
+                            <div className="absolute inset-0 flex items-center justify-center gap-[2px]">
+                              <div
+                                className="w-[2px] bg-current rounded-full animate-[eq-bounce_1s_ease-in-out_infinite]"
+                                style={{ height: "8px", color: accentColor }}
+                              ></div>
+                              <div
+                                className="w-[2px] bg-current rounded-full animate-[eq-bounce_1s_ease-in-out_infinite_0.2s]"
+                                style={{ height: "14px", color: accentColor }}
+                              ></div>
+                              <div
+                                className="w-[2px] bg-current rounded-full animate-[eq-bounce_1s_ease-in-out_infinite_0.4s]"
+                                style={{ height: "10px", color: accentColor }}
+                              ></div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
+                          <div
+                            className={`text-[15px] font-medium truncate ${search.selectedIndex === idx ? "text-white" : nowPlaying ? "" : "text-white/90"}`}
+                            style={nowPlaying ? { color: accentColor } : {}}
+                          >
+                            {track.title}
+                          </div>
+                          <div
+                            className={`text-[13px] truncate ${search.selectedIndex === idx ? "text-white/70" : "text-white/40"}`}
+                          >
+                            {track.artist}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => handleMenuClick(e, track.id)}
+                            className={`track-menu w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
+                              menuTrackId === track.id
+                                ? "bg-white/20 text-white"
+                                : "text-white/40 hover:bg-white/10 hover:text-white/70"
+                            }`}
+                            title={t("search.moreOptions")}
+                          >
+                            <MoreVerticalIcon className="w-4 h-4" />
+                          </button>
+                          <span
+                            className={`
+                              text-[10px] font-bold px-1.5 py-0.5 rounded border
+                              ${search.selectedIndex === idx
+                                ? "border-white/30 text-white/80 bg-white/20"
+                                : "border-white/10 text-white/30 bg-white/5"
+                              }
+                            `}
+                          >
+                            YT
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {search.youtubeProvider.hasMore && (
+                    <div className="py-6 flex items-center justify-center">
+                      {search.youtubeProvider.isLoading ? (
+                        <div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin"></div>
+                      ) : (
+                        <div className="text-white/20 text-xs">{t("search.scrollForMore")}</div>
                       )}
                     </div>
                   )}
@@ -703,6 +906,21 @@ const SearchModal: React.FC<SearchModalProps> = ({
                   {t("search.addToQueue")}
                 </button>
               )}
+              {search.contextMenu.type === "youtube" && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addYouTubeToQueue(
+                      search.contextMenu!.track as YouTubeMusicSearchResult,
+                    );
+                    search.closeContextMenu();
+                  }}
+                  className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
+                >
+                  <PlusIcon className="w-4 h-4" />
+                  {t("search.addToQueue")}
+                </button>
+              )}
             </div>,
             document.body,
           )}
@@ -718,9 +936,15 @@ const SearchModal: React.FC<SearchModalProps> = ({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  const track = search.neteaseProvider.results.find(t => t.id === menuTrackId);
+                  const track = search.activeTab === "netease" 
+                    ? search.neteaseProvider.results.find(t => t.id === menuTrackId)
+                    : search.youtubeResults.find((t: YouTubeMusicSearchResult) => t.id === menuTrackId);
                   if (track) {
-                    playNeteaseTrack(track);
+                    if (search.activeTab === "netease") {
+                      playNeteaseTrack(track as NeteaseTrackInfo);
+                    } else {
+                      playYouTubeTrack(track as YouTubeMusicSearchResult);
+                    }
                     closeMenu();
                     onClose();
                   }
@@ -734,11 +958,17 @@ const SearchModal: React.FC<SearchModalProps> = ({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  const track = search.neteaseProvider.results.find(t => t.id === menuTrackId);
+                  const track = search.activeTab === "netease" 
+                    ? search.neteaseProvider.results.find(t => t.id === menuTrackId)
+                    : search.youtubeResults.find((t: YouTubeMusicSearchResult) => t.id === menuTrackId);
                   if (track) {
                     // TODO: Implement play next functionality
                     // For now, just add to queue
-                    addNeteaseToQueue(track);
+                    if (search.activeTab === "netease") {
+                      addNeteaseToQueue(track as NeteaseTrackInfo);
+                    } else {
+                      addYouTubeToQueue(track as YouTubeMusicSearchResult);
+                    }
                     closeMenu();
                   }
                 }}
@@ -751,9 +981,15 @@ const SearchModal: React.FC<SearchModalProps> = ({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  const track = search.neteaseProvider.results.find(t => t.id === menuTrackId);
+                  const track = search.activeTab === "netease" 
+                    ? search.neteaseProvider.results.find(t => t.id === menuTrackId)
+                    : search.youtubeResults.find((t: YouTubeMusicSearchResult) => t.id === menuTrackId);
                   if (track) {
-                    addNeteaseToQueue(track);
+                    if (search.activeTab === "netease") {
+                      addNeteaseToQueue(track as NeteaseTrackInfo);
+                    } else {
+                      addYouTubeToQueue(track as YouTubeMusicSearchResult);
+                    }
                     closeMenu();
                   }
                 }}
