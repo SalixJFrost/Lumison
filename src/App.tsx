@@ -375,7 +375,7 @@ const App: React.FC = () => {
         />
       </div>
     </div>
-  ), [playState, togglePlay, currentTime, duration, handleSeek, currentSong, audioRef, playNext, playPrev, playMode, toggleMode, accentColor, volume, player.speed, player.preservesPitch, handleSpeedChange, player.togglePreservesPitch, isBuffering, showVolumePopup, showSettingsPopup, visualizerEnabled, showPlaylist, playlist.queue, playIndex, handleImportUrl, playlist.removeSongs, handleFileChange]);
+  ), [playState, togglePlay, currentTime, duration, handleSeek, currentSong?.title, currentSong?.artist, currentSong?.id, currentSong?.coverUrl, t, audioRef, playNext, playPrev, playMode, toggleMode, accentColor, volume, player.speed, player.preservesPitch, handleSpeedChange, player.togglePreservesPitch, isBuffering, showVolumePopup, showSettingsPopup, visualizerEnabled, showPlaylist, playlist.queue, playIndex, handleImportUrl, playlist.removeSongs, handleFileChange]);
 
   const lyricsVersion = currentSong?.lyrics ? currentSong.lyrics.length : 0;
   const lyricsKey = currentSong ? `${currentSong.id}-${lyricsVersion}` : "no-song";

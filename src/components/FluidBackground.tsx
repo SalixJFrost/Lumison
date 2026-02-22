@@ -94,9 +94,18 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     }
     let cancelled = false;
     const generate = async () => {
-      // Optimize layer count based on device memory
+      // Optimize layer count based on device memory and performance
       const deviceMemory = (navigator as any).deviceMemory || 4;
-      const layerCount = deviceMemory < 4 ? 2 : deviceMemory < 8 ? 3 : 4;
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      
+      let layerCount = 4; // Default
+      if (prefersReducedMotion || deviceMemory < 2) {
+        layerCount = 1; // Minimal for accessibility/very low-end
+      } else if (deviceMemory < 4) {
+        layerCount = 2; // Low-end devices
+      } else if (deviceMemory < 8) {
+        layerCount = 3; // Mid-range devices
+      }
       
       const newLayers = await createFlowingLayers(normalizedColors, coverUrl, layerCount);
       if (cancelled) return;

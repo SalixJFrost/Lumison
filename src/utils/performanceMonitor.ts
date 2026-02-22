@@ -138,6 +138,8 @@ export const performanceMonitor = new PerformanceMonitor();
 export class MemoryManager {
   private static caches: Map<string, Map<string, any>> = new Map();
   private static maxCacheSize = 50;
+  private static lastCleanup = Date.now();
+  private static cleanupInterval = 2 * 60 * 1000; // 2 minutes
 
   /**
    * Create or get a cache with LRU eviction
@@ -162,6 +164,9 @@ export class MemoryManager {
     }
     
     cache.set(key, value);
+    
+    // Periodic cleanup
+    this.maybeCleanup();
   }
 
   /**
@@ -176,6 +181,26 @@ export class MemoryManager {
    */
   static clearAllCaches() {
     this.caches.forEach(cache => cache.clear());
+  }
+
+  /**
+   * Periodic cleanup of old caches
+   */
+  private static maybeCleanup() {
+    const now = Date.now();
+    if (now - this.lastCleanup > this.cleanupInterval) {
+      this.lastCleanup = now;
+      
+      // Clear caches that are too large
+      this.caches.forEach((cache, name) => {
+        if (cache.size > this.maxCacheSize * 2) {
+          console.warn(`Cache ${name} exceeded size limit, clearing...`);
+          cache.clear();
+        }
+      });
+      
+      this.requestGC();
+    }
   }
 
   /**
@@ -207,6 +232,35 @@ export class MemoryManager {
     }
     return null;
   }
+
+  /**
+   * Check if memory pressure is high
+   */
+  static isMemoryPressureHigh(): boolean {
+    const usage = this.getMemoryUsage();
+    return usage ? usage.percentage > 80 : false;
+  }
+
+  /**
+   * Optimize memory usage by clearing unnecessary caches
+   */
+  static optimizeMemory() {
+    if (this.isMemoryPressureHigh()) {
+      console.warn('High memory pressure detected, optimizing...');
+      
+      // Clear half of each cache
+      this.caches.forEach((cache) => {
+        const entries = Array.from(cache.entries());
+        const keepCount = Math.floor(entries.length / 2);
+        cache.clear();
+        entries.slice(-keepCount).forEach(([key, value]) => {
+          cache.set(key, value);
+        });
+      });
+      
+      this.requestGC();
+    }
+  }
 }
 
 /**
@@ -215,7 +269,7 @@ export class MemoryManager {
 export class AudioPerformanceOptimizer {
   private static audioContext: AudioContext | null = null;
   private static audioElements: Set<HTMLAudioElement> = new Set();
-  private static maxAudioElements = 3;
+  private static maxAudioElements = 2; // Reduced from 3
 
   /**
    * Get or create shared AudioContext
@@ -263,20 +317,32 @@ export class AudioPerformanceOptimizer {
       element.load();
     });
     this.audioElements.clear();
+    
+    // Close audio context if not in use
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      this.audioContext.close().catch(() => {});
+      this.audioContext = null;
+    }
   }
 
   /**
    * Optimize audio element settings
    */
   static optimizeAudioElement(element: HTMLAudioElement) {
-    // Set optimal preload strategy
-    element.preload = 'metadata';
+    // Set optimal preload strategy based on connection
+    const connectionQuality = NetworkOptimizer.getConnectionQuality();
+    element.preload = connectionQuality === 'fast' ? 'auto' : 'metadata';
     
     // Enable hardware acceleration hints
     element.setAttribute('playsinline', 'true');
     
     // Disable unnecessary features
     element.controls = false;
+    
+    // Set crossOrigin for CORS support
+    if (!element.crossOrigin) {
+      element.crossOrigin = 'anonymous';
+    }
   }
 
   /**
@@ -287,6 +353,24 @@ export class AudioPerformanceOptimizer {
       return this.audioContext.baseLatency * 1000; // Convert to ms
     }
     return 0;
+  }
+
+  /**
+   * Suspend audio context to save resources
+   */
+  static async suspendAudioContext() {
+    if (this.audioContext && this.audioContext.state === 'running') {
+      await this.audioContext.suspend();
+    }
+  }
+
+  /**
+   * Resume audio context
+   */
+  static async resumeAudioContext() {
+    if (this.audioContext && this.audioContext.state === 'suspended') {
+      await this.audioContext.resume();
+    }
   }
 }
 

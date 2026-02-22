@@ -74,17 +74,17 @@ export const PERFORMANCE_CONFIG = {
   // Memory management
   memory: {
     // Maximum number of audio elements to keep in memory
-    maxAudioElements: 3, // Reduced from 5 for better memory usage
+    maxAudioElements: 2, // Reduced from 3 for better memory usage
     // Maximum number of canvas contexts
-    maxCanvasContexts: 6, // Reduced from 10
+    maxCanvasContexts: 4, // Reduced from 6
     // Cleanup interval (ms)
-    cleanupInterval: 3 * 60 * 1000, // 3 minutes (more frequent cleanup)
+    cleanupInterval: 2 * 60 * 1000, // 2 minutes (more frequent cleanup)
     // Enable aggressive garbage collection hints
     enableGCHints: true,
     // Maximum image cache size
-    maxImageCache: 10, // Limit to 10 images
+    maxImageCache: 8, // Reduced from 10
     // Maximum image memory (MB)
-    maxImageMemory: 50,
+    maxImageMemory: 40, // Reduced from 50
   },
   
   // Canvas optimization
@@ -94,7 +94,9 @@ export const PERFORMANCE_CONFIG = {
     // Use adaptive pixel ratio based on device memory
     adaptivePixelRatio: true,
     // Maximum canvas size (pixels)
-    maxCanvasSize: 4096,
+    maxCanvasSize: 3840, // Reduced from 4096
+    // Enable canvas context pooling
+    enableContextPooling: true,
   },
   
   // Audio-specific optimizations
@@ -195,12 +197,17 @@ export const getOptimalPixelRatio = (): number => {
  */
 export const getOptimalLayerCount = (isMobile: boolean): number => {
   const deviceMemory = (navigator as any).deviceMemory || 4;
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   
-  if (isMobile) {
-    return deviceMemory < 4 ? 2 : 3;
+  if (prefersReducedMotion) {
+    return 1; // Minimal for accessibility
   }
   
-  return deviceMemory < 4 ? 2 : deviceMemory < 8 ? 3 : 4;
+  if (isMobile) {
+    return deviceMemory < 2 ? 1 : deviceMemory < 4 ? 2 : 3;
+  }
+  
+  return deviceMemory < 2 ? 1 : deviceMemory < 4 ? 2 : deviceMemory < 8 ? 3 : 4;
 };
 
 /**
@@ -208,5 +215,32 @@ export const getOptimalLayerCount = (isMobile: boolean): number => {
  */
 export const shouldEnableVisualizer = (): boolean => {
   const deviceMemory = (navigator as any).deviceMemory || 4;
-  return deviceMemory >= 4;
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return deviceMemory >= 4 && !prefersReducedMotion;
+};
+
+/**
+ * Get optimal canvas pixel ratio
+ */
+export const getOptimalCanvasPixelRatio = (): number => {
+  const devicePixelRatio = window.devicePixelRatio || 1;
+  const deviceMemory = (navigator as any).deviceMemory || 4;
+  
+  // Very low memory: use 1x
+  if (deviceMemory < 2) {
+    return 1;
+  }
+  
+  // Low memory: cap at 1x
+  if (deviceMemory < 4) {
+    return Math.min(devicePixelRatio, 1);
+  }
+  
+  // Medium memory: cap at 1.5x
+  if (deviceMemory < 8) {
+    return Math.min(devicePixelRatio, 1.5);
+  }
+  
+  // High memory: cap at 2x
+  return Math.min(devicePixelRatio, PERFORMANCE_CONFIG.canvas.maxPixelRatio);
 };

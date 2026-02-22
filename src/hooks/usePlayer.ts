@@ -597,8 +597,8 @@ export const usePlayer = ({
     const targetSpeed = speed;
     const targetPreservesPitch = preservesPitch;
     
-    // For high speed changes (>2x), apply immediately for better responsiveness
-    if (Math.abs(targetSpeed - audio.playbackRate) > 0.5 || targetSpeed > 2) {
+    // For high speed changes (>0.3 difference), apply immediately for better responsiveness
+    if (Math.abs(targetSpeed - audio.playbackRate) > 0.3) {
       audio.preservesPitch = targetPreservesPitch;
       audio.playbackRate = targetSpeed;
       return;
@@ -618,8 +618,8 @@ export const usePlayer = ({
         return;
       }
       
-      // Smooth interpolation
-      audio.playbackRate = currentRate + diff * 0.15;
+      // Smooth interpolation with faster convergence
+      audio.playbackRate = currentRate + diff * 0.25;
       audio.preservesPitch = targetPreservesPitch;
       animationId = requestAnimationFrame(smoothTransition);
     };

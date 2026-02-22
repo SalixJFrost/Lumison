@@ -40,7 +40,7 @@ const Visualizer: React.FC<VisualizerProps> = ({ audioRef, isPlaying, spatialEng
         };
     }, [isPlaying, spatialEngine]);
 
-    // Effect 2: Canvas Rendering
+    // Effect 2: Canvas Rendering with optimizations
     useEffect(() => {
         if (!isPlaying || !analyserRef.current) {
             if (animationFrameRef.current) {
@@ -53,18 +53,37 @@ const Visualizer: React.FC<VisualizerProps> = ({ audioRef, isPlaying, spatialEng
         const canvasEl = canvasRef.current;
         if (!canvasEl) return;
 
-        const ctx = canvasEl.getContext('2d');
+        const ctx = canvasEl.getContext('2d', { 
+            alpha: true,
+            desynchronized: true, // Better performance for animations
+            willReadFrequently: false
+        });
         if (!ctx) return;
 
         const analyser = analyserRef.current;
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
 
-        const barCount = 64;
+        // Reduce bar count on low-end devices
+        const deviceMemory = (navigator as any).deviceMemory || 4;
+        const barCount = deviceMemory < 4 ? 32 : 64;
         const bars = new Array(barCount).fill(0);
 
-        const draw = () => {
+        // Throttle rendering to 30fps on low-end devices
+        const targetFPS = deviceMemory < 4 ? 30 : 60;
+        const frameInterval = 1000 / targetFPS;
+        let lastFrameTime = performance.now();
+
+        const draw = (currentTime: number) => {
             if (!isPlaying || !analyserRef.current) return;
+
+            // Throttle frame rate
+            const elapsed = currentTime - lastFrameTime;
+            if (elapsed < frameInterval) {
+                animationFrameRef.current = requestAnimationFrame(draw);
+                return;
+            }
+            lastFrameTime = currentTime - (elapsed % frameInterval);
 
             analyser.getByteFrequencyData(dataArray);
 
@@ -93,23 +112,23 @@ const Visualizer: React.FC<VisualizerProps> = ({ audioRef, isPlaying, spatialEng
                 bars[i] += (targetHeight - bars[i]) * 0.35;
             }
 
-            // Draw bars
+            // Batch draw operations for better performance
             ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
             for (let i = 0; i < barCount; i++) {
                 const barHeight = Math.min(bars[i], height);
                 const x = i * barWidth;
                 const y = height - barHeight;
                 const radius = barWidth / 3;
 
-                ctx.beginPath();
                 ctx.roundRect(x + 1, y, barWidth - 2, barHeight, radius);
-                ctx.fill();
             }
+            ctx.fill();
 
             animationFrameRef.current = requestAnimationFrame(draw);
         };
 
-        draw();
+        animationFrameRef.current = requestAnimationFrame(draw);
 
         return () => {
             if (animationFrameRef.current) {
