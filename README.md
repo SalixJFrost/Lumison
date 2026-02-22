@@ -178,9 +178,13 @@ Desktop version includes auto-update functionality:
 
 ## 📚 Documentation
 
-- [Development Guide](docs/DEVELOPMENT.md) - Development setup and contribution guide
-- [User Guide](docs/GUIDE.md) - Feature descriptions and usage tips
-- [Release Guide](RELEASE.md) - How to publish new versions
+- **[User Guide](docs/GUIDE.md)** - Feature descriptions and usage tips
+- **[Development Guide](docs/DEVELOPMENT.md)** - Development setup and contribution guide
+- **[Project Structure](docs/PROJECT_STRUCTURE.md)** - Detailed project organization
+- **[Release Guide](docs/RELEASE_GUIDE.md)** - How to publish new versions
+- **[Contributing](CONTRIBUTING.md)** - How to contribute to the project
+
+For a complete documentation index, see [docs/README.md](docs/README.md).
 
 ## 🤝 Contributing
 

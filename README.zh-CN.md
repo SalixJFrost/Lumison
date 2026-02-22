@@ -191,9 +191,13 @@ Lumison 支持深色和浅色主题，会根据专辑封面自动提取主题色
 
 ## 📖 文档
 
-- [开发指南](docs/DEVELOPMENT.md) - 开发环境设置和贡献指南
-- [用户指南](docs/GUIDE.md) - 功能说明和使用技巧
-- [发布指南](RELEASE.md) - 如何发布新版本
+- **[用户指南](docs/GUIDE.md)** - 功能说明和使用技巧
+- **[开发指南](docs/DEVELOPMENT.md)** - 开发环境设置和贡献指南
+- **[项目结构](docs/PROJECT_STRUCTURE.md)** - 详细的项目组织
+- **[发布指南](docs/RELEASE_GUIDE.md)** - 如何发布新版本
+- **[贡献指南](CONTRIBUTING.md)** - 如何为项目做贡献
+
+完整的文档索引请查看 [docs/README.md](docs/README.md)。
 
 ## 🤝 贡献
 
