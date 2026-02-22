@@ -2,26 +2,24 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    tauri::Builder::default()
+    lumison_lib::AppBuilder::new()
         .setup(|app| {
             #[cfg(debug_assertions)]
             {
                 let window = app.get_webview_window("main").unwrap();
                 window.open_devtools();
             }
+            
+            // Desktop-specific plugins
+            #[cfg(desktop)]
+            {
+                use tauri_plugin_updater::UpdaterExt;
+                app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
+            }
+            
             Ok(())
         })
-        .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init())
-        // Future extension point: Register Tauri commands here
-        // Example:
-        // .invoke_handler(tauri::generate_handler![
-        //     capture_system_audio,
-        //     create_exhibition_window,
-        //     get_display_info,
-        // ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .run();
 }
 
 // ============================================================================
