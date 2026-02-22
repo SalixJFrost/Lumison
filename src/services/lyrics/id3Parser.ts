@@ -10,6 +10,9 @@
 import { LyricLine } from './types';
 import { parseLyrics } from './index';
 
+// Import jsmediatags statically for better bundling
+import * as jsmediatags from 'jsmediatags';
+
 /**
  * Extract lyrics from audio file metadata
  * Uses jsmediatags library for ID3 parsing
@@ -18,9 +21,6 @@ export const extractEmbeddedLyrics = async (
   file: File
 ): Promise<{ lyrics: LyricLine[]; source: 'id3' | 'flac' | 'none' }> => {
   try {
-    // Dynamic import to avoid bundling if not used
-    const jsmediatags = await import('jsmediatags');
-
     return new Promise((resolve) => {
       jsmediatags.read(file, {
         onSuccess: (tag: any) => {
@@ -105,7 +105,7 @@ export const extractEmbeddedLyrics = async (
       });
     });
   } catch (error) {
-    console.warn('jsmediatags not available:', error);
+    console.warn('jsmediatags error:', error);
     return { lyrics: [], source: 'none' };
   }
 };

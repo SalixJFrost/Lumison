@@ -62,11 +62,36 @@ export default defineConfig(({ mode }) => {
       },
     },
     
+    // Optimize dependencies
+    optimizeDeps: {
+      include: ['jsmediatags'],
+      esbuildOptions: {
+        // Ensure jsmediatags is bundled correctly
+        mainFields: ['module', 'main'],
+      },
+    },
+    
+    // Handle SSR externals
+    ssr: {
+      noExternal: ['jsmediatags'],
+    },
+    
     // Optimize for desktop builds
     build: {
       target: isTauri ? 'esnext' : 'es2015',
       minify: mode === 'production',
       sourcemap: mode === 'development',
+      commonjsOptions: {
+        include: [/jsmediatags/, /node_modules/],
+        transformMixedEsModules: true,
+      },
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'jsmediatags': ['jsmediatags'],
+          },
+        },
+      },
     },
   };
 });
