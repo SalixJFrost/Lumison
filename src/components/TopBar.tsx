@@ -21,16 +21,14 @@ interface TopBarProps {
   onSearchClick?: () => void;
   visualizerEnabled: boolean;
   onVisualizerToggle: (enabled: boolean) => void;
-  fadeInEnabled: boolean;
-  onFadeInToggle: (enabled: boolean) => void;
-  fadeOutEnabled: boolean;
-  onFadeOutToggle: (enabled: boolean) => void;
   gaplessEnabled: boolean;
   onGaplessToggle: (enabled: boolean) => void;
+  viewMode?: 'default' | 'album';
+  onViewModeChange?: (mode: 'default' | 'album') => void;
 }
 
 // 常量提取到组件外部
-const TOPBAR_HIDE_DELAY = 15000; // 延长到15秒，让TopBar显示更久
+const TOPBAR_HIDE_DELAY = 20000; // 延长到20秒，让TopBar显示更久
 const SLIDER_CONFIG = {
   min: 24,
   max: 80,
@@ -51,12 +49,10 @@ const TopBar: React.FC<TopBarProps> = ({
   onSearchClick,
   visualizerEnabled,
   onVisualizerToggle,
-  fadeInEnabled,
-  onFadeInToggle,
-  fadeOutEnabled,
-  onFadeOutToggle,
   gaplessEnabled,
   onGaplessToggle,
+  viewMode = 'default',
+  onViewModeChange,
 }) => {
   const { theme, toggleTheme } = useTheme();
   const { t } = useI18n();
@@ -67,6 +63,7 @@ const TopBar: React.FC<TopBarProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const [isTopBarActive, setIsTopBarActive] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settingsContainerRef = useRef<HTMLDivElement>(null);
   const labContainerRef = useRef<HTMLDivElement>(null);
@@ -91,14 +88,14 @@ const TopBar: React.FC<TopBarProps> = ({
     }
     setIsTopBarActive(true);
     
-    // 只在全屏模式下才设置自动隐藏
-    if (isFullscreen) {
+    // 在全屏模式或专辑模式下设置自动隐藏
+    if (isFullscreen || viewMode === 'album') {
       hideTimeoutRef.current = setTimeout(() => {
         setIsTopBarActive(false);
         hideTimeoutRef.current = null;
       }, TOPBAR_HIDE_DELAY);
     }
-  }, [isFullscreen]);
+  }, [isFullscreen, viewMode]);
 
   const handleSearchClick = useCallback(() => {
     onSearchClick?.();
@@ -157,6 +154,21 @@ const TopBar: React.FC<TopBarProps> = ({
     }
   }, []);
 
+  // 监听鼠标移动，当鼠标在顶部区域时显示TopBar
+  useEffect(() => {
+    if (!isFullscreen && viewMode !== 'album') return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      // 当鼠标在顶部100px区域时显示TopBar
+      if (e.clientY < 100) {
+        activateTopBar();
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [isFullscreen, viewMode, activateTopBar]);
+
   const handlePointerDownCapture = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType !== "touch") {
       return;
@@ -175,6 +187,26 @@ const TopBar: React.FC<TopBarProps> = ({
   const handleAboutClick = useCallback(() => {
     setIsAboutOpen(true);
     setIsSettingsOpen(false);
+  }, []);
+
+  const handleCheckUpdate = useCallback(async () => {
+    setIsCheckingUpdate(true);
+    try {
+      const { UpdateService } = await import('../services/updateService');
+      const updateInfo = await UpdateService.checkForUpdates();
+      
+      if (updateInfo.available) {
+        // 显示更新通知
+        alert(`发现新版本 ${updateInfo.latestVersion}\n\n${updateInfo.body || ''}`);
+      } else {
+        alert('当前已是最新版本');
+      }
+    } catch (error) {
+      console.error('检查更新失败:', error);
+      alert('检查更新失败，请稍后重试');
+    } finally {
+      setIsCheckingUpdate(false);
+    }
   }, []);
 
   // Fullscreen change listener
@@ -199,6 +231,25 @@ const TopBar: React.FC<TopBarProps> = ({
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
   }, []);
+
+  // View mode change listener - hide TopBar when entering album mode
+  useEffect(() => {
+    if (viewMode === 'album') {
+      // 进入专辑模式时，立即隐藏TopBar
+      setIsTopBarActive(false);
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+        hideTimeoutRef.current = null;
+      }
+    } else {
+      // 退出专辑模式时，显示TopBar
+      setIsTopBarActive(true);
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+        hideTimeoutRef.current = null;
+      }
+    }
+  }, [viewMode]);
 
   // Check if window is maximized on mount (for Tauri)
   useEffect(() => {
@@ -260,18 +311,18 @@ const TopBar: React.FC<TopBarProps> = ({
 
   // 使用 useMemo 缓存样式类
   const transitionClasses = useMemo(() => {
-    // 非全屏模式：始终显示
-    // 全屏模式：根据 isTopBarActive 状态显示/隐藏
-    const shouldShow = !isFullscreen || isTopBarActive;
+    // 非全屏且非专辑模式：始终显示
+    // 全屏模式或专辑模式：根据 isTopBarActive 状态显示/隐藏
+    const shouldShow = (!isFullscreen && viewMode !== 'album') || isTopBarActive;
     
     return {
       base: "transition-all duration-500 ease-out",
       mobileActive: shouldShow
         ? "opacity-100 translate-y-0 pointer-events-auto"
         : "opacity-0 -translate-y-2 pointer-events-none",
-      hoverSupport: isFullscreen ? "group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto" : "",
+      hoverSupport: "", // 移除 group-hover，完全依赖定时器控制
     };
-  }, [isTopBarActive, isFullscreen]);
+  }, [isTopBarActive, isFullscreen, viewMode]);
 
   // 歌词效果按钮配置 - 移除无效果，添加新效果
   const lyricsEffects = useMemo(() => [
@@ -292,12 +343,13 @@ const TopBar: React.FC<TopBarProps> = ({
     <div
       className="fixed top-0 left-0 w-full h-14 z-[60] group"
       onPointerDownCapture={handlePointerDownCapture}
+      onMouseEnter={activateTopBar}
     >
       {/* Blur Background Layer */}
       <div
         className={`absolute inset-0 bg-white/5 backdrop-blur-2xl transition-all duration-500 ${
-          !isFullscreen || isTopBarActive ? "opacity-100" : "opacity-0"
-        } ${isFullscreen ? "group-hover:opacity-100" : ""}`}
+          (!isFullscreen && viewMode !== 'album') || isTopBarActive ? "opacity-100" : "opacity-0"
+        }`}
         data-tauri-drag-region
       />
 
@@ -385,8 +437,56 @@ const TopBar: React.FC<TopBarProps> = ({
                     <ThemeIcon className="w-4 h-4 transition-transform duration-500 hover:rotate-180" />
                   </button>
 
+                  {/* View Mode Toggle */}
+                  {onViewModeChange && (
+                    <div className="space-y-2">
+                      <label className="text-white/70 text-xs">{t("viewMode.label") || "视图模式"}</label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => onViewModeChange('default')}
+                          className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 ease-out hover:scale-105 active:scale-95 ${
+                            viewMode === 'default'
+                              ? 'bg-white/20 text-white border border-white/20 shadow-lg'
+                              : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
+                          }`}
+                        >
+                          {t("viewMode.default") || "默认"}
+                        </button>
+                        <button
+                          onClick={() => onViewModeChange('album')}
+                          className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 ease-out hover:scale-105 active:scale-95 ${
+                            viewMode === 'album'
+                              ? 'bg-white/20 text-white border border-white/20 shadow-lg'
+                              : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
+                          }`}
+                        >
+                          {t("viewMode.album") || "专辑"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Language Switcher */}
                   <LanguageSwitcher variant="settings" />
+
+                  {/* Check Update Button */}
+                  <button
+                    onClick={handleCheckUpdate}
+                    disabled={isCheckingUpdate}
+                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="text-sm">{t("topBar.checkUpdate") || "检查更新"}</span>
+                    {isCheckingUpdate ? (
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    )}
+                  </button>
 
                   {/* About Button */}
                   <button
@@ -474,42 +574,6 @@ const TopBar: React.FC<TopBarProps> = ({
                   <div className="space-y-2">
                     <label className="text-white/70 text-xs">{t("audioTransition.label") || "音频过渡"}</label>
                     <div className="space-y-2">
-                      {/* Fade In */}
-                      <button
-                        onClick={() => onFadeInToggle(!fadeInEnabled)}
-                        className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] ${
-                          fadeInEnabled
-                            ? 'bg-white/20 text-white border border-white/20 shadow-lg'
-                            : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
-                        }`}
-                        aria-pressed={fadeInEnabled}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span>{t("audioTransition.fadeIn") || "淡入"}</span>
-                          <span className="text-xs opacity-60">
-                            {fadeInEnabled ? '✓' : '○'}
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* Fade Out */}
-                      <button
-                        onClick={() => onFadeOutToggle(!fadeOutEnabled)}
-                        className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] ${
-                          fadeOutEnabled
-                            ? 'bg-white/20 text-white border border-white/20 shadow-lg'
-                            : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
-                        }`}
-                        aria-pressed={fadeOutEnabled}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span>{t("audioTransition.fadeOut") || "淡出"}</span>
-                          <span className="text-xs opacity-60">
-                            {fadeOutEnabled ? '✓' : '○'}
-                          </span>
-                        </div>
-                      </button>
-
                       {/* Gapless Playback */}
                       <button
                         onClick={() => onGaplessToggle(!gaplessEnabled)}

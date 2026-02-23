@@ -7,7 +7,7 @@ import {
   getNeteaseAudioUrl,
   NeteaseTrackInfo,
 } from "../services/music/lyricsService";
-import { YouTubeMusicSearchResult } from "../hooks/useYouTubeMusicSearchProvider";
+import { StreamingTrack, StreamingPlatform } from "../services/streaming/types";
 import { useKeyboardScope } from "../hooks/useKeyboardScope";
 import { useSearchModal } from "../hooks/useSearchModal";
 import { useI18n } from "../contexts/I18nContext";
@@ -185,10 +185,6 @@ const SearchModal: React.FC<SearchModalProps> = ({
           e.preventDefault();
           if (search.selectedIndex >= 0) {
             handleSelection(search.selectedIndex);
-          } else if (search.activeTab === "netease" && search.query.trim()) {
-            search.performNeteaseSearch();
-          } else if (search.activeTab === "youtube" && search.query.trim()) {
-            search.performYouTubeSearch();
           }
           return true;
         }
@@ -224,10 +220,10 @@ const SearchModal: React.FC<SearchModalProps> = ({
         playNeteaseTrack(track);
         onClose();
       }
-    } else if (search.activeTab === "youtube") {
-      const track = search.youtubeResults[index];
+    } else if (search.activeTab === "archive") {
+      const track = search.archiveProvider.results[index];
       if (track) {
-        playYouTubeTrack(track);
+        playArchiveTrack(track);
         onClose();
       }
     }
@@ -265,43 +261,39 @@ const SearchModal: React.FC<SearchModalProps> = ({
     onAddToQueue(song);
   };
 
-  const playYouTubeTrack = (track: YouTubeMusicSearchResult) => {
+  const playArchiveTrack = (track: StreamingTrack) => {
     const song: Song = {
       id: track.id,
       title: track.title,
       artist: track.artist,
-      coverUrl: track.coverUrl,
-      fileUrl: track.fileUrl,
-      isYouTube: true,
-      youtubeId: track.youtubeId,
-      album: track.album,
+      coverUrl: track.coverUrl || "",
+      fileUrl: track.url,
+      isAudioStream: true,
+      audioStreamSource: 'internet-archive',
+      album: "",
       lyrics: [],
-      needsLyricsMatch: true,
-      duration: track.duration,
-      viewCount: track.viewCount,
-      channelTitle: track.channelTitle,
+      needsLyricsMatch: false,
     };
     onImportAndPlay(song);
   };
 
-  const addYouTubeToQueue = (track: YouTubeMusicSearchResult) => {
+  const addArchiveToQueue = (track: StreamingTrack) => {
     const song: Song = {
       id: track.id,
       title: track.title,
       artist: track.artist,
-      coverUrl: track.coverUrl,
-      fileUrl: track.fileUrl,
-      isYouTube: true,
-      youtubeId: track.youtubeId,
-      album: track.album,
+      coverUrl: track.coverUrl || "",
+      fileUrl: track.url,
+      isAudioStream: true,
+      audioStreamSource: 'internet-archive',
+      album: "",
       lyrics: [],
-      needsLyricsMatch: true,
-      duration: track.duration,
-      viewCount: track.viewCount,
-      channelTitle: track.channelTitle,
+      needsLyricsMatch: false,
     };
     onAddToQueue(song);
   };
+
+
 
   const handleMenuClick = (e: React.MouseEvent, trackId: string) => {
     e.stopPropagation();
@@ -364,7 +356,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
             <div
               className="absolute top-1 bottom-1 rounded-[6px] bg-white/15 shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
               style={{
-                left: search.activeTab === "queue" ? "4px" : search.activeTab === "netease" ? "calc(33.33% + 2px)" : "calc(66.66%)",
+                left: search.activeTab === "queue" ? "4px" : search.activeTab === "netease" ? "calc(33.33% + 2px)" : "calc(66.66% + 2px)",
                 width: "calc(33.33% - 4px)",
               }}
             />
@@ -393,14 +385,14 @@ const SearchModal: React.FC<SearchModalProps> = ({
             </button>
             <button
               onClick={() => {
-                search.setActiveTab("youtube");
+                search.setActiveTab("archive");
               }}
               className={`
                         relative flex-1 py-1.5 text-[13px] font-medium transition-colors duration-200 z-10
-                        ${search.activeTab === "youtube" ? "text-white" : "text-white/50 hover:text-white/70"}
+                        ${search.activeTab === "archive" ? "text-white" : "text-white/50 hover:text-white/70"}
                     `}
             >
-              {t("search.youtube")}
+              {t("search.archive")}
             </button>
           </div>
 
@@ -547,20 +539,6 @@ const SearchModal: React.FC<SearchModalProps> = ({
           {/* Netease Results */}
           {search.activeTab === "netease" && (
             <div className="relative flex flex-col gap-1 pb-4">
-              {/* Prompt to press Enter */}
-              {search.showNeteasePrompt && (
-                <div className="flex flex-col items-center justify-center h-64 text-white/30">
-                  <SearchIcon className="w-12 h-12 mb-4 opacity-20" />
-                  <span className="text-base font-medium">
-                    {t("shortcuts.pressEsc")}{" "}
-                    <kbd className="px-2 py-1 bg-white/10 rounded text-white/60">
-                      Enter
-                    </kbd>{" "}
-                    {t("search.pressEnterToSearch")}
-                  </span>
-                </div>
-              )}
-
               {/* No results after search */}
               {search.showNeteaseEmpty && (
                 <div className="flex flex-col items-center justify-center h-64 text-white/20">
@@ -716,40 +694,28 @@ const SearchModal: React.FC<SearchModalProps> = ({
             </div>
           )}
 
-          {/* YouTube Results */}
-          {search.activeTab === "youtube" && (
+          {/* Internet Archive Results */}
+          {search.activeTab === "archive" && (
             <div className="relative flex flex-col gap-1 pb-4">
-              {search.showYouTubePrompt && (
-                <div className="flex flex-col items-center justify-center h-64 text-white/30">
-                  <SearchIcon className="w-12 h-12 mb-4 opacity-20" />
-                  <span className="text-base font-medium">
-                    {t("shortcuts.pressEsc")}{" "}
-                    <kbd className="px-2 py-1 bg-white/10 rounded text-white/60">
-                      Enter
-                    </kbd>{" "}
-                    {t("search.pressEnterToSearch")}
-                  </span>
-                </div>
-              )}
-              {search.showYouTubeEmpty && (
+              {search.showArchiveEmpty && (
                 <div className="flex flex-col items-center justify-center h-64 text-white/20">
                   <SearchIcon className="w-12 h-12 mb-4 opacity-20" />
                   <span className="text-base font-medium">{t("search.noMatchesFound")}</span>
                 </div>
               )}
-              {search.showYouTubeLoading && (
+              {search.showArchiveLoading && (
                 <div className="flex flex-col items-center justify-center h-64 text-white/20">
                   <div className="w-8 h-8 border-2 border-white/20 border-t-white/60 rounded-full animate-spin mb-4"></div>
                   <span className="text-base font-medium">{t("search.searching")}</span>
                 </div>
               )}
-              {search.showYouTubeInitial && (
+              {search.showArchiveInitial && (
                 <div className="flex flex-col items-center justify-center h-64 text-white/20">
                   <SearchIcon className="w-12 h-12 mb-4 opacity-20" />
-                  <span className="text-base font-medium">{t("search.searchYouTubeMusic")}</span>
+                  <span className="text-base font-medium">{t("search.searchInternetArchive")}</span>
                 </div>
               )}
-              {search.youtubeResults.length > 0 && (
+              {search.archiveProvider.results.length > 0 && (
                 <>
                   {search.selectedIndex >= 0 && search.itemRefs.current[search.selectedIndex] && (
                     <div
@@ -761,7 +727,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
                       }}
                     />
                   )}
-                  {search.youtubeResults.map((track: YouTubeMusicSearchResult, idx: number) => {
+                  {search.archiveProvider.results.map((track, idx) => {
                     const nowPlaying = search.isNowPlaying(track);
                     return (
                       <div
@@ -770,7 +736,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
                           search.itemRefs.current[idx] = el;
                         }}
                         onClick={() => handleSelection(idx)}
-                        onContextMenu={(e) => search.openContextMenu(e, track, "youtube")}
+                        onContextMenu={(e) => search.openContextMenu(e, track, "archive")}
                         className={`
                           relative z-10 group flex items-center gap-3 p-3 rounded-[10px] cursor-pointer
                           ${search.selectedIndex === idx ? "text-white" : "hover:bg-white/5 hover:transition-colors hover:duration-150 text-white/90"}
@@ -841,25 +807,17 @@ const SearchModal: React.FC<SearchModalProps> = ({
                               }
                             `}
                           >
-                            YT
+                            IA
                           </span>
                         </div>
                       </div>
                     );
                   })}
-                  {search.youtubeProvider.hasMore && (
-                    <div className="py-6 flex items-center justify-center">
-                      {search.youtubeProvider.isLoading ? (
-                        <div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin"></div>
-                      ) : (
-                        <div className="text-white/20 text-xs">{t("search.scrollForMore")}</div>
-                      )}
-                    </div>
-                  )}
                 </>
               )}
             </div>
           )}
+
         </div>
 
         {/* Context Menu Portal */}
@@ -877,9 +835,13 @@ const SearchModal: React.FC<SearchModalProps> = ({
                     const qItem = search.contextMenu!.track as Song;
                     const idx = queue.findIndex((s) => s.id === qItem.id);
                     onPlayQueueIndex(idx);
-                  } else {
+                  } else if (search.contextMenu!.type === "netease") {
                     playNeteaseTrack(
                       search.contextMenu!.track as NeteaseTrackInfo,
+                    );
+                  } else if (search.contextMenu!.type === "archive") {
+                    playArchiveTrack(
+                      search.contextMenu!.track as StreamingTrack,
                     );
                   }
                   search.closeContextMenu();
@@ -906,12 +868,12 @@ const SearchModal: React.FC<SearchModalProps> = ({
                   {t("search.addToQueue")}
                 </button>
               )}
-              {search.contextMenu.type === "youtube" && (
+              {search.contextMenu.type === "archive" && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    addYouTubeToQueue(
-                      search.contextMenu!.track as YouTubeMusicSearchResult,
+                    addArchiveToQueue(
+                      search.contextMenu!.track as StreamingTrack,
                     );
                     search.closeContextMenu();
                   }}
@@ -921,6 +883,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
                   {t("search.addToQueue")}
                 </button>
               )}
+
             </div>,
             document.body,
           )}
@@ -938,12 +901,12 @@ const SearchModal: React.FC<SearchModalProps> = ({
                   e.stopPropagation();
                   const track = search.activeTab === "netease" 
                     ? search.neteaseProvider.results.find(t => t.id === menuTrackId)
-                    : search.youtubeResults.find((t: YouTubeMusicSearchResult) => t.id === menuTrackId);
+                    : search.archiveProvider.results.find(t => t.id === menuTrackId);
                   if (track) {
                     if (search.activeTab === "netease") {
                       playNeteaseTrack(track as NeteaseTrackInfo);
                     } else {
-                      playYouTubeTrack(track as YouTubeMusicSearchResult);
+                      playArchiveTrack(track as StreamingTrack);
                     }
                     closeMenu();
                     onClose();
@@ -960,14 +923,14 @@ const SearchModal: React.FC<SearchModalProps> = ({
                   e.stopPropagation();
                   const track = search.activeTab === "netease" 
                     ? search.neteaseProvider.results.find(t => t.id === menuTrackId)
-                    : search.youtubeResults.find((t: YouTubeMusicSearchResult) => t.id === menuTrackId);
+                    : search.archiveProvider.results.find(t => t.id === menuTrackId);
                   if (track) {
                     // TODO: Implement play next functionality
                     // For now, just add to queue
                     if (search.activeTab === "netease") {
                       addNeteaseToQueue(track as NeteaseTrackInfo);
                     } else {
-                      addYouTubeToQueue(track as YouTubeMusicSearchResult);
+                      addArchiveToQueue(track as StreamingTrack);
                     }
                     closeMenu();
                   }
@@ -983,12 +946,12 @@ const SearchModal: React.FC<SearchModalProps> = ({
                   e.stopPropagation();
                   const track = search.activeTab === "netease" 
                     ? search.neteaseProvider.results.find(t => t.id === menuTrackId)
-                    : search.youtubeResults.find((t: YouTubeMusicSearchResult) => t.id === menuTrackId);
+                    : search.archiveProvider.results.find(t => t.id === menuTrackId);
                   if (track) {
                     if (search.activeTab === "netease") {
                       addNeteaseToQueue(track as NeteaseTrackInfo);
                     } else {
-                      addYouTubeToQueue(track as YouTubeMusicSearchResult);
+                      addArchiveToQueue(track as StreamingTrack);
                     }
                     closeMenu();
                   }

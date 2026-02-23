@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSpring, animated } from "@react-spring/web";
 import { useI18n } from "../contexts/I18nContext";
+import { FastForwardIcon } from "./Icons";
 
 interface SpeedIndicatorProps {
   speed: number;
@@ -28,13 +29,6 @@ const SpeedIndicator: React.FC<SpeedIndicatorProps> = ({ speed, show }) => {
 
   if (!isVisible) return null;
 
-  const getSpeedColor = () => {
-    if (speed < 1) return "from-blue-500/90 to-cyan-500/90";
-    if (speed === 1) return "from-green-500/90 to-emerald-500/90";
-    if (speed <= 2) return "from-yellow-500/90 to-orange-500/90";
-    return "from-red-500/90 to-pink-500/90";
-  };
-
   const getSpeedLabel = () => {
     if (speed < 1) return t("speed.slow");
     if (speed === 1) return t("speed.normal");
@@ -49,20 +43,21 @@ const SpeedIndicator: React.FC<SpeedIndicatorProps> = ({ speed, show }) => {
       className="fixed bottom-32 left-1/2 z-[9998] pointer-events-none select-none"
     >
       <div
-        className={`
+        className="
           px-6 py-3 rounded-2xl
-          bg-gradient-to-r ${getSpeedColor()}
-          backdrop-blur-xl
-          shadow-[0_10px_40px_rgba(0,0,0,0.3)]
-          border border-white/20
+          bg-black/10 backdrop-blur-2xl saturate-150
+          shadow-[0_20px_50px_rgba(0,0,0,0.3)]
+          border border-white/10
           flex items-center gap-3
-        `}
+        "
       >
+        <FastForwardIcon className="w-5 h-5 text-white" />
+        
         <div className="flex flex-col items-center">
           <div className="text-2xl font-bold text-white tracking-tight">
             {speed.toFixed(2)}x
           </div>
-          <div className="text-[10px] font-medium text-white/80 uppercase tracking-wider">
+          <div className="text-[10px] font-medium text-white/60 uppercase tracking-wider">
             {getSpeedLabel()}
           </div>
         </div>

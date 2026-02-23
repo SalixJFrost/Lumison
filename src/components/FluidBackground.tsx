@@ -107,9 +107,12 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
         layerCount = 3; // Mid-range devices
       }
       
+      // Reduce blur on low-end devices
+      const blurAmount = deviceMemory < 4 ? 20 : 35;
+      
       const newLayers = await createFlowingLayers(normalizedColors, coverUrl, layerCount);
       if (cancelled) return;
-      layersRef.current = newLayers;
+      layersRef.current = newLayers.map(layer => ({ ...layer, blur: blurAmount }));
     };
     generate();
     return () => {
@@ -153,7 +156,9 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
         ctx.translate(width * transform.x, height * transform.y);
         ctx.globalCompositeOperation = "screen";
         ctx.globalAlpha = 0.5 + index * 0.05;
-        ctx.filter = "blur(35px)";
+        // Use dynamic blur amount from layer
+        const blurAmount = (layer as any).blur || 35;
+        ctx.filter = `blur(${blurAmount}px)`;
         const drawWidth = width * 1.5;
         const drawHeight = height * 1.5;
         ctx.drawImage(
@@ -335,11 +340,11 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
       <canvas
         ref={canvasRef}
         key={canvasKey}
-        className="fixed inset-0 w-full h-full bg-black block"
-        style={{ touchAction: "none" }}
+        className="fixed inset-0 w-full h-full bg-black block hw-accelerate"
+        style={{ touchAction: "none", willChange: 'contents' }}
       />
       <div
-        className="fixed inset-0 w-full h-full pointer-events-none opacity-[0.03] mix-blend-overlay"
+        className="fixed inset-0 w-full h-full pointer-events-none opacity-[0.03] mix-blend-overlay hw-accelerate"
         style={{
           backgroundImage:
             "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E\")",

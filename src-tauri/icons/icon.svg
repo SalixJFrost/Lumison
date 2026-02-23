@@ -1,0 +1,76 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 金属质感渐变 -->
+    <linearGradient id="metalGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8E8E8;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#C0C0C0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A0A0A0;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 光带渐变 -->
+    <linearGradient id="lightBand" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FFF5E1;stop-opacity:0.3" />
+      <stop offset="50%" style="stop-color:#FFE4B5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFF5E1;stop-opacity:0.3" />
+    </linearGradient>
+    
+    <!-- 辉光 -->
+    <filter id="lightGlow">
+      <feGaussianBlur stdDeviation="20" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- 背景 -->
+  <rect width="1024" height="1024" fill="#1A1A1A" rx="180"/>
+  
+  <!-- 耳机头带 -->
+  <path d="M 360 400 
+           Q 360 240, 512 240 
+           Q 664 240, 664 400" 
+        stroke="url(#metalGrad)" 
+        stroke-width="32" 
+        stroke-linecap="round"
+        fill="none"/>
+  
+  <!-- 左耳罩 -->
+  <rect x="280" y="480" width="120" height="200" rx="60" 
+        fill="url(#metalGrad)" 
+        stroke="#808080" 
+        stroke-width="4"/>
+  
+  <!-- 右耳罩 -->
+  <rect x="624" y="480" width="120" height="200" rx="60" 
+        fill="url(#metalGrad)" 
+        stroke="#808080" 
+        stroke-width="4"/>
+  
+  <!-- 发光光带 -->
+  <g filter="url(#lightGlow)">
+    <path d="M 400 580 
+             Q 512 560, 624 580" 
+          stroke="url(#lightBand)" 
+          stroke-width="16" 
+          stroke-linecap="round"
+          fill="none"
+          opacity="0.9"/>
+    
+    <!-- 光带末端形成 L -->
+    <path d="M 624 580 
+             L 680 580 
+             L 680 680 
+             L 720 680" 
+          stroke="url(#lightBand)" 
+          stroke-width="12" 
+          stroke-linecap="round"
+          fill="none"
+          opacity="0.8"/>
+  </g>
+  
+  <!-- 光点 -->
+  <circle cx="512" cy="570" r="12" fill="#FFE4B5" opacity="0.9"/>
+</svg>

@@ -121,6 +121,26 @@ export const PERFORMANCE_CONFIG = {
     enableHardwareAcceleration: true,
     // Reduce motion for low-end devices
     respectReducedMotion: true,
+    // Batch DOM updates
+    batchDOMUpdates: true,
+    // Use CSS containment for isolated components
+    useCSSContainment: true,
+  },
+  
+  // WebView specific optimizations
+  webview: {
+    // Reduce repaints by limiting layer updates
+    limitLayerUpdates: true,
+    // Use passive event listeners
+    usePassiveListeners: true,
+    // Debounce scroll events
+    debounceScroll: true,
+    // Optimize image loading
+    lazyLoadImages: true,
+    // Reduce backdrop filter usage
+    limitBackdropFilters: true,
+    // Use CSS transforms instead of position changes
+    preferTransforms: true,
   },
 
   // Event listener optimization

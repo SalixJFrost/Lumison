@@ -49,13 +49,6 @@ export default defineConfig(({ mode }) => {
     
     plugins: [react(), manifestPlugin(base)],
     
-    // Vitest configuration
-    test: {
-      globals: true,
-      environment: 'node',
-      include: ['tests/**/*.test.ts'],
-    },
-    
     // Ensure Tauri API is available in desktop mode
     define: {
       '__TAURI__': isTauri,

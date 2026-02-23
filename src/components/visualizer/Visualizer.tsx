@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import audioProcessorUrl from './AudioProcessor.ts?worker&url';
 
 interface VisualizerProps {
     audioRef: React.RefObject<HTMLAudioElement>;
@@ -7,42 +6,47 @@ interface VisualizerProps {
     spatialEngine?: { getAnalyzer: () => AnalyserNode } | null;
 }
 
-// Global map to store source nodes to prevent "MediaElementAudioSourceNode" double-connection errors
-const sourceMap = new WeakMap<HTMLAudioElement, MediaElementAudioSourceNode>();
-const contextMap = new WeakMap<HTMLAudioElement, AudioContext>();
-
 const Visualizer: React.FC<VisualizerProps> = ({ audioRef, isPlaying, spatialEngine }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const workerRef = useRef<Worker | null>(null);
     const analyserRef = useRef<AnalyserNode | null>(null);
     const animationFrameRef = useRef<number | null>(null);
+    const [hasAnalyser, setHasAnalyser] = React.useState(false);
 
     // Effect 1: Get Analyser from Spatial Engine
     useEffect(() => {
+        console.log("[Visualizer] Effect 1 - isPlaying:", isPlaying, "spatialEngine:", !!spatialEngine);
+        
         if (!isPlaying || !spatialEngine) {
             analyserRef.current = null;
+            setHasAnalyser(false);
             return;
         }
 
         try {
             const analyser = spatialEngine.getAnalyzer();
+            console.log("[Visualizer] Got analyser:", !!analyser);
             if (analyser) {
                 analyser.fftSize = 2048;
                 analyser.smoothingTimeConstant = 0.75;
                 analyserRef.current = analyser;
+                setHasAnalyser(true);
+                console.log("[Visualizer] ✓ Analyser configured successfully");
             }
         } catch (e) {
-            console.error("Visualizer: Failed to get analyser", e);
+            console.error("[Visualizer] Failed to get analyser:", e);
         }
 
         return () => {
             analyserRef.current = null;
+            setHasAnalyser(false);
         };
     }, [isPlaying, spatialEngine]);
 
     // Effect 2: Canvas Rendering with optimizations
     useEffect(() => {
-        if (!isPlaying || !analyserRef.current) {
+        console.log("[Visualizer] Effect 2 - isPlaying:", isPlaying, "hasAnalyser:", hasAnalyser);
+        
+        if (!isPlaying || !hasAnalyser || !analyserRef.current) {
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
                 animationFrameRef.current = null;
@@ -51,11 +55,14 @@ const Visualizer: React.FC<VisualizerProps> = ({ audioRef, isPlaying, spatialEng
         }
 
         const canvasEl = canvasRef.current;
-        if (!canvasEl) return;
+        if (!canvasEl) {
+            console.warn("[Visualizer] No canvas element");
+            return;
+        }
 
         const ctx = canvasEl.getContext('2d', { 
             alpha: true,
-            desynchronized: true, // Better performance for animations
+            desynchronized: true,
             willReadFrequently: false
         });
         if (!ctx) return;
@@ -75,7 +82,10 @@ const Visualizer: React.FC<VisualizerProps> = ({ audioRef, isPlaying, spatialEng
         let lastFrameTime = performance.now();
 
         const draw = (currentTime: number) => {
-            if (!isPlaying || !analyserRef.current) return;
+            if (!isPlaying || !analyserRef.current) {
+                console.log("[Visualizer] Animation stopped");
+                return;
+            }
 
             // Throttle frame rate
             const elapsed = currentTime - lastFrameTime;
@@ -128,6 +138,7 @@ const Visualizer: React.FC<VisualizerProps> = ({ audioRef, isPlaying, spatialEng
             animationFrameRef.current = requestAnimationFrame(draw);
         };
 
+        console.log("[Visualizer] Starting animation loop");
         animationFrameRef.current = requestAnimationFrame(draw);
 
         return () => {
@@ -136,7 +147,7 @@ const Visualizer: React.FC<VisualizerProps> = ({ audioRef, isPlaying, spatialEng
                 animationFrameRef.current = null;
             }
         };
-    }, [isPlaying]);
+    }, [isPlaying, hasAnalyser]);
 
     if (!isPlaying) return <div className="h-8 w-full"></div>;
 

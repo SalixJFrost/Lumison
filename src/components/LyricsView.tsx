@@ -38,13 +38,10 @@ const LyricsView: React.FC<LyricsViewProps> = ({
   const [isMobile, setIsMobile] = useState(false);
   const [lyricLines, setLyricLines] = useState<ILyricLine[]>([]);
   const [mobileHoverIndex, setMobileHoverIndex] = useState<number | null>(null);
-  const [showButtons, setShowButtons] = useState(false);
-  const [showTranslation, setShowTranslation] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [containerHeight, setContainerHeight] = useState(0);
   const mobileHoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const buttonHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Detect mobile layout
   useEffect(() => {
@@ -102,25 +99,6 @@ const LyricsView: React.FC<LyricsViewProps> = ({
       }
     };
   }, [mobileHoverIndex, isMobile]);
-
-  // Button auto-hide logic
-  useEffect(() => {
-    if (buttonHideTimeoutRef.current) {
-      clearTimeout(buttonHideTimeoutRef.current);
-    }
-
-    if (showButtons) {
-      buttonHideTimeoutRef.current = setTimeout(() => {
-        setShowButtons(false);
-      }, 10000);
-    }
-
-    return () => {
-      if (buttonHideTimeoutRef.current) {
-        clearTimeout(buttonHideTimeoutRef.current);
-      }
-    };
-  }, [showButtons]);
 
   // Measure Container Width
   useEffect(() => {
@@ -183,15 +161,6 @@ const LyricsView: React.FC<LyricsViewProps> = ({
     setLyricLines(lines);
   }, [lyrics, containerWidth, isMobile, fontSize, theme]);
 
-  // Update translation visibility for all lines
-  useEffect(() => {
-    lyricLines.forEach((line) => {
-      if (line instanceof LyricLine) {
-        line.setShowTranslation(showTranslation);
-      }
-    });
-  }, [lyricLines, showTranslation]);
-
   // Calculate layout properties for physics
   const { linePositions, lineHeights } = useMemo(() => {
     const positions: number[] = [];
@@ -239,10 +208,6 @@ const LyricsView: React.FC<LyricsViewProps> = ({
   const handleMouseMove = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
     mouseRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    
-    // Show buttons on mouse move
-    setShowButtons(true);
-    
     handlers.onTouchMove(e);
   };
 
@@ -589,40 +554,6 @@ const LyricsView: React.FC<LyricsViewProps> = ({
       onClick={handleClick}
     >
       <canvas ref={canvasRef} className="w-full h-full block" />
-      
-      {/* Translation Toggle Switch */}
-      <div 
-        className={`absolute top-4 right-4 transition-opacity duration-300 ${
-          showButtons ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        onMouseEnter={() => setShowButtons(true)}
-      >
-        <div className="relative inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-lg">
-          <span className={`text-sm font-medium transition-colors duration-200 ${showTranslation ? 'text-white' : 'text-white/50'}`}>
-            {t('lyrics.translation')}
-          </span>
-          
-          {/* Toggle Switch */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowTranslation(!showTranslation);
-            }}
-            className="relative w-9 h-5 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-white/30"
-            style={{ backgroundColor: showTranslation ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.15)' }}
-            aria-label={showTranslation ? t('lyrics.originalAndTranslation') : t('lyrics.originalOnly')}
-          >
-            <span
-              className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-transform duration-300 ease-in-out"
-              style={{ transform: showTranslation ? 'translateX(16px)' : 'translateX(0)' }}
-            />
-          </button>
-          
-          <span className={`text-sm font-medium transition-colors duration-200 ${!showTranslation ? 'text-white' : 'text-white/50'}`}>
-            {t('lyrics.original')}
-          </span>
-        </div>
-      </div>
     </div>
   );
 };

@@ -132,6 +132,7 @@ export default {
     searching: "Searching...",
     netease: "Netease Music",
     youtube: "YouTube Music",
+    archive: "Internet Archive",
     bilibili: "Bilibili",
     queue: "Current Queue",
     playNow: "Play Now",
@@ -144,6 +145,7 @@ export default {
     noMatchesFound: "No matches found",
     searchCloudMusic: "Search Cloud Music",
     searchYouTubeMusic: "Search YouTube Music",
+    searchInternetArchive: "Search Internet Archive",
     scrollForMore: "Scroll for more",
     moreOptions: "More options",
   },
@@ -237,6 +239,7 @@ export default {
     theme: "Theme",
     language: "Language",
     about: "About",
+    checkUpdate: "Check for Updates",
     enterFullscreen: "Enter Fullscreen",
     exitFullscreen: "Exit Fullscreen",
   },
@@ -246,5 +249,12 @@ export default {
     light: "Light",
     dark: "Dark",
     auto: "Auto",
+  },
+
+  // View Mode
+  viewMode: {
+    label: "View Mode",
+    default: "Default",
+    album: "Album",
   },
 };

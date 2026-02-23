@@ -244,6 +244,20 @@ canvas {
   transform: translateZ(0);
 }
 
+/* Optimized Play Button Animation */
+@keyframes playButtonPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.play-button-active {
+  animation: playButtonPulse 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
 /* Contain layout changes to improve performance */
 .contain-layout {
   contain: layout;
@@ -308,11 +322,103 @@ img {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   transform: translateZ(0);
-  will-change: backdrop-filter;
+  /* Remove will-change to reduce memory usage */
+}
+
+/* Reduce backdrop filter on low-end devices */
+@media (max-width: 768px) {
+  .backdrop-blur-optimized {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
 }
 
 /* Reduce composite layers */
 .composite-layer {
   transform: translateZ(0);
   isolation: isolate;
+}
+
+/* WebView Performance Optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Mobile/Touch devices - reduce effects */
+  .hw-accelerate {
+    will-change: auto;
+  }
+  
+  /* Simplify shadows on mobile */
+  .shadow-lg {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* Reduce blur intensity */
+  .backdrop-blur-\[100px\] {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+}
+
+/* Optimize for 60fps animations */
+@keyframes optimizedFadeIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 4px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-optimized-fade-in {
+  animation: optimizedFadeIn 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  will-change: opacity, transform;
+}
+
+/* Prevent layout thrashing */
+.prevent-layout-thrashing {
+  contain: layout style;
+}
+
+/* Optimize text rendering for performance */
+.optimize-text-performance {
+  text-rendering: optimizeSpeed;
+  -webkit-font-smoothing: subpixel-antialiased;
+}
+
+/* Reduce paint complexity */
+.simple-paint {
+  contain: paint;
+  content-visibility: auto;
+}
+
+/* Optimized Cover Card Animation */
+.cover-card-optimized {
+  /* Use CSS containment for better performance */
+  contain: layout style paint;
+  /* Optimize transform rendering */
+  transform-origin: center center;
+  /* Prevent subpixel rendering issues */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optimize shadow rendering on cover card */
+.cover-card-optimized.shadow-lg {
+  /* Use simpler shadow on low-end devices */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+@media (min-width: 1024px) and (min-height: 768px) {
+  /* Enhanced shadow on capable devices */
+  .cover-card-optimized.shadow-lg {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Disable 3D transforms on mobile for better performance */
+@media (max-width: 768px) {
+  .cover-card-optimized {
+    transform-style: flat !important;
+  }
 }

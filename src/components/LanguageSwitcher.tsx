@@ -6,7 +6,7 @@ import { useTheme } from "../contexts/ThemeContext";
 
 interface LanguageSwitcherProps {
   className?: string;
-  variant?: 'default' | 'settings'; // 新增：支持不同样式
+  variant?: 'default' | 'settings' | 'topbar'; // 新增 topbar 变体
 }
 
 const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ 
@@ -61,6 +61,65 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
     setLocale(newLocale);
     setShowMenu(false);
   };
+
+  // TopBar 样式（紧凑圆形按钮）
+  if (variant === 'topbar') {
+    return (
+      <div ref={containerRef} className={`relative ${className}`} onWheel={handleWheel}>
+        <button
+          onClick={() => setShowMenu(!showMenu)}
+          className={`w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center transition-all duration-300 ease-out shadow-sm hover:scale-110 active:scale-95 ${
+            showMenu ? "text-white bg-white/20 scale-110" : "text-white/80 hover:bg-white/20 hover:text-white"
+          }`}
+          title={t("topBar.language")}
+          aria-label={t("topBar.language")}
+        >
+          <span className="text-sm font-bold">{locale.toUpperCase()}</span>
+        </button>
+
+        {menuTransitions((style, item) =>
+          item ? (
+            <animated.div
+              style={style}
+              className="absolute top-full right-0 mt-3 min-w-[120px] rounded-2xl bg-black/40 backdrop-blur-2xl saturate-150 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden z-50"
+            >
+              {locales.map((loc) => (
+                <button
+                  key={loc}
+                  onClick={() => handleLocaleChange(loc)}
+                  className={`
+                    w-full px-4 py-2.5 text-left text-sm font-medium
+                    transition-colors duration-150
+                    flex items-center justify-between
+                    ${locale === loc
+                      ? "bg-white/20 text-white"
+                      : "text-white/70 hover:bg-white/10 hover:text-white"
+                    }
+                  `}
+                >
+                  <span>{localeNames[loc]}</span>
+                  {locale === loc && (
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </animated.div>
+          ) : null
+        )}
+      </div>
+    );
+  }
 
   // Settings 样式（在设置弹窗中使用）
   if (variant === 'settings') {

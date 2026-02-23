@@ -2,19 +2,15 @@ import { fetchViaProxy } from "../utils";
 
 /**
  * 多平台歌词服务
- * 策略：网易云音乐和第三方API并行搜索，谁先返回用谁
- * 优先使用网易云的逐字歌词，但不会因为网易云没有而放弃搜索
+ * 策略：优先从网易云音乐获取歌词（支持逐字歌词和翻译）
+ * 只有在网易云失败时才尝试第三方API
  * 第三方API包含多个源，适合网易云没有版权的歌曲（如周杰伦）
- * QQ音乐和酷狗音乐因CORS问题默认禁用
  */
 
 // 平台启用配置
-// 由于 QQ 音乐和酷狗音乐经常遇到 CORS 问题，默认禁用
 const PLATFORM_CONFIG = {
   netease: true,      // 网易云音乐 - 最稳定，支持逐字歌词
   thirdParty: true,   // 第三方歌词 API
-  qq: false,          // QQ 音乐 - CORS 问题频繁，默认禁用
-  kugou: false,       // 酷狗音乐 - CORS 问题频繁，默认禁用
 };
 
 // 第三方 API 黑名单（失败的源会被临时禁用）
@@ -45,17 +41,6 @@ const isSourceBlacklisted = (source: string): boolean => {
 
 // API 端点配置
 const API_ENDPOINTS = {
-  // QQ 音乐 API
-  qq: {
-    search: "https://c.y.qq.com/soso/fcgi-bin/client_search_cp",
-    lyric: "https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg",
-    cover: "https://y.qq.com/music/photo_new/T002R300x300M000", // 封面 URL 前缀
-  },
-  // 酷狗音乐 API
-  kugou: {
-    search: "https://complexsearch.kugou.com/v2/search/song",
-    lyric: "https://krcs.kugou.com/search",
-  },
   // 网易云音乐 API（多个镜像，自动选择最快的）
   netease: [
     // 官方社区 API 镜像（优先）
@@ -74,10 +59,6 @@ const API_ENDPOINTS = {
     "https://music.ghxi.com",
     "https://api.mlwei.com/music",
   ],
-  // YouTube Music (需要特殊处理)
-  youtube: {
-    search: "https://music.youtube.com/youtubei/v1/search",
-  },
 };
 
 // 网易云 API 性能统计
@@ -130,95 +111,10 @@ interface LyricsResult {
   yrc?: string;
   tLrc?: string;
   metadata: string[];
-  source: "qq" | "kugou" | "netease" | "youtube";
+  source: "netease" | string;
   coverUrl?: string; // 新增：封面 URL
   responseTime?: number; // 新增：响应时间（毫秒）
 }
-
-/**
- * QQ 音乐搜索
- */
-const searchQQMusic = async (keyword: string): Promise<any> => {
-  try {
-    const url = `${API_ENDPOINTS.qq.search}?w=${encodeURIComponent(keyword)}&p=1&n=5&format=json`;
-    const response = await fetchViaProxy(url);
-    return response?.data?.song?.list?.[0];
-  } catch (error) {
-    console.warn("QQ Music search failed:", error);
-    return null;
-  }
-};
-
-/**
- * QQ 音乐获取歌词和封面
- */
-const fetchQQMusicLyrics = async (songmid: string, albumMid?: string): Promise<LyricsResult | null> => {
-  const startTime = Date.now();
-  try {
-    const url = `${API_ENDPOINTS.qq.lyric}?songmid=${songmid}&format=json&nobase64=1`;
-    const response = await fetchViaProxy(url);
-    
-    if (!response?.lyric) return null;
-
-    const responseTime = Date.now() - startTime;
-    
-    // 构建封面 URL
-    const coverUrl = albumMid ? `${API_ENDPOINTS.qq.cover}${albumMid}.jpg` : undefined;
-
-    return {
-      lrc: response.lyric,
-      tLrc: response.trans || undefined,
-      metadata: [],
-      source: "qq",
-      coverUrl,
-      responseTime,
-    };
-  } catch (error) {
-    console.warn("QQ Music lyrics fetch failed:", error);
-    return null;
-  }
-};
-
-/**
- * 酷狗音乐搜索
- */
-const searchKugouMusic = async (keyword: string): Promise<any> => {
-  try {
-    const url = `${API_ENDPOINTS.kugou.search}?keyword=${encodeURIComponent(keyword)}&page=1&pagesize=5`;
-    const response = await fetchViaProxy(url);
-    return response?.data?.lists?.[0];
-  } catch (error) {
-    console.warn("Kugou Music search failed:", error);
-    return null;
-  }
-};
-
-/**
- * 酷狗音乐获取歌词和封面
- */
-const fetchKugouMusicLyrics = async (hash: string, imgUrl?: string): Promise<LyricsResult | null> => {
-  const startTime = Date.now();
-  try {
-    const url = `${API_ENDPOINTS.kugou.lyric}?ver=1&man=yes&client=mobi&hash=${hash}`;
-    const response = await fetchViaProxy(url);
-    
-    if (!response?.candidates?.[0]?.content) return null;
-
-    const content = response.candidates[0].content;
-    const responseTime = Date.now() - startTime;
-    
-    return {
-      lrc: content,
-      metadata: [],
-      source: "kugou",
-      coverUrl: imgUrl,
-      responseTime,
-    };
-  } catch (error) {
-    console.warn("Kugou Music lyrics fetch failed:", error);
-    return null;
-  }
-};
 
 /**
  * 网易云音乐搜索（使用最快的 API）
@@ -543,7 +439,7 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
 
 /**
  * 多平台搜索并获取歌词
- * 策略：网易云和第三方API并行搜索，谁先返回用谁（优先网易云的逐字歌词）
+ * 策略：优先从网易云音乐获取歌词，只有在网易云失败时才尝试其他平台
  */
 export const searchAndFetchLyrics = async (
   title: string,
@@ -552,138 +448,39 @@ export const searchAndFetchLyrics = async (
   const keyword = `${title} ${artist}`;
   console.log(`Searching lyrics for: ${keyword}`);
 
-  // 并行搜索：网易云音乐 + 第三方API
-  const primaryPromises: Promise<LyricsResult | null>[] = [];
-
-  // 网易云音乐（支持逐字歌词和翻译）
+  // 第一优先级：网易云音乐（支持逐字歌词和翻译）
   if (PLATFORM_CONFIG.netease) {
-    primaryPromises.push(
-      (async () => {
-        try {
-          console.log("Trying Netease Music...");
-          const neteaseSong = await searchNeteaseMusic(keyword);
-          if (neteaseSong?.id) {
-            const coverUrl = neteaseSong.al?.picUrl;
-            const lyrics = await fetchNeteaseMusicLyrics(neteaseSong.id.toString(), coverUrl);
-            if (lyrics) {
-              console.log(`✓ Found lyrics on Netease Music (${lyrics.responseTime}ms)`);
-              return lyrics;
-            }
-          }
-          return null;
-        } catch (error) {
-          console.warn("Netease Music failed:", error);
-          return null;
+    try {
+      console.log("🎵 Trying Netease Music (Priority)...");
+      const neteaseSong = await searchNeteaseMusic(keyword);
+      if (neteaseSong?.id) {
+        const coverUrl = neteaseSong.al?.picUrl;
+        const lyrics = await fetchNeteaseMusicLyrics(neteaseSong.id.toString(), coverUrl);
+        if (lyrics) {
+          console.log(`✓ Found lyrics on Netease Music (${lyrics.responseTime}ms)`);
+          return lyrics;
         }
-      })()
-    );
+      }
+      console.log("⚠️ Netease Music: No lyrics found, trying fallback sources...");
+    } catch (error) {
+      console.warn("⚠️ Netease Music failed, trying fallback sources:", error);
+    }
   }
 
-  // 第三方歌词API（并行搜索多个源）
+  // 第二优先级：第三方歌词API（并行搜索多个源）
   if (PLATFORM_CONFIG.thirdParty) {
-    primaryPromises.push(
-      (async () => {
-        try {
-          console.log("Trying third-party lyrics APIs...");
-          const thirdPartyResult = await searchThirdPartyLyricsAPIs(title, artist);
-          if (thirdPartyResult) {
-            console.log(`✓ Found lyrics on ${thirdPartyResult.source} (${thirdPartyResult.responseTime}ms)`);
-            return thirdPartyResult;
-          }
-          return null;
-        } catch (error) {
-          console.warn("Third-party APIs failed:", error);
-          return null;
-        }
-      })()
-    );
-  }
-
-  // 等待所有主要平台的结果
-  if (primaryPromises.length > 0) {
     try {
-      const results = await Promise.allSettled(primaryPromises);
-      
-      // 优先返回网易云的结果（如果有），因为它支持逐字歌词和翻译
-      if (PLATFORM_CONFIG.netease && results[0].status === 'fulfilled' && results[0].value) {
-        return results[0].value;
-      }
-      
-      // 否则返回任何成功的结果
-      for (const result of results) {
-        if (result.status === 'fulfilled' && result.value) {
-          return result.value;
-        }
+      console.log("🔍 Trying third-party lyrics APIs...");
+      const thirdPartyResult = await searchThirdPartyLyricsAPIs(title, artist);
+      if (thirdPartyResult) {
+        console.log(`✓ Found lyrics on ${thirdPartyResult.source} (${thirdPartyResult.responseTime}ms)`);
+        return thirdPartyResult;
       }
     } catch (error) {
-      console.error("Primary platforms failed:", error);
+      console.warn("Third-party APIs failed:", error);
     }
   }
 
-  // 备用方案：QQ音乐和酷狗音乐（默认禁用）
-  const fallbackPromises: Promise<LyricsResult | null>[] = [];
-  
-  if (PLATFORM_CONFIG.qq) {
-    fallbackPromises.push(
-      (async () => {
-        try {
-          console.log("Trying QQ Music...");
-          const qqSong = await searchQQMusic(keyword);
-          if (qqSong?.songmid) {
-            const albumMid = qqSong?.albummid;
-            const lyrics = await fetchQQMusicLyrics(qqSong.songmid, albumMid);
-            if (lyrics) {
-              console.log(`✓ Found lyrics on QQ Music (${lyrics.responseTime}ms)`);
-              return lyrics;
-            }
-          }
-          return null;
-        } catch (error) {
-          console.warn("QQ Music failed:", error);
-          return null;
-        }
-      })()
-    );
-  }
-  
-  if (PLATFORM_CONFIG.kugou) {
-    fallbackPromises.push(
-      (async () => {
-        try {
-          console.log("Trying Kugou Music...");
-          const kugouSong = await searchKugouMusic(keyword);
-          if (kugouSong?.FileHash) {
-            const imgUrl = kugouSong?.ImgUrl;
-            const lyrics = await fetchKugouMusicLyrics(kugouSong.FileHash, imgUrl);
-            if (lyrics) {
-              console.log(`✓ Found lyrics on Kugou Music (${lyrics.responseTime}ms)`);
-              return lyrics;
-            }
-          }
-          return null;
-        } catch (error) {
-          console.warn("Kugou Music failed:", error);
-          return null;
-        }
-      })()
-    );
-  }
-
-  // 如果有启用的备用平台，尝试它们
-  if (fallbackPromises.length > 0) {
-    try {
-      const results = await Promise.allSettled(fallbackPromises);
-      
-      // 返回任何成功的结果
-      for (const result of results) {
-        if (result.status === 'fulfilled' && result.value) {
-          return result.value;
-        }
-      }
-    } catch (error) {
-      console.error("Fallback platforms failed:", error);
-    }
-  }
   
   console.warn("No lyrics found on any platform");
   return null;
@@ -693,19 +490,13 @@ export const searchAndFetchLyrics = async (
  * 根据平台 ID 直接获取歌词
  */
 export const fetchLyricsByPlatform = async (
-  platform: "qq" | "kugou" | "netease",
+  platform: "netease",
   id: string
 ): Promise<LyricsResult | null> => {
-  switch (platform) {
-    case "qq":
-      return fetchQQMusicLyrics(id);
-    case "kugou":
-      return fetchKugouMusicLyrics(id);
-    case "netease":
-      return fetchNeteaseMusicLyrics(id);
-    default:
-      return null;
+  if (platform === "netease") {
+    return fetchNeteaseMusicLyrics(id);
   }
+  return null;
 };
 
 /**
@@ -780,6 +571,4 @@ export const getPlatformConfig = () => {
 export const updatePlatformConfig = (config: Partial<typeof PLATFORM_CONFIG>) => {
   Object.assign(PLATFORM_CONFIG, config);
   console.log("Platform config updated:", PLATFORM_CONFIG);
-  console.log("💡 Tip: QQ Music and Kugou Music are disabled by default due to frequent CORS issues.");
-  console.log("   Enable them only if you have a working proxy setup.");
 };

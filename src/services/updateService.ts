@@ -1,6 +1,3 @@
-import { check } from '@tauri-apps/plugin-updater';
-import { relaunch } from '@tauri-apps/plugin-process';
-
 export interface UpdateInfo {
   available: boolean;
   currentVersion: string;
@@ -34,6 +31,15 @@ export class UpdateService {
     this.checkingUpdate = true;
 
     try {
+      // 动态导入 Tauri 插件，避免在非 Tauri 环境中加载失败
+      const updaterModule = await import('@tauri-apps/plugin-updater').catch(() => null);
+      
+      if (!updaterModule) {
+        console.log('Tauri updater module not available');
+        return { available: false, currentVersion: '1.0.0' };
+      }
+
+      const { check } = updaterModule;
       const update = await check();
       
       if (update) {
@@ -50,7 +56,7 @@ export class UpdateService {
         currentVersion: update?.currentVersion || '1.0.0',
       };
     } catch (error) {
-      console.error('Failed to check for updates:', error);
+      // 静默处理错误，不在控制台显示
       return {
         available: false,
         currentVersion: '1.0.0',
@@ -68,11 +74,21 @@ export class UpdateService {
   ): Promise<boolean> {
     // 只在 Tauri 环境中执行更新
     if (!this.isTauriEnvironment()) {
-      console.warn('Update is only available in Tauri environment');
       return false;
     }
 
     try {
+      // 动态导入 Tauri 插件
+      const updaterModule = await import('@tauri-apps/plugin-updater').catch(() => null);
+      const processModule = await import('@tauri-apps/plugin-process').catch(() => null);
+      
+      if (!updaterModule || !processModule) {
+        return false;
+      }
+
+      const { check } = updaterModule;
+      const { relaunch } = processModule;
+      
       const update = await check();
       
       if (!update) {

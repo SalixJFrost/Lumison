@@ -10,6 +10,7 @@ import TopBar from "./components/TopBar";
 import SearchModal from "./components/SearchModal";
 import SpeedIndicator from "./components/SpeedIndicator";
 import UpdateNotification from "./components/UpdateNotification";
+import AlbumMode from "./components/AlbumMode";
 import { usePlaylist } from "./hooks/usePlaylist";
 import { usePlayer } from "./hooks/usePlayer";
 import { keyboardRegistry } from "./services/ui/keyboardRegistry";
@@ -21,6 +22,7 @@ import { usePerformanceOptimization, useOptimizedAudio } from "./hooks/usePerfor
 import { useAudioTransition, useGaplessPlayback } from "./hooks/useAudioTransition";
 import { UpdateService } from "./services/updateService";
 import { getPlatformConfig } from "./services/music/multiPlatformLyrics";
+import { useWebViewOptimization, useOptimizedBackdropFilter } from "./hooks/useWebViewOptimization";
 
 const App: React.FC = () => {
   const { toast } = useToast();
@@ -29,6 +31,8 @@ const App: React.FC = () => {
   
   // Performance monitoring
   const perfState = usePerformanceOptimization();
+  const webViewPerf = useWebViewOptimization();
+  useOptimizedBackdropFilter(true);
   
   // Log supported audio formats and platform config on app start
   useEffect(() => {
@@ -133,40 +137,26 @@ const App: React.FC = () => {
   const [lyricsFontSize, setLyricsFontSize] = useState(46);
   const [lyricsBlur, setLyricsBlur] = useState(false);
   const [lyricsGlow, setLyricsGlow] = useState(false);
-  const [lyricsShadow, setLyricsShadow] = useState(true);
+  const [lyricsShadow, setLyricsShadow] = useState(false);
   
-  // Visualizer state - disabled by default to save memory
-  const [visualizerEnabled, setVisualizerEnabled] = useState(false);
+  // Visualizer state - enabled by default
+  const [visualizerEnabled, setVisualizerEnabled] = useState(true);
 
-  // Audio transition states - experimental features
-  const [fadeInEnabled, setFadeInEnabled] = useState(false);
-  const [fadeOutEnabled, setFadeOutEnabled] = useState(false);
+  // Gapless playback - experimental feature
   const [gaplessEnabled, setGaplessEnabled] = useState(false);
 
   // Update notification state
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updateVersion, setUpdateVersion] = useState('');
 
+  // View mode state - 'default' or 'album'
+  const [viewMode, setViewMode] = useState<'default' | 'album'>('default');
+
   // Optimize audio element
   useOptimizedAudio(audioRef);
 
-  // Audio transition hooks
-  const audioTransition = useAudioTransition(audioRef, {
-    enabled: fadeInEnabled || fadeOutEnabled,
-    fadeInDuration: 1000,
-    fadeOutDuration: 1000,
-  });
-
+  // Gapless playback hook
   const gaplessPlayback = useGaplessPlayback(audioRef, gaplessEnabled);
-
-  // Adaptive quality based on performance
-  const effectiveLyricsBlur = useMemo(() => {
-    return perfState.shouldReduceEffects ? false : lyricsBlur;
-  }, [perfState.shouldReduceEffects, lyricsBlur]);
-
-  const effectiveLyricsGlow = useMemo(() => {
-    return perfState.shouldReduceEffects ? false : lyricsGlow;
-  }, [perfState.shouldReduceEffects, lyricsGlow]);
 
   // Speed change handler with indicator
   const handleSpeedChange = (newSpeed: number) => {
@@ -198,9 +188,8 @@ const App: React.FC = () => {
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
-      audioTransition.setTargetVolume(volume);
     }
-  }, [volume, audioRef, audioTransition]);
+  }, [volume, audioRef]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -255,14 +244,9 @@ const App: React.FC = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Handle song changes with fade out
+  // Handle song changes with gapless playback
   useEffect(() => {
     if (!currentSong || !audioRef.current) return;
-
-    // Apply fade in when song starts playing
-    if (fadeInEnabled && playState === PlayState.PLAYING) {
-      audioTransition.fadeIn(volume);
-    }
 
     // Preload next track for gapless playback
     if (gaplessEnabled && playlist.queue.length > 0) {
@@ -278,7 +262,7 @@ const App: React.FC = () => {
         }
       }
     }
-  }, [currentSong, fadeInEnabled, gaplessEnabled, playState, currentTime, duration, volume, audioRef, audioTransition, gaplessPlayback, playlist.queue]);
+  }, [currentSong, gaplessEnabled, currentTime, duration, audioRef, gaplessPlayback, playlist.queue]);
 
   const handleFileChange = async (files: FileList) => {
     const wasEmpty = playlist.queue.length === 0;
@@ -453,12 +437,12 @@ const App: React.FC = () => {
         onSeekRequest={handleSeek}
         matchStatus={matchStatus}
         fontSize={lyricsFontSize}
-        blur={effectiveLyricsBlur}
-        glow={effectiveLyricsGlow}
+        blur={lyricsBlur}
+        glow={lyricsGlow}
         shadow={lyricsShadow}
       />
     </div>
-  ), [lyricsKey, currentSong?.lyrics, audioRef, playState, currentTime, handleSeek, matchStatus, lyricsFontSize, effectiveLyricsBlur, effectiveLyricsGlow, lyricsShadow]);
+  ), [lyricsKey, currentSong?.lyrics, audioRef, playState, currentTime, handleSeek, matchStatus, lyricsFontSize, lyricsBlur, lyricsGlow, lyricsShadow]);
 
   const fallbackWidth = typeof window !== "undefined" ? window.innerWidth : 0;
   const effectivePaneWidth = paneWidth || fallbackWidth;
@@ -482,16 +466,6 @@ const App: React.FC = () => {
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleAudioEnded}
-        onPlay={() => {
-          if (fadeInEnabled && audioRef.current) {
-            audioTransition.fadeIn(volume);
-          }
-        }}
-        onPause={() => {
-          if (fadeOutEnabled && audioRef.current) {
-            audioTransition.clearFade();
-          }
-        }}
         crossOrigin="anonymous"
       />
 
@@ -551,12 +525,10 @@ const App: React.FC = () => {
         onSearchClick={() => setShowSearch(true)}
         visualizerEnabled={visualizerEnabled}
         onVisualizerToggle={setVisualizerEnabled}
-        fadeInEnabled={fadeInEnabled}
-        onFadeInToggle={setFadeInEnabled}
-        fadeOutEnabled={fadeOutEnabled}
-        onFadeOutToggle={setFadeOutEnabled}
         gaplessEnabled={gaplessEnabled}
         onGaplessToggle={setGaplessEnabled}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
       {/* Search Modal - Always rendered to preserve state, visibility handled internally */}
@@ -573,7 +545,21 @@ const App: React.FC = () => {
       />
 
       {/* Main Content Split */}
-      {isMobileLayout ? (
+      {viewMode === 'album' ? (
+        // Album Mode - Full screen centered album view
+        <div className="flex-1 w-full h-full">
+          <AlbumMode
+            coverUrl={currentSong?.coverUrl}
+            title={currentSong?.title || t("player.welcomeTitle")}
+            artist={currentSong?.artist || t("player.selectSong")}
+            isPlaying={playState === PlayState.PLAYING}
+            currentTime={currentTime}
+            duration={duration}
+            onSeek={handleSeek}
+            accentColor={accentColor}
+          />
+        </div>
+      ) : isMobileLayout ? (
         <div className="flex-1 relative w-full h-full">
           <div
             ref={mobileViewportRef}

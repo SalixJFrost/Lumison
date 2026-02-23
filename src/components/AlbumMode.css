@@ -1,0 +1,463 @@
+.album-mode-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+  padding: 2rem;
+  gap: 2rem;
+}
+
+/* Album Cover Section - Centered and Larger */
+.album-cover-wrapper-large {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.album-cover-card-large {
+  position: relative;
+  width: min(70vh, 600px);
+  height: min(70vh, 600px);
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.album-cover-image-container {
+  position: absolute;
+  inset: 0;
+}
+
+.album-cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Remove overlay for flat look */
+.album-cover-overlay {
+  display: none;
+}
+
+/* Song Info Section - Below Cover */
+.song-info-section-large {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 600px;
+  width: 100%;
+}
+
+.song-info-text {
+  text-align: center;
+  width: 100%;
+}
+
+.song-title-large {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 0 0 0.5rem 0;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.song-artist-large {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Action Buttons Row */
+.song-actions-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.25rem;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+  transform: scale(1.05);
+}
+
+.action-button-active {
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 1);
+}
+
+
+
+/* Control Buttons Section - Enhanced */
+.control-buttons-section-large {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 0;
+}
+
+.control-button-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.control-button-icon:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 1);
+  transform: scale(1.05);
+}
+
+.control-button-icon:active {
+  transform: scale(0.95);
+}
+
+.control-button-secondary-large {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.control-button-secondary-large:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.05);
+}
+
+.control-button-secondary-large:active {
+  transform: scale(0.95);
+}
+
+.control-button-primary-large {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
+}
+
+.control-button-primary-large:hover {
+  transform: scale(1.05);
+}
+
+.control-button-primary-large:active {
+  transform: scale(0.95);
+}
+
+.control-icon-medium {
+  width: 28px;
+  height: 28px;
+  color: white;
+}
+
+.control-icon-xlarge {
+  width: 40px;
+  height: 40px;
+  color: white;
+}
+
+/* Volume Control */
+.volume-control-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.volume-slider-popup {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 12px;
+  padding: 16px 12px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.volume-slider-bar {
+  position: relative;
+  width: 120px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.volume-slider-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.1s linear;
+}
+
+.volume-slider-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: left 0.1s linear;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .album-mode-container {
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+
+  .album-cover-card-large {
+    width: min(60vh, 400px);
+    height: min(60vh, 400px);
+  }
+
+  .song-title-large {
+    font-size: 1.5rem;
+  }
+
+  .song-artist-large {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .album-cover-card-large {
+    width: min(50vh, 300px);
+    height: min(50vh, 300px);
+  }
+
+  .song-title-large {
+    font-size: 1.25rem;
+  }
+
+  .song-artist-large {
+    font-size: 0.875rem;
+  }
+}
+
+/* Progress Section - Border Style */
+.progress-section {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.time-display {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  pointer-events: auto;
+  z-index: 101;
+}
+
+.current-time,
+.total-time {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Border Progress Container */
+.border-progress-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Make only the edges clickable */
+.border-progress-container::before,
+.border-progress-container::after {
+  content: '';
+  position: absolute;
+  pointer-events: auto;
+}
+
+/* Top and bottom edges */
+.border-progress-container::before {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+}
+
+.border-progress-container::after {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+}
+
+/* Left and right edges - using pseudo elements on background borders */
+.border-progress-bg.left,
+.border-progress-bg.right {
+  pointer-events: auto;
+  width: 30px;
+}
+
+/* Background borders */
+.border-progress-bg {
+  position: absolute;
+}
+
+.border-progress-bg.top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.border-progress-bg.right {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 4px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.border-progress-bg.bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.border-progress-bg.left {
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Active progress borders */
+.border-progress-fill {
+  position: absolute;
+  transition: all 0.1s linear;
+}
+
+.border-progress-fill.top {
+  top: 0;
+  left: 0;
+  height: 4px;
+}
+
+.border-progress-fill.right {
+  top: 0;
+  right: 0;
+  width: 4px;
+}
+
+.border-progress-fill.bottom {
+  bottom: 0;
+  right: 0;
+  height: 4px;
+}
+
+.border-progress-fill.left {
+  bottom: 0;
+  left: 0;
+  width: 4px;
+}
+
+/* Progress thumb indicator */
+.border-progress-thumb {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.6), 0 2px 8px rgba(0, 0, 0, 0.3);
+  transform: translate(-50%, -50%);
+  transition: all 0.1s linear;
+  z-index: 10;
+}

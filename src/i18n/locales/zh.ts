@@ -132,6 +132,7 @@ export default {
     searching: "搜索中...",
     netease: "网易云音乐",
     youtube: "YouTube Music",
+    archive: "Internet Archive",
     bilibili: "哔哩哔哩",
     queue: "当前队列",
     playNow: "立即播放",
@@ -144,6 +145,7 @@ export default {
     noMatchesFound: "未找到匹配结果",
     searchCloudMusic: "搜索网易云音乐",
     searchYouTubeMusic: "搜索 YouTube Music",
+    searchInternetArchive: "搜索 Internet Archive",
     scrollForMore: "向下滚动加载更多",
     moreOptions: "更多选项",
   },
@@ -237,6 +239,7 @@ export default {
     theme: "主题",
     language: "语言",
     about: "关于",
+    checkUpdate: "检查更新",
     enterFullscreen: "进入全屏",
     exitFullscreen: "退出全屏",
   },
@@ -246,5 +249,12 @@ export default {
     light: "浅色",
     dark: "深色",
     auto: "自动",
+  },
+
+  // 视图模式
+  viewMode: {
+    label: "视图模式",
+    default: "默认",
+    album: "专辑",
   },
 };

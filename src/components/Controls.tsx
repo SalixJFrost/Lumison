@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useSpring, animated, useTransition, to } from "@react-spring/web";
 import { formatTime } from "../services/utils";
 import { SpatialAudioEngine } from "../services/audio/SpatialAudioEngine";
 import Visualizer from "./visualizer/Visualizer";
-import SmartImage from "./SmartImage";
+import CoverCard from "./controls/CoverCard";
 import {
   LoopIcon,
   LoopOneIcon,
@@ -20,6 +20,10 @@ import {
   NextIcon,
   SettingsIcon,
   QueueIcon,
+  FastForwardIcon,
+  WaveformIcon,
+  ReverbIcon,
+  SpatialAudioIcon,
 } from "./Icons";
 import { PlayMode } from "../types";
 import { useTheme } from "../contexts/ThemeContext";
@@ -86,24 +90,20 @@ const Controls: React.FC<ControlsProps> = ({
 }) => {
   const { theme } = useTheme();
   const { t } = useI18n();
-  const volumeContainerRef = useRef<HTMLDivElement>(null);
   const settingsContainerRef = useRef<HTMLDivElement>(null);
-  const coverRef = useRef<HTMLDivElement>(null);
+  
+  // Like state
+  const [isLiked, setIsLiked] = useState(false);
   
   // Spatial Audio Engine
   const spatialEngineRef = useRef<SpatialAudioEngine | null>(null);
   const [spatialAudioEnabled, setSpatialAudioEnabled] = useState(false);
   const isInitializingRef = useRef(false); // 防止重复初始化的标记
-
-  // 3D Card Effect State (只保留旋转，移除光效)
-  const [{ rotateX, rotateY }, cardApi] = useSpring(() => ({
-    rotateX: 0,
-    rotateY: 0,
-    config: { tension: 300, friction: 40 },
-  }));
   
   // Initialize Spatial Audio Engine
   useEffect(() => {
+    console.log('[Controls] Spatial audio init effect - audioRef:', !!audioRef.current);
+    
     if (!audioRef.current) return;
     
     // Prevent double initialization in React Strict Mode
@@ -115,14 +115,17 @@ const Controls: React.FC<ControlsProps> = ({
     isInitializingRef.current = true;
     
     try {
+      console.log('[Controls] Creating SpatialAudioEngine...');
       const engine = new SpatialAudioEngine();
       engine.attachToAudioElement(audioRef.current);
       engine.applyPreset('music');
       engine.setEnabled(false); // Start with spatial audio disabled
       spatialEngineRef.current = engine;
+      console.log('[Controls] ✓ Spatial audio engine initialized');
       
       // Resume audio context on user interaction
       const resumeContext = () => {
+        console.log('[Controls] Resuming audio context');
         engine.resume();
       };
       document.addEventListener('click', resumeContext, { once: true });
@@ -146,12 +149,11 @@ const Controls: React.FC<ControlsProps> = ({
     spatialEngineRef.current.setEnabled(newEnabled);
   };
 
-  const volumeTransitions = useTransition(showVolumePopup, {
-    from: { opacity: 0, transform: "translate(-50%, 10px) scale(0.9)" },
-    enter: { opacity: 1, transform: "translate(-50%, 0px) scale(1)" },
-    leave: { opacity: 0, transform: "translate(-50%, 10px) scale(0.9)" },
-    config: { tension: 300, friction: 20 },
-  });
+  // Toggle Like
+  const handleToggleLike = () => {
+    setIsLiked(!isLiked);
+    // TODO: Add persistence logic here
+  };
 
   const settingsTransitions = useTransition(showSettingsPopup, {
     from: { opacity: 0, transform: "translate(-50%, 10px) scale(0.9)" },
@@ -282,49 +284,12 @@ const Controls: React.FC<ControlsProps> = ({
 
   const [coverSpring, coverApi] = useSpring(() => ({
     scale: isPlaying ? 1.04 : 0.94,
-    boxShadow: isPlaying
-      ? "0 20px 35px rgba(0,0,0,0.55)"
-      : "0 10px 20px rgba(0,0,0,0.45)",
     config: { tension: 300, friction: 28 },
   }));
-
-  useEffect(() => {
-    coverApi.start({
-      scale: isPlaying ? 1.04 : 0.94,
-      boxShadow: isPlaying
-        ? "0 20px 35px rgba(0,0,0,0.55)"
-        : "0 10px 20px rgba(0,0,0,0.45)",
-      config: { tension: 300, friction: 28 },
-    });
-  }, [isPlaying, coverApi]);
-
-  useEffect(() => {
-    if (!coverUrl) return;
-    coverApi.start({
-      scale: 0.96,
-      config: { tension: 320, friction: 24 },
-    });
-    const timeout = window.setTimeout(() => {
-      coverApi.start({
-        scale: isPlaying ? 1.04 : 0.94,
-        boxShadow: isPlaying
-          ? "0 20px 35px rgba(0,0,0,0.55)"
-          : "0 10px 20px rgba(0,0,0,0.45)",
-        config: { tension: 260, friction: 32 },
-      });
-    }, 180);
-    return () => clearTimeout(timeout);
-  }, [coverUrl, isPlaying, coverApi]);
 
   // Close popups when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        volumeContainerRef.current &&
-        !volumeContainerRef.current.contains(event.target as Node)
-      ) {
-        setShowVolumePopup(false);
-      }
       if (
         settingsContainerRef.current &&
         !settingsContainerRef.current.contains(event.target as Node)
@@ -334,30 +299,24 @@ const Controls: React.FC<ControlsProps> = ({
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [setShowVolumePopup, setShowSettingsPopup]);
+  }, [setShowSettingsPopup]);
 
-  // Scroll to adjust volume/speed
+  // Scroll to adjust speed
   useEffect(() => {
-    if (!showVolumePopup && !showSettingsPopup) return;
+    if (!showSettingsPopup) return;
 
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
       const delta = e.deltaY > 0 ? -1 : 1;
 
-      if (showVolumePopup) {
-        const step = 0.05;
-        const newVolume = Math.min(Math.max(volume + delta * step, 0), 1);
-        onVolumeChange(Number(newVolume.toFixed(2)));
-      } else if (showSettingsPopup) {
-        const step = 0.01;
-        const newSpeed = Math.min(Math.max(speed + delta * step, 0.5), 3);
-        onSpeedChange(Number(newSpeed.toFixed(2)));
-      }
+      const step = 0.01;
+      const newSpeed = Math.min(Math.max(speed + delta * step, 0.5), 3);
+      onSpeedChange(Number(newSpeed.toFixed(2)));
     };
 
     window.addEventListener("wheel", handleWheel, { passive: false });
     return () => window.removeEventListener("wheel", handleWheel);
-  }, [showVolumePopup, showSettingsPopup, volume, speed, onVolumeChange, onSpeedChange]);
+  }, [showSettingsPopup, speed, onSpeedChange]);
 
   const getModeIcon = () => {
     // Theme-aware colors
@@ -404,104 +363,50 @@ const Controls: React.FC<ControlsProps> = ({
     return <VolumeHighFilledIcon className="w-4 h-4" />;
   };
 
-  const controlsScaleSpring = useSpring({
-    scale: isPlaying ? 1.02 : 0.97,
-    config: {
-      tension: isPlaying ? 320 : 260,
-      friction: isPlaying ? 22 : 30,
-    },
-    immediate: false,
-  });
-
-  // 3D Card Mouse Move Handler (只处理旋转)
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!coverRef.current) return;
-    
-    const rect = coverRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    
-    const rotateXValue = ((y - centerY) / centerY) * -10; // Max 10deg tilt
-    const rotateYValue = ((x - centerX) / centerX) * 10;
-    
-    cardApi.start({
-      rotateX: rotateXValue,
-      rotateY: rotateYValue,
-      config: { tension: 300, friction: 40 },
-    });
-  };
-
-  const handleMouseLeave = () => {
-    cardApi.start({
-      rotateX: 0,
-      rotateY: 0,
-      config: { tension: 200, friction: 30 },
-    });
-  };
-
   // Calculate buffered percentage from actual audio buffered time
   const bufferedWidthPercent = duration > 0
     ? Math.min(100, Math.max(0, (bufferedEnd / duration) * 100))
     : 0;
 
   return (
-    <div className="w-full flex flex-col items-center justify-center gap-2 theme-text-primary select-none">
+    <div className="w-full flex flex-col items-center justify-center gap-1 theme-text-primary select-none">
       {/* Cover Section with 3D Effect */}
-      <div 
-        ref={coverRef}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        style={{ perspective: '1000px' }}
-        className="mb-6"
-      >
-        <animated.div
-          style={{
-            boxShadow: coverSpring.boxShadow,
-            transform: to(
-              [coverSpring.scale, controlsScaleSpring.scale, rotateX, rotateY],
-              (coverScale, controlScale, rx, ry) => 
-                `scale(${coverScale * controlScale}) rotateX(${rx}deg) rotateY(${ry}deg)`
-            ),
-            transformStyle: 'preserve-3d',
-          }}
-          className="relative aspect-square w-64 md:w-72 lg:w-80 rounded-3xl bg-gradient-to-br from-gray-800 to-gray-900 shadow-lg shadow-black/30 ring-1 ring-white/10 overflow-hidden"
-        >
-          {coverUrl ? (
-            <SmartImage
-              src={coverUrl}
-              alt="Album Art"
-              containerClassName="absolute inset-0"
-              imgClassName="w-full h-full object-cover"
-              loading="eager"
-            />
-          ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center theme-text-tertiary">
-              <div className="text-8xl mb-4 opacity-50">♪</div>
-              <p className="text-sm">{t("player.noMusicLoaded")}</p>
-            </div>
-          )}
-          
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none"></div>
-        </animated.div>
-      </div>
-      {/* Song Info */}
-      <div className="text-center mb-2 px-4 select-text cursor-text">
-        <h2 className="text-3xl font-bold tracking-tight drop-shadow-md line-clamp-1 theme-text-primary">
-          {title}
-        </h2>
-        <p className="text-xl font-medium line-clamp-1 theme-text-secondary">
-          {artist}
-        </p>
-      </div>
+      <CoverCard 
+        coverUrl={coverUrl}
+        isPlaying={isPlaying}
+        onToggleLike={handleToggleLike}
+        isLiked={isLiked}
+        showSettingsPopup={showSettingsPopup}
+        setShowSettingsPopup={setShowSettingsPopup}
+        title={title}
+        artist={artist}
+        settingsPopupContent={
+          settingsTransitions((style, item) =>
+            item ? (
+              <SettingsPopup
+                style={style}
+                speed={speed}
+                preservesPitch={preservesPitch}
+                onTogglePreservesPitch={onTogglePreservesPitch}
+                onSpeedChange={onSpeedChange}
+                audioRef={audioRef}
+                isPlaying={isPlaying}
+                spatialAudioEnabled={spatialAudioEnabled}
+                onToggleSpatialAudio={handleToggleSpatialAudio}
+              />
+            ) : null
+          )
+        }
+      />
 
       {/* Spectrum Visualizer */}
       {visualizerEnabled && (
         <div className="w-full max-w-xl flex justify-center h-12 mb-3">
-          <Visualizer audioRef={audioRef} isPlaying={isPlaying} spatialEngine={spatialEngineRef.current} />
+          <Visualizer 
+            audioRef={audioRef} 
+            isPlaying={isPlaying} 
+            spatialEngine={spatialEngineRef.current}
+          />
         </div>
       )}
 
@@ -584,137 +489,151 @@ const Controls: React.FC<ControlsProps> = ({
         </span>
       </div>
 
-      {/* Controls Row - Flattened for Equal Spacing */}
-      {/* Layout: [Mode] [Vol] [Prev] [Play] [Next] [Settings] [List] */}
-      <div className="w-full max-w-[440px] mt-6 px-2">
+      {/* Controls Row - Without Volume */}
+      {/* Layout: [Mode] [Prev] [Play] [Next] [Settings] [List] */}
+      <div className="w-full max-w-[380px] mt-4 px-2">
         <div className="flex items-center justify-between w-full">
           {/* 1. Play Mode */}
           <button
             onClick={onToggleMode}
-            className="p-2.5 rounded-full theme-bg-overlay hover:theme-bg-overlay-hover transition-colors"
+            className="p-2.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-all duration-150 ease-out active:scale-90"
+            style={{
+              willChange: 'transform, background-color',
+            }}
             title={t("player.repeat")}
           >
             {getModeIcon()}
           </button>
 
-          {/* 2. Volume */}
-          <div className="relative" ref={volumeContainerRef}>
-            <button
-              onClick={() => setShowVolumePopup(!showVolumePopup)}
-              className={`p-2.5 rounded-full transition-colors ${
-                showVolumePopup 
-                  ? theme === 'light' ? "text-black theme-bg-overlay" : "text-white theme-bg-overlay"
-                  : theme === 'light' ? "text-black/60 hover:text-black theme-bg-overlay hover:theme-bg-overlay-hover" : "text-white/60 hover:text-white theme-bg-overlay hover:theme-bg-overlay-hover"
-              }`}
-              title={t("player.volume")}
-            >
-              {getVolumeButtonIcon()}
-            </button>
-
-            {/* Volume Popup */}
-            {volumeTransitions((style, item) =>
-              item ? (
-                <VolumePopup
-                  style={style}
-                  volume={volume}
-                  onVolumeChange={onVolumeChange}
-                  getVolumePopupIcon={getVolumePopupIcon}
-                />
-              ) : null
-            )}
-          </div>
-
-          {/* 3. Previous */}
+          {/* 2. Previous */}
           <button
             onClick={onPrev}
-            className={`w-14 h-14 flex items-center justify-center rounded-full theme-bg-overlay hover:theme-bg-overlay-hover active:scale-95 transition-all duration-200`}
+            className={`w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 active:bg-white/20 transition-all duration-150 ease-out active:scale-90 hw-accelerate`}
+            style={{
+              willChange: 'transform, background-color',
+            }}
             aria-label={t("player.previous")}
           >
             <PrevIcon className="w-7 h-7" />
           </button>
 
-          {/* 4. Play/Pause (Center) */}
+          {/* 3. Play/Pause (Center) - Optimized Animation */}
           <button
             onClick={onPlayPause}
-            className={`w-16 h-16 flex items-center justify-center rounded-full hover:scale-105 active:scale-95 shadow-lg ${
+            className={`w-14 h-14 flex items-center justify-center rounded-full hover:scale-105 active:scale-95 transition-all duration-150 ease-out hw-accelerate ${
               theme === 'light' 
-                ? 'bg-black text-white shadow-black/10' 
-                : 'bg-white text-black shadow-white/10'
+                ? 'text-black hover:bg-white/5 active:bg-white/10' 
+                : 'text-white hover:bg-white/5 active:bg-white/10'
             }`}
             style={{
-              transition: 'background-color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1), color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1), transform 0.2s'
+              willChange: 'transform, background-color',
             }}
             aria-label={isPlaying ? t("player.pause") : t("player.play")}
           >
-            <div className="relative w-7 h-7">
+            <div className="relative w-11 h-11 hw-accelerate">
               {/* Pause Icon */}
-              <PauseIcon
-                className={`absolute inset-0 w-full h-full transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isPlaying
+              <div
+                className={`absolute inset-0 w-full h-full hw-accelerate ${isPlaying
                   ? "opacity-100 scale-100 rotate-0"
                   : "opacity-0 scale-50 -rotate-90"
                   }`}
-              />
+                style={{
+                  transition: 'opacity 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  willChange: 'opacity, transform',
+                }}
+              >
+                <PauseIcon className="w-full h-full" />
+              </div>
 
-              <PlayIcon
-                className={`absolute inset-0 w-full h-full transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${!isPlaying
+              <div
+                className={`absolute inset-0 w-full h-full hw-accelerate ${!isPlaying
                   ? "opacity-100 scale-100 rotate-0"
                   : "opacity-0 scale-50 rotate-90"
                   }`}
-              />
+                style={{
+                  transition: 'opacity 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  willChange: 'opacity, transform',
+                }}
+              >
+                <PlayIcon className="w-full h-full" />
+              </div>
             </div>
           </button>
 
-          {/* 5. Next */}
+          {/* 4. Next */}
           <button
             onClick={onNext}
-            className={`w-14 h-14 flex items-center justify-center rounded-full theme-bg-overlay hover:theme-bg-overlay-hover active:scale-95 transition-all duration-200`}
+            className={`w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 active:bg-white/20 transition-all duration-150 ease-out active:scale-90 hw-accelerate`}
+            style={{
+              willChange: 'transform, background-color',
+            }}
             aria-label={t("player.next")}
           >
             <NextIcon className="w-7 h-7" />
           </button>
 
-          {/* 6. Settings (Replaces Like) */}
-          <div className="relative" ref={settingsContainerRef}>
-            <button
-              onClick={() => setShowSettingsPopup(!showSettingsPopup)}
-              className={`p-2.5 rounded-full transition-colors ${
-                showSettingsPopup 
-                  ? theme === 'light' ? "text-black theme-bg-overlay" : "text-white theme-bg-overlay"
-                  : theme === 'light' ? "text-black/60 hover:text-black theme-bg-overlay hover:theme-bg-overlay-hover" : "text-white/60 hover:text-white theme-bg-overlay hover:theme-bg-overlay-hover"
-              }`}
-              title={t("player.settings")}
-            >
-              <SettingsIcon className="w-5 h-5" />
-            </button>
-
-            {/* Settings Popup */}
-            {settingsTransitions((style, item) =>
-              item ? (
-                <SettingsPopup
-                  style={style}
-                  speed={speed}
-                  preservesPitch={preservesPitch}
-                  onTogglePreservesPitch={onTogglePreservesPitch}
-                  onSpeedChange={onSpeedChange}
-                  audioRef={audioRef}
-                  isPlaying={isPlaying}
-                  spatialAudioEnabled={spatialAudioEnabled}
-                  onToggleSpatialAudio={handleToggleSpatialAudio}
-                />
-              ) : null
-            )}
-          </div>
-
-          {/* 7. Playlist/Queue */}
+          {/* 5. Playlist/Queue */}
           <button
             onClick={onTogglePlaylist}
-            className={`p-2.5 rounded-full transition-colors ${
-              theme === 'light' ? 'text-black/60 hover:text-black theme-bg-overlay hover:theme-bg-overlay-hover' : 'text-white/60 hover:text-white theme-bg-overlay hover:theme-bg-overlay-hover'
+            className={`p-2.5 rounded-full transition-all duration-150 ease-out active:scale-90 hover:bg-white/10 active:bg-white/20 ${
+              theme === 'light' ? 'text-black/60 hover:text-black' : 'text-white/60 hover:text-white'
             }`}
+            style={{
+              willChange: 'transform, background-color',
+            }}
             title={t("player.queue")}
           >
             <QueueIcon className="w-5 h-5" />
           </button>
+        </div>
+      </div>
+
+      {/* Volume Control Bar - Below Controls */}
+      <div className="w-full max-w-xl mt-4 px-4">
+        <div className="flex items-center gap-3">
+          {/* Volume Icon */}
+          <button
+            onClick={() => onVolumeChange(volume === 0 ? 0.5 : 0)}
+            className={`p-2 rounded-full transition-all duration-150 ease-out active:scale-90 hover:bg-white/10 active:bg-white/20 ${
+              theme === 'light' ? 'text-black/60 hover:text-black' : 'text-white/60 hover:text-white'
+            }`}
+            title={t("player.volume")}
+          >
+            {getVolumeButtonIcon()}
+          </button>
+
+          {/* Volume Slider */}
+          <div className="relative flex-1 h-10 flex items-center cursor-pointer group">
+            {/* Background Track */}
+            <div className="absolute inset-x-0 h-1 theme-bg-overlay rounded-full group-hover:h-1.5 transition-[height] duration-200 ease-out"></div>
+
+            {/* Active Volume */}
+            <div
+              className="absolute left-0 h-1 rounded-full group-hover:h-1.5 transition-[height] duration-200 ease-out"
+              style={{
+                width: `${volume * 100}%`,
+                backgroundColor: theme === 'light' ? "rgba(0,0,0,1)" : "rgba(255,255,255,1)",
+                transition: 'background-color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1), height 0.2s ease-out',
+              }}
+            ></div>
+
+            {/* Input Range */}
+            <input
+              id="volume-range"
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={volume}
+              onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+            />
+          </div>
+
+          {/* Volume Percentage */}
+          <span className="w-12 text-sm font-medium theme-text-secondary text-right">
+            {Math.round(volume * 100)}%
+          </span>
         </div>
       </div>
     </div>
@@ -743,10 +662,13 @@ const VolumePopup: React.FC<VolumePopupProps> = ({
 
   return (
     <animated.div
-      style={style}
-      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-8 z-50 w-[52px] h-[150px] rounded-[26px] p-1.5 bg-black/10 backdrop-blur-[100px] saturate-150 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/5 flex flex-col cursor-auto"
+      style={{
+        ...style,
+        bottom: 'calc(100% + 2rem)',
+      }}
+      className="absolute left-1/2 -translate-x-1/2 z-50 w-[52px] h-[150px] rounded-[26px] p-1.5 bg-black/10 backdrop-blur-optimized saturate-150 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/5 flex flex-col cursor-auto hw-accelerate"
     >
-      <div className="relative w-full flex-1 rounded-[20px] bg-white/20 overflow-hidden backdrop-blur-[28px]">
+      <div className="relative w-full flex-1 rounded-[20px] bg-white/20 overflow-hidden backdrop-blur-optimized hw-accelerate">
         {/* Fill */}
         <animated.div
           className="absolute bottom-0 w-full bg-white"
@@ -802,89 +724,59 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
   onToggleSpatialAudio,
 }) => {
   const { t } = useI18n();
-  const { speedH } = useSpring({
-    speedH: ((speed - 0.5) / 2.5) * 100,
-    config: { tension: 210, friction: 20 },
-  });
 
-  const [audioEffect, setAudioEffect] = React.useState<'none' | 'reverb' | 'echo' | 'bass'>('none');
+  const [audioEffect, setAudioEffect] = React.useState<'digital' | 'reverb' | 'spatial'>('digital');
 
   // Quick speed presets
   const speedPresets = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
   const [showPresets, setShowPresets] = React.useState(false);
-  
-  // Mobile touch optimization
-  const [isTouching, setIsTouching] = React.useState(false);
-  const touchStartY = React.useRef(0);
-  const touchStartSpeed = React.useRef(speed);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setIsTouching(true);
-    touchStartY.current = e.touches[0].clientY;
-    touchStartSpeed.current = speed;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isTouching) return;
+  // Calculate slider position based on active effect
+  const getSliderPosition = () => {
+    // Each button is 40px (w-10), gap is 8px (gap-2)
+    // Container padding is 6px (p-1.5)
+    const buttonWidth = 40;
+    const gap = 8;
+    const padding = 6;
     
-    const deltaY = touchStartY.current - e.touches[0].clientY;
-    const speedDelta = (deltaY / 150) * 2.5; // 150px = full range (0.5-3)
-    const newSpeed = Math.min(Math.max(touchStartSpeed.current + speedDelta, 0.5), 3);
-    
-    onSpeedChange(Number(newSpeed.toFixed(2)));
+    switch (audioEffect) {
+      case 'digital':
+        return padding; // First button
+      case 'reverb':
+        return padding + buttonWidth + gap; // Second button
+      case 'spatial':
+        return padding + (buttonWidth + gap) * 2; // Third button
+      default:
+        return padding;
+    }
   };
 
-  const handleTouchEnd = () => {
-    setIsTouching(false);
-  };
+  // Animated slider background
+  const sliderSpring = useSpring({
+    left: `${getSliderPosition()}px`,
+    config: { tension: 300, friction: 30 },
+  });
 
   return (
     <animated.div
       style={style}
-      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-8 z-50 p-4 rounded-[26px] bg-black/10 backdrop-blur-[100px] saturate-150 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/5 flex gap-4 cursor-auto"
+      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-8 z-50 p-3 rounded-[20px] bg-black/10 backdrop-blur-optimized saturate-150 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/5 flex items-center gap-4 cursor-auto hw-accelerate"
     >
-      {/* Speed Control */}
-      <div className="flex flex-col items-center gap-2 w-12 relative">
-        <div 
-          className="h-[150px] w-full relative rounded-[20px] bg-white/20 overflow-hidden backdrop-blur-[28px]"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          <animated.div
-            className="absolute bottom-0 w-full bg-white"
-            style={{
-              height: speedH.to((h) => `${h}%`),
-            }}
-          />
-          <input
-            id="speed-slider"
-            type="range"
-            min="0.5"
-            max="3"
-            step="0.01"
-            value={speed}
-            onChange={(e) => onSpeedChange(parseFloat(e.target.value))}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
-            style={{
-              writingMode: "vertical-lr",
-              direction: "rtl",
-            } as React.CSSProperties}
-          />
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 pointer-events-none text-[10px] font-bold text-white mix-blend-difference">
-            {speed.toFixed(2)}x
-          </div>
-        </div>
+      {/* Speed Control - Left Side */}
+      <div className="relative">
         <button
           onClick={() => setShowPresets(!showPresets)}
-          className="text-[10px] font-medium text-white/60 hover:text-white/90 transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
         >
-          {t("player.speed")}
+          <FastForwardIcon className="w-4 h-4 text-white" />
+          <span className="text-sm font-bold text-white">
+            {speed === 1 ? '1x' : `${speed.toFixed(2)}x`}
+          </span>
         </button>
         
         {/* Speed Presets Popup */}
         {showPresets && (
-          <div className="absolute top-0 left-full ml-2 p-2 rounded-2xl bg-black/10 backdrop-blur-[100px] saturate-150 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/5 flex flex-col gap-1 max-h-[200px] overflow-y-auto">
+          <div className="absolute top-full mt-2 left-0 p-2 rounded-2xl bg-black/10 backdrop-blur-optimized saturate-150 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/5 flex flex-col gap-1 hw-accelerate">
             {speedPresets.map((preset) => (
               <button
                 key={preset}
@@ -892,7 +784,7 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
                   onSpeedChange(preset);
                   setShowPresets(false);
                 }}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-colors whitespace-nowrap ${
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap ${
                   Math.abs(speed - preset) < 0.01
                     ? "bg-white text-black"
                     : "bg-white/10 text-white hover:bg-white/20"
@@ -905,73 +797,64 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
         )}
       </div>
 
-      {/* Toggle Preserves Pitch */}
-      <div className="flex flex-col items-center justify-end gap-2 w-12 pb-6">
-        <button
-          onClick={onTogglePreservesPitch}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors duration-200 ${preservesPitch ? "bg-white text-black" : "bg-white/20 text-white"
-            }`}
-          title={preservesPitch ? t("speed.preservePitch") : t("speed.vinylMode")}
-        >
-          <span className="text-xs font-bold">
-            {preservesPitch ? t("speed.digital").substring(0, 3) : t("speed.vinyl").substring(0, 3)}
-          </span>
-        </button>
-        <span className="text-[10px] font-medium text-white/60 text-center leading-tight">
-          {preservesPitch ? t("speed.digital") : t("speed.vinyl")}
-        </span>
-      </div>
+      {/* Audio Effects Group - Right Side */}
+      <div className="relative flex items-center gap-2 p-1.5 rounded-full bg-white/10">
+        {/* Animated Slider Background */}
+        <animated.div
+          style={{
+            left: sliderSpring.left,
+          }}
+          className="absolute top-1.5 bottom-1.5 w-10 rounded-full bg-white shadow-lg"
+        />
 
-      {/* Audio Effect */}
-      <div className="flex flex-col items-center justify-end gap-2 w-12 pb-6">
+        {/* Digital/Preserve Pitch */}
         <button
           onClick={() => {
-            const effects: Array<'none' | 'reverb' | 'echo' | 'bass'> = ['none', 'reverb', 'echo', 'bass'];
-            const currentIndex = effects.indexOf(audioEffect);
-            const nextIndex = (currentIndex + 1) % effects.length;
-            setAudioEffect(effects[nextIndex]);
-            // TODO: 实现音效切换逻辑
-            console.log('Audio effect changed to:', effects[nextIndex]);
+            setAudioEffect('digital');
+            if (!preservesPitch) onTogglePreservesPitch();
           }}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors duration-200 ${
-            audioEffect === 'none' ? "bg-white/20 text-white" : "bg-white text-black"
+          className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-200 ${
+            audioEffect === 'digital'
+              ? "text-black"
+              : "text-white/40 hover:text-white/70"
           }`}
-          title={
-            audioEffect === 'none' ? t("audioEffect.noEffect") :
-            audioEffect === 'reverb' ? t("audioEffect.reverbEffect") :
-            audioEffect === 'echo' ? t("audioEffect.echoEffect") :
-            t("audioEffect.bassBoost")
-          }
+          title={t("speed.digital")}
         >
-          <span className="text-xs font-bold">
-            {audioEffect === 'none' ? t("audioEffect.off").substring(0, 3) :
-             audioEffect === 'reverb' ? t("audioEffect.reverb").substring(0, 3) :
-             audioEffect === 'echo' ? t("audioEffect.echo").substring(0, 3) :
-             t("audioEffect.bass").substring(0, 3)}
-          </span>
+          <WaveformIcon className="w-5 h-5" />
         </button>
-        <span className="text-[10px] font-medium text-white/60 text-center leading-tight">
-          {audioEffect === 'none' ? t("audioEffect.none") :
-           audioEffect === 'reverb' ? t("audioEffect.reverb") :
-           audioEffect === 'echo' ? t("audioEffect.echo") :
-           t("audioEffect.bass")}
-        </span>
-      </div>
 
-      {/* 3D Spatial Audio */}
-      <div className="flex flex-col items-center justify-end gap-2 w-12 pb-6">
+        {/* Reverb Effect */}
         <button
-          onClick={onToggleSpatialAudio}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors duration-200 ${
-            spatialAudioEnabled ? "bg-white text-black" : "bg-white/20 text-white"
+          onClick={() => {
+            setAudioEffect('reverb');
+            // TODO: Implement reverb effect
+            console.log('Reverb effect activated');
+          }}
+          className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-200 ${
+            audioEffect === 'reverb'
+              ? "text-black"
+              : "text-white/40 hover:text-white/70"
+          }`}
+          title={t("audioEffect.reverb")}
+        >
+          <ReverbIcon className="w-5 h-5" />
+        </button>
+
+        {/* 3D Spatial Audio */}
+        <button
+          onClick={() => {
+            setAudioEffect('spatial');
+            onToggleSpatialAudio();
+          }}
+          className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-200 ${
+            audioEffect === 'spatial'
+              ? "text-black"
+              : "text-white/40 hover:text-white/70"
           }`}
           title={t("spatialAudio.title")}
         >
-          <span className="text-xs font-bold">3D</span>
+          <SpatialAudioIcon className="w-5 h-5" />
         </button>
-        <span className="text-[10px] font-medium text-white/60 text-center leading-tight">
-          {spatialAudioEnabled ? t("spatialAudio.on") : t("spatialAudio.off")}
-        </span>
       </div>
     </animated.div>
   );

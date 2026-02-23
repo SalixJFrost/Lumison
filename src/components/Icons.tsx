@@ -202,13 +202,15 @@ export const PlayIcon: React.FC<IconProps> = ({ className }) => (
 
 export const PrevIcon: React.FC<IconProps> = ({ className }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-    <path d="M19,6c0-0.88-0.96-1.42-1.72-0.98L8.7,10.78C8.08,11.14,7.7,11.8,7.7,12.5s0.38,1.36,1,1.72l8.58,5.76 c0.76,0.44,1.72-0.1,1.72-0.98V6z M6,6C5.45,6,5,6.45,5,7v10c0,0.55,0.45,1,1,1s1-0.45,1-1V7C7,6.45,6.55,6,6,6z" />
+    <path d="M13 4L4 12l9 8V4z"/>
+    <path d="M20 4l-9 8 9 8V4z"/>
   </svg>
 );
 
 export const NextIcon: React.FC<IconProps> = ({ className }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-    <path d="M5,18c0,0.88,0.96,1.42,1.72,0.98l8.58-5.76C15.92,12.86,16.3,12.2,16.3,11.5s-0.38-1.36-1-1.72L6.72,4.02 C5.96,3.58,5,4.12,5,5V18z M18,18c0.55,0,1-0.45,1-1V7c0-0.55-0.45-1-1-1s-1,0.45-1,1v10C17,17.55,17.45,18,18,18z" />
+    <path d="M4 4l9 8-9 8V4z"/>
+    <path d="M11 4l9 8-9 8V4z"/>
   </svg>
 );
 
@@ -557,5 +559,81 @@ export const LabIcon: React.FC<IconProps> = ({ className }) => (
     <path d="M9 3h6" />
     <path d="M9 7h6" />
     <path d="M9 11h6" />
+  </svg>
+);
+
+// Fast Forward Icon - for speed control
+export const FastForwardIcon: React.FC<IconProps> = ({ className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+  >
+    <path d="M4 4l8 8-8 8V4z"/>
+    <path d="M12 4l8 8-8 8V4z"/>
+  </svg>
+);
+
+// Waveform Icon - for digital/preserve pitch mode
+export const WaveformIcon: React.FC<IconProps> = ({ className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M2 12h2" />
+    <path d="M6 8v8" />
+    <path d="M10 4v16" />
+    <path d="M14 7v10" />
+    <path d="M18 10v4" />
+    <path d="M22 12h-2" />
+  </svg>
+);
+
+// Reverb/Echo Icon - for reverb effect
+export const ReverbIcon: React.FC<IconProps> = ({ className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M9 18V5l12-2v13" />
+    <circle cx="6" cy="18" r="3" />
+    <circle cx="18" cy="16" r="3" />
+  </svg>
+);
+
+// 3D Spatial Audio Icon
+export const SpatialAudioIcon: React.FC<IconProps> = ({ className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <circle cx="12" cy="12" r="2" />
+    <path d="M12 2v2" />
+    <path d="M12 20v2" />
+    <path d="m4.93 4.93 1.41 1.41" />
+    <path d="m17.66 17.66 1.41 1.41" />
+    <path d="M2 12h2" />
+    <path d="M20 12h2" />
+    <path d="m6.34 17.66-1.41 1.41" />
+    <path d="m19.07 4.93-1.41 1.41" />
   </svg>
 );
