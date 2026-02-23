@@ -305,47 +305,19 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
   }, [invertColor, interpolateColor]);
 
   useEffect(() => {
-    const resize = () => {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      // 如果 canvas 已经转移控制权或即将转移，只通知渲染器 resize
-      const transferred = canvas.dataset.offscreenTransferred;
-      if (transferred === "true" || transferred === "pending") {
-        if (rendererRef.current instanceof WebWorkerBackgroundRender || 
-            rendererRef.current instanceof MultiPassBackgroundRender) {
-          rendererRef.current.resize(width, height);
-        }
-        return;
-      }
-
-      // 如果使用 Worker 渲染器，只通知渲染器
-      if (rendererRef.current instanceof WebWorkerBackgroundRender ||
-          rendererRef.current instanceof MultiPassBackgroundRender) {
-        rendererRef.current.resize(width, height);
-        return;
-      }
-
-      // 只有在使用 UI 渲染器时才直接修改 canvas 尺寸
-      canvas.width = width;
-      canvas.height = height;
-      rendererRef.current?.resize(width, height);
-    };
-
-    resize();
-    window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
-  }, [isMobileLayout, canvasInstanceKey]);
-
-  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // 检查是否需要重新创建 canvas（已经转移控制权的情况）
     if (canvas.dataset.offscreenTransferred === "true") {
       setCanvasInstanceKey((prev) => prev + 1);
       return;
+    }
+
+    // 清理旧的渲染器
+    if (rendererRef.current) {
+      rendererRef.current.stop();
+      rendererRef.current = null;
     }
 
     // 优先使用多层 FBO 渲染（桌面端 + 支持）
@@ -354,20 +326,6 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     
     const shouldUseWorker =
       !isMobileLayout && !shouldUseMultiPass && WebWorkerBackgroundRender.isSupported(canvas);
-
-    // 如果已经是正确的渲染器类型，不重新创建
-    if (shouldUseMultiPass && rendererRef.current instanceof MultiPassBackgroundRender) {
-      return;
-    }
-    
-    if (shouldUseWorker && rendererRef.current instanceof WebWorkerBackgroundRender) {
-      return;
-    }
-
-    if (rendererRef.current) {
-      rendererRef.current.stop();
-      rendererRef.current = null;
-    }
 
     // 创建多层 FBO 渲染器
     if (shouldUseMultiPass) {
@@ -390,7 +348,15 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
         swirlResolution: 0.75,
       });
       rendererRef.current = multiPassRenderer;
+
+      // 设置 resize 监听器
+      const handleResize = () => {
+        multiPassRenderer.resize(window.innerWidth, window.innerHeight);
+      };
+      window.addEventListener("resize", handleResize);
+
       return () => {
+        window.removeEventListener("resize", handleResize);
         multiPassRenderer.stop();
         rendererRef.current = null;
       };
@@ -411,7 +377,15 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
       console.log('🎨 Using colors:', initialColors);
       workerRenderer.start(initialColors);
       rendererRef.current = workerRenderer;
+
+      // 设置 resize 监听器
+      const handleResize = () => {
+        workerRenderer.resize(window.innerWidth, window.innerHeight);
+      };
+      window.addEventListener("resize", handleResize);
+
       return () => {
+        window.removeEventListener("resize", handleResize);
         workerRenderer.stop();
         rendererRef.current = null;
       };
@@ -421,12 +395,25 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     console.log('🎨 Falling back to UI Renderer (mobile or no WebGL support)');
     const renderCallback = isMobileLayout ? renderMobileFrame : renderGradientFrame;
     const uiRenderer = new UIBackgroundRender(canvas, renderCallback);
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
     uiRenderer.resize(window.innerWidth, window.innerHeight);
     uiRenderer.setPaused(!isPlaying);
     uiRenderer.start();
     rendererRef.current = uiRenderer;
 
+    // 设置 resize 监听器
+    const handleResize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      uiRenderer.resize(width, height);
+    };
+    window.addEventListener("resize", handleResize);
+
     return () => {
+      window.removeEventListener("resize", handleResize);
       uiRenderer.stop();
       rendererRef.current = null;
     };
