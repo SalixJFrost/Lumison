@@ -491,12 +491,12 @@ const Controls: React.FC<ControlsProps> = ({
 
       {/* Controls Row - Without Volume */}
       {/* Layout: [Mode] [Prev] [Play] [Next] [Settings] [List] */}
-      <div className="w-full max-w-[380px] mt-4 px-2">
-        <div className="flex items-center justify-between w-full">
+      <div className="w-full max-w-[360px] mt-4 px-2">
+        <div className="flex items-center justify-between w-full gap-1">
           {/* 1. Play Mode */}
           <button
             onClick={onToggleMode}
-            className="p-2.5 rounded-full hover:bg-white/10 active:bg-white/20 transition-all duration-150 ease-out active:scale-90"
+            className="p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-all duration-150 ease-out active:scale-90"
             style={{
               willChange: 'transform, background-color',
             }}
@@ -508,13 +508,13 @@ const Controls: React.FC<ControlsProps> = ({
           {/* 2. Previous */}
           <button
             onClick={onPrev}
-            className={`w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 active:bg-white/20 transition-all duration-150 ease-out active:scale-90 hw-accelerate`}
+            className={`w-11 h-11 flex items-center justify-center rounded-full hover:bg-white/10 active:bg-white/20 transition-all duration-150 ease-out active:scale-90 hw-accelerate`}
             style={{
               willChange: 'transform, background-color',
             }}
             aria-label={t("player.previous")}
           >
-            <PrevIcon className="w-7 h-7" />
+            <PrevIcon className="w-6 h-6" />
           </button>
 
           {/* 3. Play/Pause (Center) - Optimized Animation */}
@@ -563,19 +563,19 @@ const Controls: React.FC<ControlsProps> = ({
           {/* 4. Next */}
           <button
             onClick={onNext}
-            className={`w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 active:bg-white/20 transition-all duration-150 ease-out active:scale-90 hw-accelerate`}
+            className={`w-11 h-11 flex items-center justify-center rounded-full hover:bg-white/10 active:bg-white/20 transition-all duration-150 ease-out active:scale-90 hw-accelerate`}
             style={{
               willChange: 'transform, background-color',
             }}
             aria-label={t("player.next")}
           >
-            <NextIcon className="w-7 h-7" />
+            <NextIcon className="w-6 h-6" />
           </button>
 
           {/* 5. Playlist/Queue */}
           <button
             onClick={onTogglePlaylist}
-            className={`p-2.5 rounded-full transition-all duration-150 ease-out active:scale-90 hover:bg-white/10 active:bg-white/20 ${
+            className={`p-2 rounded-full transition-all duration-150 ease-out active:scale-90 hover:bg-white/10 active:bg-white/20 ${
               theme === 'light' ? 'text-black/60 hover:text-black' : 'text-white/60 hover:text-white'
             }`}
             style={{
