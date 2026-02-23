@@ -74,7 +74,8 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
 
   // 智能调色板：根据封面和音乐特征生成
   useEffect(() => {
-    if (!enableSmartPalette || colors) {
+    // 如果已经有颜色（且不是空数组），或者禁用了智能调色板，则不生成
+    if (!enableSmartPalette || (colors && colors.length > 0)) {
       setSmartColors(null);
       return;
     }
@@ -97,7 +98,8 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
             setSmartColors(palette);
           }
         } else {
-          setSmartColors(null);
+          // 没有封面也没有音乐特征，使用默认电影感配色
+          setSmartColors(desktopGradientDefaults);
         }
       } catch (error) {
         console.warn("Failed to generate smart palette:", error);
@@ -122,7 +124,13 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
   const colorKey = useMemo(() => normalizedColors.join("|"), [normalizedColors]);
 
   useEffect(() => {
-    colorsRef.current = colors || smartColors || undefined;
+    // 优先使用传入的颜色，其次智能颜色，最后默认颜色
+    const finalColors = (colors && colors.length > 0) 
+      ? colors 
+      : (smartColors && smartColors.length > 0) 
+        ? smartColors 
+        : desktopGradientDefaults;
+    colorsRef.current = finalColors;
   }, [colors, smartColors]);
 
   useEffect(() => {
@@ -362,7 +370,10 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       const multiPassRenderer = new MultiPassBackgroundRender(canvas);
-      multiPassRenderer.start(colorsRef.current ?? [], {
+      const initialColors = colorsRef.current && colorsRef.current.length > 0 
+        ? colorsRef.current 
+        : desktopGradientDefaults;
+      multiPassRenderer.start(initialColors, {
         swirlSpeed: 1.0,
         glowIntensity: 1.0,
         vignetteStrength: 0.8,
@@ -381,7 +392,10 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       const workerRenderer = new WebWorkerBackgroundRender(canvas);
-      workerRenderer.start(colorsRef.current ?? []);
+      const initialColors = colorsRef.current && colorsRef.current.length > 0 
+        ? colorsRef.current 
+        : desktopGradientDefaults;
+      workerRenderer.start(initialColors);
       rendererRef.current = workerRenderer;
       return () => {
         workerRenderer.stop();
