@@ -80,6 +80,7 @@
       "endpoints": [
         "https://github.com/SalixJFrost/Lumison/releases/latest/download/latest.json"
       ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM2NjBCNjg0OUQ1MDQ3NjIKUldSaVIxQ2RoTFpneHBGOGJTeEVsYTdhTk1PaDBha2h6cGhiNDJpM0FOYk9BK0hSaElNN1VRWXkK",
       "windows": {
         "installMode": "passive"
       }
