@@ -158,6 +158,10 @@ const App: React.FC = () => {
 
   // View mode state - 'default' or 'lyrics'
   const [viewMode, setViewMode] = useState<'default' | 'lyrics'>('default');
+  
+  // Exit button visibility state for lyrics mode
+  const [showExitButton, setShowExitButton] = useState(true);
+  const exitButtonTimerRef = useRef<number | null>(null);
 
   // Optimize audio element
   useOptimizedAudio(audioRef);
@@ -189,8 +193,56 @@ const App: React.FC = () => {
       if (speedIndicatorTimerRef.current) {
         window.clearTimeout(speedIndicatorTimerRef.current);
       }
+      if (exitButtonTimerRef.current) {
+        window.clearTimeout(exitButtonTimerRef.current);
+      }
     };
   }, []);
+
+  // Handle exit button auto-hide in lyrics mode
+  useEffect(() => {
+    if (viewMode !== 'lyrics') {
+      // Reset when not in lyrics mode
+      setShowExitButton(true);
+      if (exitButtonTimerRef.current) {
+        window.clearTimeout(exitButtonTimerRef.current);
+        exitButtonTimerRef.current = null;
+      }
+      return;
+    }
+
+    // Show button and start timer when entering lyrics mode
+    setShowExitButton(true);
+    
+    const resetTimer = () => {
+      if (exitButtonTimerRef.current) {
+        window.clearTimeout(exitButtonTimerRef.current);
+      }
+      
+      setShowExitButton(true);
+      
+      exitButtonTimerRef.current = window.setTimeout(() => {
+        setShowExitButton(false);
+      }, 5000);
+    };
+
+    // Initial timer
+    resetTimer();
+
+    // Show button on mouse move
+    const handleMouseMove = () => {
+      resetTimer();
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (exitButtonTimerRef.current) {
+        window.clearTimeout(exitButtonTimerRef.current);
+      }
+    };
+  }, [viewMode]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -518,30 +570,56 @@ const App: React.FC = () => {
         onSeek={handleSeek}
       />
 
-      {/* Top Bar */}
-      <TopBar
-        lyricsFontSize={lyricsFontSize}
-        onLyricsFontSizeChange={setLyricsFontSize}
-        onImportUrl={handleImportUrl}
-        lyricsBlur={lyricsBlur}
-        onLyricsBlurChange={setLyricsBlur}
-        lyricsGlow={lyricsGlow}
-        onLyricsGlowChange={setLyricsGlow}
-        lyricsShadow={lyricsShadow}
-        onLyricsShadowChange={setLyricsShadow}
-        onSearchClick={() => setShowSearch(true)}
-        visualizerEnabled={visualizerEnabled}
-        onVisualizerToggle={setVisualizerEnabled}
-        gaplessEnabled={gaplessEnabled}
-        onGaplessToggle={setGaplessEnabled}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        currentSong={currentSong ? {
-          title: currentSong.title,
-          artist: currentSong.artist,
-          coverUrl: currentSong.coverUrl,
-        } : null}
-      />
+      {/* Top Bar - Hidden in lyrics mode */}
+      {viewMode !== 'lyrics' && (
+        <TopBar
+          lyricsFontSize={lyricsFontSize}
+          onLyricsFontSizeChange={setLyricsFontSize}
+          onImportUrl={handleImportUrl}
+          lyricsBlur={lyricsBlur}
+          onLyricsBlurChange={setLyricsBlur}
+          lyricsGlow={lyricsGlow}
+          onLyricsGlowChange={setLyricsGlow}
+          lyricsShadow={lyricsShadow}
+          onLyricsShadowChange={setLyricsShadow}
+          onSearchClick={() => setShowSearch(true)}
+          visualizerEnabled={visualizerEnabled}
+          onVisualizerToggle={setVisualizerEnabled}
+          gaplessEnabled={gaplessEnabled}
+          onGaplessToggle={setGaplessEnabled}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          currentSong={currentSong ? {
+            title: currentSong.title,
+            artist: currentSong.artist,
+            coverUrl: currentSong.coverUrl,
+          } : null}
+        />
+      )}
+
+      {/* Exit Lyrics Mode Button - Only shown in lyrics mode */}
+      {viewMode === 'lyrics' && (
+        <button
+          onClick={() => setViewMode('default')}
+          className={`fixed top-6 left-6 z-50 w-10 h-10 flex items-center justify-center text-white/70 hover:text-white transition-all duration-500 group ${
+            showExitButton ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          aria-label="Exit lyrics mode"
+        >
+          <svg
+            className="w-6 h-6 transition-transform duration-200 group-hover:scale-110"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            viewBox="0 0 24 24"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      )}
 
       {/* Search Modal - Always rendered to preserve state, visibility handled internally */}
       <SearchModal
