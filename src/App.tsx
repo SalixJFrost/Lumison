@@ -420,7 +420,7 @@ const App: React.FC = () => {
         />
       </div>
     </div>
-  ), [playState, togglePlay, currentTime, duration, handleSeek, currentSong?.title, currentSong?.artist, currentSong?.id, currentSong?.coverUrl, t, audioRef, playNext, playPrev, playMode, toggleMode, accentColor, volume, player.speed, player.preservesPitch, handleSpeedChange, player.togglePreservesPitch, isBuffering, showVolumePopup, showSettingsPopup, visualizerEnabled, showPlaylist, playlist.queue, playIndex, handleImportUrl, playlist.removeSongs, handleFileChange]);
+  ), [playState, currentTime, duration, currentSong?.title, currentSong?.artist, currentSong?.id, currentSong?.coverUrl, t, playNext, playPrev, playMode, accentColor, volume, player.speed, player.preservesPitch, isBuffering, showVolumePopup, showSettingsPopup, visualizerEnabled, showPlaylist, playlist.queue, playlist.removeSongs]);
 
   const lyricsVersion = currentSong?.lyrics ? currentSong.lyrics.length : 0;
   const lyricsKey = currentSong ? `${currentSong.id}-${lyricsVersion}` : "no-song";
@@ -442,7 +442,7 @@ const App: React.FC = () => {
         shadow={lyricsShadow}
       />
     </div>
-  ), [lyricsKey, currentSong?.lyrics, audioRef, playState, currentTime, handleSeek, matchStatus, lyricsFontSize, lyricsBlur, lyricsGlow, lyricsShadow]);
+  ), [lyricsKey, currentSong?.lyrics, playState, currentTime, matchStatus, lyricsFontSize, lyricsBlur, lyricsGlow, lyricsShadow]);
 
   const fallbackWidth = typeof window !== "undefined" ? window.innerWidth : 0;
   const effectivePaneWidth = paneWidth || fallbackWidth;

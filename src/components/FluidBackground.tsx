@@ -97,18 +97,17 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
       // Optimize layer count based on device memory and performance
       const deviceMemory = (navigator as any).deviceMemory || 4;
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const hardwareConcurrency = navigator.hardwareConcurrency || 4;
       
-      let layerCount = 4; // Default
-      if (prefersReducedMotion || deviceMemory < 2) {
+      let layerCount = 3; // Default reduced from 4
+      if (prefersReducedMotion || deviceMemory < 2 || hardwareConcurrency < 4) {
         layerCount = 1; // Minimal for accessibility/very low-end
-      } else if (deviceMemory < 4) {
+      } else if (deviceMemory < 4 || hardwareConcurrency < 6) {
         layerCount = 2; // Low-end devices
-      } else if (deviceMemory < 8) {
-        layerCount = 3; // Mid-range devices
       }
       
       // Reduce blur on low-end devices
-      const blurAmount = deviceMemory < 4 ? 20 : 35;
+      const blurAmount = deviceMemory < 4 ? 15 : 30; // Reduced blur for better performance
       
       const newLayers = await createFlowingLayers(normalizedColors, coverUrl, layerCount);
       if (cancelled) return;
@@ -155,9 +154,9 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
         ctx.scale(transform.scale, transform.scale);
         ctx.translate(width * transform.x, height * transform.y);
         ctx.globalCompositeOperation = "screen";
-        ctx.globalAlpha = 0.5 + index * 0.05;
+        ctx.globalAlpha = 0.45 + index * 0.05; // Slightly reduced opacity for better performance
         // Use dynamic blur amount from layer
-        const blurAmount = (layer as any).blur || 35;
+        const blurAmount = (layer as any).blur || 30; // Reduced default blur
         ctx.filter = `blur(${blurAmount}px)`;
         const drawWidth = width * 1.5;
         const drawHeight = height * 1.5;
