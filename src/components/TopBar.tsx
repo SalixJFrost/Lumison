@@ -25,6 +25,11 @@ interface TopBarProps {
   onGaplessToggle: (enabled: boolean) => void;
   viewMode?: 'default' | 'album';
   onViewModeChange?: (mode: 'default' | 'album') => void;
+  currentSong?: {
+    title: string;
+    artist: string;
+    coverUrl?: string;
+  } | null;
 }
 
 // 常量提取到组件外部
@@ -53,6 +58,7 @@ const TopBar: React.FC<TopBarProps> = ({
   onGaplessToggle,
   viewMode = 'default',
   onViewModeChange,
+  currentSong,
 }) => {
   const { theme, toggleTheme } = useTheme();
   const { t } = useI18n();
@@ -67,6 +73,38 @@ const TopBar: React.FC<TopBarProps> = ({
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settingsContainerRef = useRef<HTMLDivElement>(null);
   const labContainerRef = useRef<HTMLDivElement>(null);
+
+  // 分享音乐功能
+  const handleShare = useCallback(async () => {
+    if (!currentSong) {
+      alert(t('share.noSong') || '没有正在播放的音乐');
+      return;
+    }
+
+    const shareText = `🎵 ${currentSong.title}\n🎤 ${currentSong.artist}\n\n正在使用 Lumison 播放`;
+    
+    // 检查是否支持 Web Share API
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: currentSong.title,
+          text: shareText,
+        });
+      } catch (error) {
+        // 用户取消分享或分享失败
+        console.log('Share cancelled or failed:', error);
+      }
+    } else {
+      // 降级方案：复制到剪贴板
+      try {
+        await navigator.clipboard.writeText(shareText);
+        alert(t('share.copied') || '已复制到剪贴板');
+      } catch (error) {
+        console.error('Failed to copy:', error);
+        alert(t('share.failed') || '分享失败');
+      }
+    }
+  }, [currentSong, t]);
 
   // 使用 useCallback 优化函数
   const toggleFullscreen = useCallback(() => {
@@ -355,11 +393,30 @@ const TopBar: React.FC<TopBarProps> = ({
 
       {/* Content */}
       <div className="relative z-10 w-full h-full px-6 flex justify-between items-center pointer-events-auto">
-        {/* Logo */}
+        {/* Left Section: Share + Logo */}
         <div 
           className={`flex items-center gap-3 ${transitionClasses.base} ${transitionClasses.mobileActive} ${transitionClasses.hoverSupport}`}
           data-tauri-drag-region
         >
+          {/* Share Button */}
+          <button
+            onClick={handleShare}
+            disabled={!currentSong}
+            onPointerDown={(e) => e.stopPropagation()}
+            className={`w-10 h-10 rounded-full backdrop-blur-xl flex items-center justify-center transition-all duration-300 ease-out shadow-sm hover:scale-110 active:scale-95 ${
+              currentSong
+                ? 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
+                : 'bg-white/5 text-white/30 cursor-not-allowed'
+            }`}
+            title={t('share.title') || '分享音乐'}
+            aria-label={t('share.title') || '分享音乐'}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+          </button>
+
+          {/* Logo */}
           <h1 className="text-white/90 font-bold tracking-wider text-sm uppercase drop-shadow-md select-none">
             Lumison
           </h1>

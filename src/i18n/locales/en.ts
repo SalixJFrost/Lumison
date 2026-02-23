@@ -271,4 +271,12 @@ export default {
     upToDate: "You're up to date!",
     currentVersion: "Current version",
   },
+
+  // Share
+  share: {
+    title: "Share Music",
+    noSong: "No music is currently playing",
+    copied: "Copied to clipboard!",
+    failed: "Failed to share",
+  },
 };

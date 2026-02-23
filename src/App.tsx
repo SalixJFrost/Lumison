@@ -529,6 +529,11 @@ const App: React.FC = () => {
         onGaplessToggle={setGaplessEnabled}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        currentSong={currentSong ? {
+          title: currentSong.title,
+          artist: currentSong.artist,
+          coverUrl: currentSong.coverUrl,
+        } : null}
       />
 
       {/* Search Modal - Always rendered to preserve state, visibility handled internally */}

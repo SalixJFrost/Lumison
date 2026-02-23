@@ -271,4 +271,12 @@ export default {
     upToDate: "已是最新版本！",
     currentVersion: "当前版本",
   },
+
+  // 分享
+  share: {
+    title: "分享音乐",
+    noSong: "当前没有正在播放的音乐",
+    copied: "已复制到剪贴板！",
+    failed: "分享失败",
+  },
 };
