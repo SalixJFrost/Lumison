@@ -139,8 +139,8 @@ const App: React.FC = () => {
   const [lyricsGlow, setLyricsGlow] = useState(false);
   const [lyricsShadow, setLyricsShadow] = useState(false);
   
-  // Visualizer state - enabled by default
-  const [visualizerEnabled, setVisualizerEnabled] = useState(true);
+  // Visualizer state - disabled by default for better performance
+  const [visualizerEnabled, setVisualizerEnabled] = useState(false);
 
   // Gapless playback - experimental feature
   const [gaplessEnabled, setGaplessEnabled] = useState(false);
