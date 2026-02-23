@@ -262,7 +262,21 @@ const render = (now: number) => {
   }
 
   const time = timeAccumulator * 0.0003;
-  const colors = currentColors.length >= 4 ? currentColors : currentColors.concat(currentColors);
+  
+  // 确保至少有 4 个颜色
+  const defaultColors = [
+    "rgb(8, 18, 25)",
+    "rgb(25, 60, 70)",
+    "rgb(90, 150, 140)",
+    "rgb(180, 120, 90)",
+  ];
+  
+  let colors = currentColors.length >= 4 ? currentColors : [...currentColors];
+  while (colors.length < 4) {
+    colors = colors.concat(defaultColors);
+  }
+  colors = colors.slice(0, 4);
+  
   const [c1, c2, c3, c4] = colors.map(parseColor);
 
   const canvasWidth = gl.canvas.width;
