@@ -12,6 +12,7 @@ import {
   StreamingSearchOptions
 } from './types';
 import { YouTubePlayer } from './youtube/YouTubePlayer';
+import { InternetArchivePlayer } from './archive/InternetArchivePlayer';
 
 export class StreamingManager {
   private players: Map<StreamingPlatform, IStreamingPlayer> = new Map();
@@ -36,6 +37,10 @@ export class StreamingManager {
     switch (platform) {
       case StreamingPlatform.YOUTUBE:
         player = new YouTubePlayer();
+        break;
+      
+      case StreamingPlatform.INTERNET_ARCHIVE:
+        player = new InternetArchivePlayer();
         break;
       
       case StreamingPlatform.SPOTIFY:

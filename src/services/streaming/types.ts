@@ -7,6 +7,7 @@ export enum StreamingPlatform {
   APPLE_MUSIC = 'apple_music',
   YOUTUBE = 'youtube',
   NETEASE = 'netease',
+  INTERNET_ARCHIVE = 'internet_archive',
   LOCAL = 'local'
 }
 
