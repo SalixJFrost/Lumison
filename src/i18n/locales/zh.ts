@@ -257,4 +257,18 @@ export default {
     default: "默认",
     album: "专辑",
   },
+
+  // 更新通知
+  update: {
+    available: "发现新版本",
+    version: "版本",
+    description: "新版本包含性能改进和错误修复。",
+    downloading: "下载中...",
+    updating: "更新中...",
+    updateNow: "立即更新",
+    later: "稍后",
+    checkingForUpdates: "检查更新中...",
+    upToDate: "已是最新版本！",
+    currentVersion: "当前版本",
+  },
 };

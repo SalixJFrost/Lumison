@@ -21,6 +21,20 @@
   --border-color: rgba(0, 0, 0, 0.1);
 }
 
+/* Shimmer animation for update progress */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
 /* Hardware Acceleration & Performance Optimization */
 * {
   -webkit-font-smoothing: antialiased;

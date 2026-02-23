@@ -257,4 +257,18 @@ export default {
     default: "Default",
     album: "Album",
   },
+
+  // Update Notification
+  update: {
+    available: "New Update Available",
+    version: "Version",
+    description: "A new version is available with performance improvements and bug fixes.",
+    downloading: "Downloading...",
+    updating: "Updating...",
+    updateNow: "Update Now",
+    later: "Later",
+    checkingForUpdates: "Checking for updates...",
+    upToDate: "You're up to date!",
+    currentVersion: "Current version",
+  },
 };
