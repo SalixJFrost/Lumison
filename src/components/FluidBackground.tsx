@@ -2,13 +2,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { FlowingLayer, createFlowingLayers, defaultColors as mobileDefaultColors } from "./background/mobile";
 import { UIBackgroundRender } from "./background/renderer/UIBackgroundRender";
 import { WebWorkerBackgroundRender } from "./background/renderer/WebWorkerBackgroundRender";
+import { generateArtPalette, generatePaletteFromCover, type MusicFeatures } from "../utils/artPalette";
 
-const desktopGradientDefaults = [
-  "rgb(60, 20, 80)",
-  "rgb(100, 40, 60)",
-  "rgb(20, 20, 40)",
-  "rgb(40, 40, 90)",
-];
+// 默认使用电影感配色（最百搭）
+const desktopGradientDefaults = generateArtPalette("cinema");
 
 const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
 
@@ -30,6 +27,8 @@ interface FluidBackgroundProps {
   coverUrl?: string;
   isMobileLayout?: boolean;
   theme?: 'light' | 'dark';
+  musicFeatures?: MusicFeatures; // 音乐特征（BPM、调式等）
+  enableSmartPalette?: boolean; // 是否启用智能调色板
 }
 
 const FluidBackground: React.FC<FluidBackgroundProps> = ({
@@ -38,6 +37,8 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
   coverUrl,
   isMobileLayout = false,
   theme = 'dark',
+  musicFeatures,
+  enableSmartPalette = true,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<UIBackgroundRender | WebWorkerBackgroundRender | null>(null);
@@ -48,6 +49,7 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
   const colorsRef = useRef<string[] | undefined>(colors);
   const [canvasInstanceKey, setCanvasInstanceKey] = useState(0);
   const previousModeRef = useRef(isMobileLayout);
+  const [smartColors, setSmartColors] = useState<string[] | null>(null);
   
   // Theme transition state
   const themeRef = useRef(theme);
@@ -65,6 +67,48 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     }
   }, [theme]);
 
+  // 智能调色板：根据封面和音乐特征生成
+  useEffect(() => {
+    if (!enableSmartPalette || colors) {
+      setSmartColors(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const generatePalette = async () => {
+      try {
+        if (coverUrl) {
+          // 从封面分析生成调色板
+          const palette = await generatePaletteFromCover(coverUrl, musicFeatures);
+          if (!cancelled) {
+            setSmartColors(palette);
+          }
+        } else if (musicFeatures) {
+          // 仅根据音乐特征生成
+          const { generateSmartPalette } = await import("../utils/artPalette");
+          const palette = generateSmartPalette(musicFeatures);
+          if (!cancelled) {
+            setSmartColors(palette);
+          }
+        } else {
+          setSmartColors(null);
+        }
+      } catch (error) {
+        console.warn("Failed to generate smart palette:", error);
+        if (!cancelled) {
+          setSmartColors(null);
+        }
+      }
+    };
+
+    generatePalette();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [coverUrl, musicFeatures, enableSmartPalette, colors]);
+
   const normalizedColors = useMemo(
     () => (colors && colors.length > 0 ? colors : mobileDefaultColors),
     [colors],
@@ -73,8 +117,8 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
   const colorKey = useMemo(() => normalizedColors.join("|"), [normalizedColors]);
 
   useEffect(() => {
-    colorsRef.current = colors;
-  }, [colors]);
+    colorsRef.current = colors || smartColors || undefined;
+  }, [colors, smartColors]);
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;
