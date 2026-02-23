@@ -18,10 +18,14 @@ function manifestPlugin(base: string): Plugin {
         
         // Update paths to include base
         manifest.start_url = base;
-        manifest.icons = manifest.icons.map((icon: any) => ({
-          ...icon,
-          src: base + icon.src.slice(1) // Remove leading / and add base
-        }));
+        manifest.icons = manifest.icons.map((icon: any) => {
+          // Handle both relative and absolute paths
+          const iconSrc = icon.src.startsWith('/') ? icon.src.slice(1) : icon.src;
+          return {
+            ...icon,
+            src: base + iconSrc
+          };
+        });
         
         fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
         console.log('✓ Updated manifest.json for GitHub Pages');
