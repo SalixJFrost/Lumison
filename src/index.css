@@ -430,9 +430,3 @@ img {
   }
 }
 
-/* Disable 3D transforms on mobile for better performance */
-@media (max-width: 768px) {
-  .cover-card-optimized {
-    transform-style: flat !important;
-  }
-}

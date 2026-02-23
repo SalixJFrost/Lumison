@@ -151,20 +151,20 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     }
     let cancelled = false;
     const generate = async () => {
-      // Optimize layer count based on device memory and performance
+      // Optimize layer count based on device memory - using memoryOptimization config
       const deviceMemory = (navigator as any).deviceMemory || 4;
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const hardwareConcurrency = navigator.hardwareConcurrency || 4;
       
-      let layerCount = 3; // Default reduced from 4
-      if (prefersReducedMotion || deviceMemory < 2 || hardwareConcurrency < 4) {
+      // Optimized layer count for memory efficiency while maintaining visual quality
+      let layerCount = 2; // Default reduced from 3 to 2 for better memory usage
+      if (prefersReducedMotion || deviceMemory < 2) {
         layerCount = 1; // Minimal for accessibility/very low-end
-      } else if (deviceMemory < 4 || hardwareConcurrency < 6) {
-        layerCount = 2; // Low-end devices
+      } else if (deviceMemory >= 8) {
+        layerCount = 3; // High-end devices can use 3 layers
       }
       
-      // Reduce blur on low-end devices
-      const blurAmount = deviceMemory < 4 ? 15 : 30; // Reduced blur for better performance
+      // Optimized blur - slightly reduced but still visually pleasing
+      const blurAmount = deviceMemory < 4 ? 12 : deviceMemory < 8 ? 20 : 25;
       
       const newLayers = await createFlowingLayers(normalizedColors, coverUrl, layerCount);
       if (cancelled) return;
@@ -322,19 +322,41 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
       rendererRef.current = null;
     }
 
-    // Try to set canvas dimensions - if it fails, the canvas was already transferred
+    // Try to set canvas dimensions with optimized resolution
     try {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      // Optimize canvas resolution based on device memory
+      const deviceMemory = (navigator as any).deviceMemory || 4;
+      const dpr = window.devicePixelRatio;
+      
+      // Calculate optimal scale factor
+      let scaleFactor = 1.0;
+      if (deviceMemory < 4) {
+        scaleFactor = 0.6; // Low-end: 60% resolution
+      } else if (deviceMemory < 8) {
+        scaleFactor = 0.8; // Mid-range: 80% resolution
+      } else {
+        scaleFactor = Math.min(dpr, 1.5); // High-end: up to 1.5x but capped
+      }
+      
+      canvas.width = window.innerWidth * scaleFactor;
+      canvas.height = window.innerHeight * scaleFactor;
+      
+      // Scale canvas display to full size
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
     } catch (error) {
       console.warn('⚠️ Failed to set canvas dimensions, recreating canvas...', error);
       setCanvasInstanceKey((prev) => prev + 1);
       return;
     }
 
-    // 优先使用多层 FBO 渲染（桌面端 + 支持）
+    // 优先使用多层 FBO 渲染（仅高端设备）
+    const deviceMemory = (navigator as any).deviceMemory || 4;
     const shouldUseMultiPass = 
-      !isMobileLayout && useMultiPass && MultiPassBackgroundRender.isSupported(canvas);
+      !isMobileLayout && 
+      useMultiPass && 
+      deviceMemory >= 8 && // 只在 8GB+ 设备启用
+      MultiPassBackgroundRender.isSupported(canvas);
     
     const shouldUseWorker =
       !isMobileLayout && !shouldUseMultiPass && WebWorkerBackgroundRender.isSupported(canvas);
@@ -354,7 +376,6 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
         vignetteStrength: 0.35, // 降低暗角强度
         glowResolution: 0.5,    // 降低 glow 分辨率以提升性能
         swirlResolution: 0.7,   // 降低 swirl 分辨率
-        enableStreaks: false,   // 禁用流光效果
       });
       rendererRef.current = multiPassRenderer;
 

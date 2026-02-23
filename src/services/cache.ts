@@ -63,9 +63,36 @@ const createSizeLimitedLRU = (limitBytes: number) => {
   };
 };
 
-const IMAGE_CACHE_LIMIT = isMobileViewport() ? 50 * 1024 * 1024 : 100 * 1024 * 1024;
-const AUDIO_CACHE_LIMIT = isMobileViewport() ? 100 * 1024 * 1024 : 200 * 1024 * 1024;
-const RAW_IMAGE_CACHE_LIMIT = 50 * 1024 * 1024;
+// Optimize cache limits based on device memory
+const getOptimalCacheLimits = () => {
+  const deviceMemory = (navigator as any).deviceMemory || 4;
+  const isMobile = isMobileViewport();
+  
+  if (deviceMemory < 4) {
+    return {
+      image: 15 * 1024 * 1024,      // 15MB for low-end
+      audio: 50 * 1024 * 1024,      // 50MB for low-end
+      rawImage: 10 * 1024 * 1024,   // 10MB for low-end
+    };
+  } else if (deviceMemory < 8) {
+    return {
+      image: isMobile ? 30 : 50,    // 30-50MB for mid-range
+      audio: isMobile ? 80 : 120,   // 80-120MB for mid-range
+      rawImage: 20,                  // 20MB for mid-range
+    };
+  } else {
+    return {
+      image: isMobile ? 50 : 80,    // 50-80MB for high-end
+      audio: isMobile ? 120 : 180,  // 120-180MB for high-end
+      rawImage: 30,                  // 30MB for high-end
+    };
+  }
+};
+
+const cacheLimits = getOptimalCacheLimits();
+const IMAGE_CACHE_LIMIT = cacheLimits.image * 1024 * 1024;
+const AUDIO_CACHE_LIMIT = cacheLimits.audio * 1024 * 1024;
+const RAW_IMAGE_CACHE_LIMIT = cacheLimits.rawImage * 1024 * 1024;
 
 const rawImageCache = createSizeLimitedLRU(RAW_IMAGE_CACHE_LIMIT);
 

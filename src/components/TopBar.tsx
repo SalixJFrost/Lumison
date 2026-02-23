@@ -625,8 +625,8 @@ const TopBar: React.FC<TopBarProps> = ({
             <button
               onClick={handleMinimize}
               className="w-10 h-10 rounded-full bg-white/5 backdrop-blur-xl flex items-center justify-center text-white/60 hover:bg-white/15 hover:text-white transition-all duration-300 ease-out hover:scale-110 active:scale-95"
-              title="Minimize"
-              aria-label="Minimize"
+              title={t('topBar.minimize')}
+              aria-label={t('topBar.minimize')}
             >
               <MinimizeIcon className="w-4 h-4 transition-transform duration-200" />
             </button>
@@ -635,8 +635,8 @@ const TopBar: React.FC<TopBarProps> = ({
             <button
               onClick={handleMaximize}
               className="w-10 h-10 rounded-full bg-white/5 backdrop-blur-xl flex items-center justify-center text-white/60 hover:bg-white/15 hover:text-white transition-all duration-300 ease-out hover:scale-110 active:scale-95"
-              title={isMaximized ? "Restore" : "Maximize"}
-              aria-label={isMaximized ? "Restore" : "Maximize"}
+              title={isMaximized ? t('topBar.restore') : t('topBar.maximize')}
+              aria-label={isMaximized ? t('topBar.restore') : t('topBar.maximize')}
             >
               {isMaximized ? (
                 <RestoreIcon className="w-4 h-4 transition-all duration-300" />
@@ -649,8 +649,8 @@ const TopBar: React.FC<TopBarProps> = ({
             <button
               onClick={handleClose}
               className="w-10 h-10 rounded-full bg-white/5 backdrop-blur-xl flex items-center justify-center text-white/60 hover:bg-red-500/80 hover:text-white transition-all duration-300 ease-out hover:scale-110 active:scale-95"
-              title="Close"
-              aria-label="Close"
+              title={t('topBar.close')}
+              aria-label={t('topBar.close')}
             >
               <CloseIcon className="w-4 h-4 transition-transform duration-200" />
             </button>

@@ -242,6 +242,10 @@ export default {
     checkUpdate: "检查更新",
     enterFullscreen: "进入全屏",
     exitFullscreen: "退出全屏",
+    minimize: "最小化",
+    maximize: "最大化",
+    restore: "还原",
+    close: "关闭",
   },
 
   // 主题

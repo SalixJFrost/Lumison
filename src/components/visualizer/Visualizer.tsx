@@ -26,11 +26,25 @@ const Visualizer: React.FC<VisualizerProps> = ({ audioRef, isPlaying, spatialEng
             const analyser = spatialEngine.getAnalyzer();
             console.log("[Visualizer] Got analyser:", !!analyser);
             if (analyser) {
-                analyser.fftSize = 2048;
+                // Optimize FFT size based on device memory
+                const deviceMemory = (navigator as any).deviceMemory || 4;
+                let fftSize: number;
+                if (deviceMemory < 4) {
+                    fftSize = 512; // Low-end devices
+                } else if (deviceMemory < 8) {
+                    fftSize = 1024; // Mid-range devices
+                } else {
+                    fftSize = 2048; // High-end devices
+                }
+                
+                // Ensure fftSize is valid (power of 2)
+                analyser.fftSize = fftSize;
                 analyser.smoothingTimeConstant = 0.75;
                 analyserRef.current = analyser;
                 setHasAnalyser(true);
-                console.log("[Visualizer] ✓ Analyser configured successfully");
+                console.log("[Visualizer] ✓ Analyser configured successfully with fftSize:", analyser.fftSize, "bufferLength:", analyser.frequencyBinCount);
+            } else {
+                console.warn("[Visualizer] Analyser is null or undefined");
             }
         } catch (e) {
             console.error("[Visualizer] Failed to get analyser:", e);
@@ -71,13 +85,20 @@ const Visualizer: React.FC<VisualizerProps> = ({ audioRef, isPlaying, spatialEng
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
 
-        // Reduce bar count on low-end devices
+        // Optimize bar count based on device memory for better performance
         const deviceMemory = (navigator as any).deviceMemory || 4;
-        const barCount = deviceMemory < 4 ? 32 : 64;
+        let barCount: number;
+        if (deviceMemory < 4) {
+            barCount = 24; // Low-end: fewer bars but still looks good
+        } else if (deviceMemory < 8) {
+            barCount = 40; // Mid-range: balanced
+        } else {
+            barCount = 64; // High-end: full quality
+        }
         const bars = new Array(barCount).fill(0);
 
-        // Throttle rendering to 30fps on low-end devices
-        const targetFPS = deviceMemory < 4 ? 30 : 60;
+        // Optimize frame rate based on device
+        const targetFPS = deviceMemory < 4 ? 30 : deviceMemory < 8 ? 45 : 60;
         const frameInterval = 1000 / targetFPS;
         let lastFrameTime = performance.now();
 
@@ -150,6 +171,17 @@ const Visualizer: React.FC<VisualizerProps> = ({ audioRef, isPlaying, spatialEng
     }, [isPlaying, hasAnalyser]);
 
     if (!isPlaying) return <div className="h-8 w-full"></div>;
+
+    // Show placeholder if no analyser available
+    if (!hasAnalyser) {
+        return (
+            <div className="w-full max-w-[320px] h-8 flex items-center justify-center">
+                <div className="text-xs text-white/30">
+                    {spatialEngine ? 'Initializing visualizer...' : 'No audio engine'}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <canvas

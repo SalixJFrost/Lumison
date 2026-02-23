@@ -242,6 +242,10 @@ export default {
     checkUpdate: "Check for Updates",
     enterFullscreen: "Enter Fullscreen",
     exitFullscreen: "Exit Fullscreen",
+    minimize: "Minimize",
+    maximize: "Maximize",
+    restore: "Restore",
+    close: "Close",
   },
 
   // Theme

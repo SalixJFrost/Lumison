@@ -212,10 +212,29 @@ export async function batchFetchCoverArt(
 
 /**
  * Cache for cover art URLs to avoid repeated API calls
+ * Optimized for memory efficiency
  */
 class CoverArtCache {
   private cache = new Map<string, CoverArtResult>();
-  private maxSize = 100;
+  private accessOrder = new Map<string, number>(); // Track access time for LRU
+  private maxSize: number;
+  private maxMemoryMB: number;
+  private currentMemoryMB = 0;
+
+  constructor() {
+    // Optimize cache size based on device memory
+    const deviceMemory = (navigator as any).deviceMemory || 4;
+    if (deviceMemory < 4) {
+      this.maxSize = 20; // Low-end: 20 entries
+      this.maxMemoryMB = 5; // 5MB limit
+    } else if (deviceMemory < 8) {
+      this.maxSize = 50; // Mid-range: 50 entries
+      this.maxMemoryMB = 10; // 10MB limit
+    } else {
+      this.maxSize = 100; // High-end: 100 entries
+      this.maxMemoryMB = 20; // 20MB limit
+    }
+  }
 
   private getCacheKey(params: {
     artist: string;
@@ -230,6 +249,34 @@ class CoverArtCache {
     return artist.toLowerCase();
   }
 
+  private estimateMemoryUsage(result: CoverArtResult): number {
+    // Estimate memory usage in MB
+    // Typical cover art URL is ~100 bytes, result object ~200 bytes
+    return 0.0003; // ~0.3KB per entry
+  }
+
+  private evictLRU(): void {
+    // Find and remove least recently used entry
+    let oldestKey: string | null = null;
+    let oldestTime = Infinity;
+    
+    for (const [key, time] of this.accessOrder.entries()) {
+      if (time < oldestTime) {
+        oldestTime = time;
+        oldestKey = key;
+      }
+    }
+    
+    if (oldestKey) {
+      const result = this.cache.get(oldestKey);
+      if (result) {
+        this.currentMemoryMB -= this.estimateMemoryUsage(result);
+      }
+      this.cache.delete(oldestKey);
+      this.accessOrder.delete(oldestKey);
+    }
+  }
+
   get(params: {
     artist: string;
     album?: string;
@@ -237,7 +284,14 @@ class CoverArtCache {
     mbid?: string;
   }): CoverArtResult | null {
     const key = this.getCacheKey(params);
-    return this.cache.get(key) || null;
+    const result = this.cache.get(key);
+    
+    if (result) {
+      // Update access time for LRU
+      this.accessOrder.set(key, Date.now());
+    }
+    
+    return result || null;
   }
 
   set(
@@ -250,18 +304,35 @@ class CoverArtCache {
     result: CoverArtResult
   ): void {
     const key = this.getCacheKey(params);
+    const memoryUsage = this.estimateMemoryUsage(result);
     
-    // Simple LRU: remove oldest if cache is full
-    if (this.cache.size >= this.maxSize) {
-      const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+    // Evict entries if necessary
+    while (
+      (this.cache.size >= this.maxSize || 
+       this.currentMemoryMB + memoryUsage > this.maxMemoryMB) &&
+      this.cache.size > 0
+    ) {
+      this.evictLRU();
     }
     
     this.cache.set(key, result);
+    this.accessOrder.set(key, Date.now());
+    this.currentMemoryMB += memoryUsage;
   }
 
   clear(): void {
     this.cache.clear();
+    this.accessOrder.clear();
+    this.currentMemoryMB = 0;
+  }
+
+  getStats() {
+    return {
+      size: this.cache.size,
+      maxSize: this.maxSize,
+      memoryMB: this.currentMemoryMB.toFixed(2),
+      maxMemoryMB: this.maxMemoryMB,
+    };
   }
 }
 
@@ -300,6 +371,6 @@ export async function searchCoverArtCached(params: {
  */
 export function getDefaultCoverArt(): string {
   // In Vite, import.meta.env.BASE_URL provides the correct base path
-  const basePath = import.meta.env.BASE_URL || '/';
+  const basePath = (import.meta as any).env?.BASE_URL || '/';
   return `${basePath}default-cover.png`.replace('//', '/');
 }

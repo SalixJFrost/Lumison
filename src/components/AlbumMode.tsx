@@ -1,5 +1,4 @@
 import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react';
-import { useSpring, animated } from '@react-spring/web';
 import SmartImage from './SmartImage';
 import { getDefaultCoverArt } from '../services/coverArtService';
 import { useI18n } from '../contexts/I18nContext';
@@ -131,16 +130,6 @@ const AlbumMode: React.FC<AlbumModeProps> = ({
 
   const borderProgress = getBorderProgress();
   const thumbPosition = getThumbPosition();
-
-  // Cover animation
-  const [coverSpring] = useSpring(() => ({
-    scale: isPlaying ? 1 : 0.98,
-    config: { tension: 280, friction: 60 },
-  }));
-
-  React.useEffect(() => {
-    coverSpring.scale.start(isPlaying ? 1 : 0.98);
-  }, [isPlaying, coverSpring.scale]);
 
   const handleProgressClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -289,12 +278,7 @@ const AlbumMode: React.FC<AlbumModeProps> = ({
         /* Album Cover Display */
         <>
           <div className="album-cover-wrapper-large">
-            <animated.div
-              style={{
-                transform: coverSpring.scale.to((s) => `scale(${s})`),
-              }}
-              className="album-cover-card-large"
-            >
+            <div className="album-cover-card-large">
               <SmartImage
                 src={displayCover}
                 alt="Album Cover"
@@ -302,7 +286,7 @@ const AlbumMode: React.FC<AlbumModeProps> = ({
                 imgClassName="album-cover-image"
                 loading="eager"
               />
-            </animated.div>
+            </div>
           </div>
 
           {/* Song Info - Below Cover */}
