@@ -21,14 +21,26 @@ export class MultiPassBackgroundRender {
   }
 
   static isSupported(canvas: HTMLCanvasElement): boolean {
-    if (typeof OffscreenCanvas === "undefined") return false;
-    if (typeof Worker === "undefined") return false;
+    if (typeof OffscreenCanvas === "undefined") {
+      console.log('❌ MultiPass: OffscreenCanvas not supported');
+      return false;
+    }
+    if (typeof Worker === "undefined") {
+      console.log('❌ MultiPass: Worker not supported');
+      return false;
+    }
     
     try {
       const testCanvas = new OffscreenCanvas(1, 1);
       const gl = testCanvas.getContext("webgl");
-      return !!gl;
-    } catch {
+      if (!gl) {
+        console.log('❌ MultiPass: WebGL not supported');
+        return false;
+      }
+      console.log('✅ MultiPass: All features supported');
+      return true;
+    } catch (error) {
+      console.log('❌ MultiPass: Feature detection failed', error);
       return false;
     }
   }

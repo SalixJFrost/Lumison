@@ -77,10 +77,18 @@ export class WebWorkerBackgroundRender extends BaseBackgroundRender {
   }
 
   static isSupported(canvas: HTMLCanvasElement) {
-    return (
+    const supported = (
       typeof window !== "undefined" &&
       typeof OffscreenCanvas !== "undefined" &&
       typeof canvas.transferControlToOffscreen === "function"
     );
+    
+    if (!supported) {
+      console.log('❌ WebWorker: OffscreenCanvas or transferControlToOffscreen not supported');
+    } else {
+      console.log('✅ WebWorker: Supported');
+    }
+    
+    return supported;
   }
 }

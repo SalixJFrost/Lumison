@@ -74,16 +74,16 @@ export const baseFlowFragmentShader = `
     float ratio = uResolution.x / uResolution.y;
     uv.x *= ratio;
     
-    // 极慢、大面积、低对比的基础流动
-    vec2 flowUv = uv * 0.3 + uTime * 0.02;
+    // 增强流动速度和幅度
+    vec2 flowUv = uv * 0.4 + uTime * 0.04;
     float base = fbm(flowUv);
     
-    // 添加轻微的方向性流动
-    float flow = fbm(flowUv + vec2(uTime * 0.01, 0.0));
-    base = mix(base, flow, 0.3);
+    // 增强方向性流动
+    float flow = fbm(flowUv + vec2(uTime * 0.03, uTime * 0.02));
+    base = mix(base, flow, 0.5);
     
-    // 低对比度混合
-    vec3 color = mix(uColor1, uColor2, smoothstep(0.3, 0.7, base));
+    // 增加对比度
+    vec3 color = mix(uColor1, uColor2, smoothstep(0.2, 0.8, base));
     
     gl_FragColor = vec4(color, 1.0);
   }
@@ -111,20 +111,20 @@ export const swirlLayerFragmentShader = `
     // 中心化
     vec2 centered = uv - vec2(ratio * 0.5, 0.5);
     
-    // 旋转扭曲
-    float angle = uTime * uSwirlSpeed * 0.1;
+    // 增强旋转扭曲
+    float angle = uTime * uSwirlSpeed * 0.15;
     vec2 rotated = rotate2d(angle) * centered;
     rotated += vec2(ratio * 0.5, 0.5);
     
-    // 添加空间扭曲感
-    vec2 swirlUv = rotated * 0.7 + vec2(sin(uTime * 0.05), cos(uTime * 0.05)) * 0.1;
+    // 增强空间扭曲感
+    vec2 swirlUv = rotated * 0.8 + vec2(sin(uTime * 0.08), cos(uTime * 0.08)) * 0.15;
     float swirl = fbm(swirlUv);
     
-    // 增加层次
-    float detail = noise(swirlUv * 2.0 + uTime * 0.03);
-    swirl = mix(swirl, detail, 0.2);
+    // 增加层次和动态
+    float detail = noise(swirlUv * 2.5 + uTime * 0.05);
+    swirl = mix(swirl, detail, 0.4);
     
-    vec3 color = mix(uColor2, uColor3, smoothstep(0.2, 0.8, swirl));
+    vec3 color = mix(uColor2, uColor3, smoothstep(0.15, 0.85, swirl));
     
     gl_FragColor = vec4(color, 1.0);
   }
@@ -148,20 +148,20 @@ export const glowLayerFragmentShader = `
     float ratio = uResolution.x / uResolution.y;
     uv.x *= ratio;
     
-    // 体积高光场
-    vec2 glowUv = uv * 0.8 - vec2(uTime * 0.015, uTime * 0.01);
+    // 增强体积高光场的动态
+    vec2 glowUv = uv * 0.9 - vec2(uTime * 0.025, uTime * 0.02);
     float glowField = fbm(glowUv);
     
-    // 添加多层次高光
-    float glow1 = pow(glowField, 3.5);
-    float glow2 = pow(noise(glowUv * 1.5 + uTime * 0.02), 4.0);
-    float glow = mix(glow1, glow2, 0.3);
+    // 增强多层次高光
+    float glow1 = pow(glowField, 2.8);
+    float glow2 = pow(noise(glowUv * 1.8 + uTime * 0.04), 3.5);
+    float glow = mix(glow1, glow2, 0.5);
     
-    // 轻微的径向衰减
+    // 增强径向流光效果
     vec2 center = vec2(ratio * 0.5, 0.5);
     float dist = length(uv - center);
-    float radial = 1.0 - smoothstep(0.0, 1.2, dist);
-    glow *= radial * 0.5 + 0.5;
+    float radial = 1.0 - smoothstep(0.0, 1.5, dist);
+    glow *= radial * 0.6 + 0.4;
     
     // 应用强度
     glow *= uGlowIntensity;
@@ -199,6 +199,15 @@ export const compositeFragmentShader = `
     );
   }
   
+  // Overlay blend
+  vec3 overlay(vec3 a, vec3 b) {
+    return mix(
+      2.0 * a * b,
+      1.0 - 2.0 * (1.0 - a) * (1.0 - b),
+      step(0.5, a)
+    );
+  }
+  
   void main() {
     vec2 uv = vUv;
     
@@ -207,23 +216,24 @@ export const compositeFragmentShader = `
     vec3 swirl = texture2D(uSwirlTexture, uv).rgb;
     vec3 glow = texture2D(uGlowTexture, uv).rgb;
     
-    // 合成：先混合 base 和 swirl
-    vec3 merged = mix(base, swirl, 0.5);
+    // 合成：先混合 base 和 swirl，增强混合强度
+    vec3 merged = mix(base, swirl, 0.6);
     
-    // 使用 soft light 增加深度
-    merged = softLight(merged, swirl);
+    // 使用 overlay 增加对比和深度
+    merged = overlay(merged, swirl);
     
-    // Screen blend 添加光感
-    merged = screen(merged, glow);
+    // Screen blend 添加光感，增强 glow 效果
+    merged = screen(merged, glow * 1.2);
     
-    // 轻微色偏漂移（增加电影感）
-    merged.r += sin(uTime * 0.05) * 0.015;
-    merged.b -= sin(uTime * 0.03) * 0.01;
+    // 增强色偏漂移（增加流光感）
+    merged.r += sin(uTime * 0.08) * 0.025;
+    merged.b -= sin(uTime * 0.05) * 0.02;
+    merged.g += cos(uTime * 0.06) * 0.015;
     
     // Vignette 效果
     vec2 centered = uv - 0.5;
     float vignette = 1.0 - dot(centered, centered) * uVignetteStrength;
-    vignette = smoothstep(0.3, 1.0, vignette);
+    vignette = smoothstep(0.2, 1.0, vignette);
     merged *= vignette;
     
     gl_FragColor = vec4(merged, 1.0);

@@ -367,16 +367,18 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
 
     // 创建多层 FBO 渲染器
     if (shouldUseMultiPass) {
+      console.log('🎨 Initializing MultiPass Background Renderer');
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       const multiPassRenderer = new MultiPassBackgroundRender(canvas);
       const initialColors = colorsRef.current && colorsRef.current.length > 0 
         ? colorsRef.current 
         : desktopGradientDefaults;
+      console.log('🎨 Using colors:', initialColors);
       multiPassRenderer.start(initialColors, {
-        swirlSpeed: 1.0,
-        glowIntensity: 1.0,
-        vignetteStrength: 0.8,
+        swirlSpeed: 1.5,
+        glowIntensity: 1.8,
+        vignetteStrength: 0.5,
         glowResolution: 0.5,
         swirlResolution: 0.75,
       });
@@ -389,12 +391,14 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
 
     // 创建单层 WebWorker 渲染器
     if (shouldUseWorker) {
+      console.log('🎨 Initializing WebWorker Background Renderer');
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       const workerRenderer = new WebWorkerBackgroundRender(canvas);
       const initialColors = colorsRef.current && colorsRef.current.length > 0 
         ? colorsRef.current 
         : desktopGradientDefaults;
+      console.log('🎨 Using colors:', initialColors);
       workerRenderer.start(initialColors);
       rendererRef.current = workerRenderer;
       return () => {
@@ -404,6 +408,7 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     }
 
     // 降级到 UI 渲染器（移动端或不支持 Worker）
+    console.log('🎨 Falling back to UI Renderer (mobile or no WebGL support)');
     const renderCallback = isMobileLayout ? renderMobileFrame : renderGradientFrame;
     const uiRenderer = new UIBackgroundRender(canvas, renderCallback);
     uiRenderer.resize(window.innerWidth, window.innerHeight);
@@ -415,7 +420,7 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
       uiRenderer.stop();
       rendererRef.current = null;
     };
-  }, [isMobileLayout, renderGradientFrame, renderMobileFrame, canvasInstanceKey, useMultiPass]);
+  }, [isMobileLayout, renderGradientFrame, renderMobileFrame, canvasInstanceKey, useMultiPass, isPlaying]);
 
   useEffect(() => {
     const renderer = rendererRef.current;
