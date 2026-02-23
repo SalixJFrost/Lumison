@@ -309,7 +309,9 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     if (!canvas) return;
 
     // 检查是否需要重新创建 canvas（已经转移控制权的情况）
+    // 在 StrictMode 下，React 会双重挂载，导致 canvas 已经被转移
     if (canvas.dataset.offscreenTransferred === "true") {
+      console.log('🔄 Canvas already transferred, recreating...');
       setCanvasInstanceKey((prev) => prev + 1);
       return;
     }
@@ -318,6 +320,16 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     if (rendererRef.current) {
       rendererRef.current.stop();
       rendererRef.current = null;
+    }
+
+    // Try to set canvas dimensions - if it fails, the canvas was already transferred
+    try {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    } catch (error) {
+      console.warn('⚠️ Failed to set canvas dimensions, recreating canvas...', error);
+      setCanvasInstanceKey((prev) => prev + 1);
+      return;
     }
 
     // 优先使用多层 FBO 渲染（桌面端 + 支持）
@@ -330,10 +342,6 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     // 创建多层 FBO 渲染器
     if (shouldUseMultiPass) {
       console.log('🎨 Initializing MultiPass Background Renderer');
-      // 在转移控制权之前设置尺寸和标记
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      canvas.dataset.offscreenTransferred = "pending"; // 标记即将转移
       
       const multiPassRenderer = new MultiPassBackgroundRender(canvas);
       const initialColors = colorsRef.current && colorsRef.current.length > 0 
@@ -341,11 +349,12 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
         : desktopGradientDefaults;
       console.log('🎨 Using colors:', initialColors);
       multiPassRenderer.start(initialColors, {
-        swirlSpeed: 1.5,
-        glowIntensity: 1.8,
-        vignetteStrength: 0.5,
-        glowResolution: 0.5,
-        swirlResolution: 0.75,
+        swirlSpeed: 1.0,        // 降低旋转速度，更柔和
+        glowIntensity: 1.5,     // 降低光感强度，更自然
+        vignetteStrength: 0.4,  // 降低暗角强度
+        glowResolution: 0.6,    // 提高 glow 分辨率
+        swirlResolution: 0.8,   // 提高 swirl 分辨率
+        enableStreaks: true,    // 启用流光效果
       });
       rendererRef.current = multiPassRenderer;
 
@@ -365,10 +374,6 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     // 创建单层 WebWorker 渲染器
     if (shouldUseWorker) {
       console.log('🎨 Initializing WebWorker Background Renderer');
-      // 在转移控制权之前设置尺寸和标记
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      canvas.dataset.offscreenTransferred = "pending"; // 标记即将转移
       
       const workerRenderer = new WebWorkerBackgroundRender(canvas);
       const initialColors = colorsRef.current && colorsRef.current.length > 0 
@@ -395,8 +400,6 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     console.log('🎨 Falling back to UI Renderer (mobile or no WebGL support)');
     const renderCallback = isMobileLayout ? renderMobileFrame : renderGradientFrame;
     const uiRenderer = new UIBackgroundRender(canvas, renderCallback);
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
     uiRenderer.resize(window.innerWidth, window.innerHeight);
     uiRenderer.setPaused(!isPlaying);
     uiRenderer.start();
@@ -406,8 +409,11 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      canvas.width = width;
-      canvas.height = height;
+      // Only resize canvas if it hasn't been transferred to offscreen
+      if (canvas.dataset.offscreenTransferred !== "true") {
+        canvas.width = width;
+        canvas.height = height;
+      }
       uiRenderer.resize(width, height);
     };
     window.addEventListener("resize", handleResize);
@@ -441,7 +447,7 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     }
   }, [audioVolume, musicFeatures]);
 
-  const canvasKey = `${isMobileLayout ? "mobile" : "desktop"}-${canvasInstanceKey}`;
+  const canvasKey = `canvas-${isMobileLayout ? "mobile" : "desktop"}-${canvasInstanceKey}`;
 
   return (
     <>

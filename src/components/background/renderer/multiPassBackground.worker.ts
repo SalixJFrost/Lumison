@@ -8,6 +8,7 @@ import {
   baseFlowFragmentShader,
   swirlLayerFragmentShader,
   glowLayerFragmentShader,
+  streaksLayerFragmentShader,
   compositeFragmentShader,
 } from './shaders';
 
@@ -30,6 +31,7 @@ interface RenderConfig {
   vignetteStrength?: number;
   glowResolution?: number; // 0.5 = half res
   swirlResolution?: number; // 0.75 = 3/4 res
+  enableStreaks?: boolean; // 是否启用流光效果
 }
 
 interface Framebuffer {
@@ -44,14 +46,16 @@ let programs: {
   base: WebGLProgram | null;
   swirl: WebGLProgram | null;
   glow: WebGLProgram | null;
+  streaks: WebGLProgram | null;
   composite: WebGLProgram | null;
-} = { base: null, swirl: null, glow: null, composite: null };
+} = { base: null, swirl: null, glow: null, streaks: null, composite: null };
 
 let framebuffers: {
   base: Framebuffer | null;
   swirl: Framebuffer | null;
   glow: Framebuffer | null;
-} = { base: null, swirl: null, glow: null };
+  streaks: Framebuffer | null;
+} = { base: null, swirl: null, glow: null, streaks: null };
 
 let positionBuffer: WebGLBuffer | null = null;
 let timeAccumulator = 0;
@@ -68,6 +72,7 @@ let config: Required<RenderConfig> = {
   vignetteStrength: 0.8,
   glowResolution: 0.5,
   swirlResolution: 0.75,
+  enableStreaks: true, // 默认启用流光
 };
 
 // 默认颜色（电影感配色）
@@ -184,9 +189,10 @@ const initPrograms = (): boolean => {
   programs.base = createProgram(gl, vertexShaderSource, baseFlowFragmentShader);
   programs.swirl = createProgram(gl, vertexShaderSource, swirlLayerFragmentShader);
   programs.glow = createProgram(gl, vertexShaderSource, glowLayerFragmentShader);
+  programs.streaks = createProgram(gl, vertexShaderSource, streaksLayerFragmentShader);
   programs.composite = createProgram(gl, vertexShaderSource, compositeFragmentShader);
 
-  if (!programs.base || !programs.swirl || !programs.glow || !programs.composite) {
+  if (!programs.base || !programs.swirl || !programs.glow || !programs.streaks || !programs.composite) {
     console.error("Failed to create shader programs");
     return false;
   }
@@ -218,8 +224,11 @@ const initFramebuffers = (width: number, height: number): boolean => {
   const glowW = Math.floor(width * config.glowResolution);
   const glowH = Math.floor(height * config.glowResolution);
   framebuffers.glow = createFramebuffer(gl, glowW, glowH);
+  
+  // Streaks: 全分辨率（流光需要清晰）
+  framebuffers.streaks = createFramebuffer(gl, width, height);
 
-  return !!(framebuffers.base && framebuffers.swirl && framebuffers.glow);
+  return !!(framebuffers.base && framebuffers.swirl && framebuffers.glow && framebuffers.streaks);
 };
 
 const renderPass = (
@@ -249,8 +258,8 @@ const renderPass = (
 };
 
 const render = (now: number) => {
-  if (!gl || !programs.base || !programs.swirl || !programs.glow || !programs.composite) return;
-  if (!framebuffers.base || !framebuffers.swirl || !framebuffers.glow) return;
+  if (!gl || !programs.base || !programs.swirl || !programs.glow || !programs.streaks || !programs.composite) return;
+  if (!framebuffers.base || !framebuffers.swirl || !framebuffers.glow || !framebuffers.streaks) return;
 
   if (now - lastRenderTime < FRAME_INTERVAL) return;
   lastRenderTime = now - ((now - lastRenderTime) % FRAME_INTERVAL);
@@ -328,6 +337,22 @@ const render = (now: number) => {
     }
   );
 
+  // Pass 4: Streaks Layer (流光)
+  if (config.enableStreaks) {
+    renderPass(
+      programs.streaks,
+      framebuffers.streaks.fbo,
+      framebuffers.streaks.width,
+      framebuffers.streaks.height,
+      () => {
+        if (!gl || !programs.streaks) return;
+        gl.uniform2f(gl.getUniformLocation(programs.streaks, "uResolution"), canvasWidth, canvasHeight);
+        gl.uniform1f(gl.getUniformLocation(programs.streaks, "uTime"), time);
+        gl.uniform3f(gl.getUniformLocation(programs.streaks, "uAccentColor"), c4[0], c4[1], c4[2]);
+      }
+    );
+  }
+
   // Final: Composite to screen
   renderPass(programs.composite, null, canvasWidth, canvasHeight, () => {
     if (!gl || !programs.composite) return;
@@ -345,9 +370,16 @@ const render = (now: number) => {
     gl.bindTexture(gl.TEXTURE_2D, framebuffers.glow!.texture);
     gl.uniform1i(gl.getUniformLocation(programs.composite, "uGlowTexture"), 2);
 
+    if (config.enableStreaks) {
+      gl.activeTexture(gl.TEXTURE3);
+      gl.bindTexture(gl.TEXTURE_2D, framebuffers.streaks!.texture);
+      gl.uniform1i(gl.getUniformLocation(programs.composite, "uStreaksTexture"), 3);
+    }
+
     gl.uniform2f(gl.getUniformLocation(programs.composite, "uResolution"), canvasWidth, canvasHeight);
     gl.uniform1f(gl.getUniformLocation(programs.composite, "uTime"), time);
     gl.uniform1f(gl.getUniformLocation(programs.composite, "uVignetteStrength"), config.vignetteStrength);
+    gl.uniform1i(gl.getUniformLocation(programs.composite, "uHasStreaks"), config.enableStreaks ? 1 : 0);
   });
 };
 

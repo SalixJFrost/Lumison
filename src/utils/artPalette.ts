@@ -69,6 +69,104 @@ const palettes = {
 };
 
 /**
+ * 提取图片的主色调（K-means 聚类）
+ */
+function extractDominantColors(imageData: ImageData, numColors: number = 5): string[] {
+  const data = imageData.data;
+  const pixels: [number, number, number][] = [];
+  
+  // 采样像素（每隔一定步长采样以提高性能）
+  const step = 8;
+  for (let i = 0; i < data.length; i += step * 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const a = data[i + 3];
+    
+    // 跳过透明和过暗/过亮的像素
+    if (a < 128) continue;
+    const brightness = (r + g + b) / 3;
+    if (brightness < 20 || brightness > 235) continue;
+    
+    pixels.push([r, g, b]);
+  }
+  
+  if (pixels.length === 0) {
+    return palettes.cinema; // 降级到默认
+  }
+  
+  // 简化的 K-means 聚类
+  let centroids: [number, number, number][] = [];
+  
+  // 初始化质心（随机选择）
+  for (let i = 0; i < numColors; i++) {
+    const idx = Math.floor(Math.random() * pixels.length);
+    centroids.push([...pixels[idx]]);
+  }
+  
+  // 迭代优化（最多10次）
+  for (let iter = 0; iter < 10; iter++) {
+    const clusters: [number, number, number][][] = Array(numColors).fill(null).map(() => []);
+    
+    // 分配像素到最近的质心
+    for (const pixel of pixels) {
+      let minDist = Infinity;
+      let minIdx = 0;
+      
+      for (let i = 0; i < centroids.length; i++) {
+        const dist = Math.sqrt(
+          Math.pow(pixel[0] - centroids[i][0], 2) +
+          Math.pow(pixel[1] - centroids[i][1], 2) +
+          Math.pow(pixel[2] - centroids[i][2], 2)
+        );
+        if (dist < minDist) {
+          minDist = dist;
+          minIdx = i;
+        }
+      }
+      
+      clusters[minIdx].push(pixel);
+    }
+    
+    // 更新质心
+    for (let i = 0; i < centroids.length; i++) {
+      if (clusters[i].length === 0) continue;
+      
+      const sumR = clusters[i].reduce((sum, p) => sum + p[0], 0);
+      const sumG = clusters[i].reduce((sum, p) => sum + p[1], 0);
+      const sumB = clusters[i].reduce((sum, p) => sum + p[2], 0);
+      
+      centroids[i] = [
+        Math.round(sumR / clusters[i].length),
+        Math.round(sumG / clusters[i].length),
+        Math.round(sumB / clusters[i].length),
+      ];
+    }
+  }
+  
+  // 按亮度排序（从暗到亮）
+  centroids.sort((a, b) => {
+    const brightnessA = (a[0] + a[1] + a[2]) / 3;
+    const brightnessB = (b[0] + b[1] + b[2]) / 3;
+    return brightnessA - brightnessB;
+  });
+  
+  // 调整颜色使其更适合背景（降低亮度和饱和度）
+  return centroids.map(([r, g, b]) => {
+    // 降低亮度到合适范围
+    const brightness = (r + g + b) / 3;
+    const targetBrightness = Math.min(brightness * 0.6, 120); // 最多120
+    const factor = targetBrightness / brightness;
+    
+    r = Math.round(Math.max(0, Math.min(255, r * factor)));
+    g = Math.round(Math.max(0, Math.min(255, g * factor)));
+    b = Math.round(Math.max(0, Math.min(255, b * factor)));
+    
+    return `rgb(${r}, ${g}, ${b})`;
+  });
+}
+
+/**
  * 分析封面图片的色温
  */
 export function analyzeColorTemperature(imageData: ImageData): ColorTemperature {
@@ -257,7 +355,7 @@ export async function generatePaletteFromCover(
     });
     
     const canvas = document.createElement("canvas");
-    const size = 100; // 缩小尺寸以提高性能
+    const size = 150; // 增加采样尺寸以获得更好的颜色
     canvas.width = size;
     canvas.height = size;
     
@@ -269,8 +367,16 @@ export async function generatePaletteFromCover(
     ctx.drawImage(img, 0, 0, size, size);
     const imageData = ctx.getImageData(0, 0, size, size);
     
-    const colorTemp = analyzeColorTemperature(imageData);
-    return generateSmartPalette(musicFeatures, colorTemp);
+    // 提取5个主色调
+    const dominantColors = extractDominantColors(imageData, 5);
+    
+    // 如果提取的颜色太少，补充默认颜色
+    if (dominantColors.length < 4) {
+      const colorTemp = analyzeColorTemperature(imageData);
+      return generateSmartPalette(musicFeatures, colorTemp);
+    }
+    
+    return dominantColors;
   } catch (error) {
     console.warn("Failed to analyze cover image, using default palette:", error);
     return generateSmartPalette(musicFeatures);
