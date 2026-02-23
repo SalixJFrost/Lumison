@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { FlowingLayer, createFlowingLayers, defaultColors as mobileDefaultColors } from "./background/mobile";
 import { UIBackgroundRender } from "./background/renderer/UIBackgroundRender";
 import { WebWorkerBackgroundRender } from "./background/renderer/WebWorkerBackgroundRender";
+import { MultiPassBackgroundRender } from "./background/renderer/MultiPassBackgroundRender";
 import { generateArtPalette, generatePaletteFromCover, type MusicFeatures } from "../utils/artPalette";
 
 // 默认使用电影感配色（最百搭）
@@ -29,6 +30,8 @@ interface FluidBackgroundProps {
   theme?: 'light' | 'dark';
   musicFeatures?: MusicFeatures; // 音乐特征（BPM、调式等）
   enableSmartPalette?: boolean; // 是否启用智能调色板
+  useMultiPass?: boolean; // 是否使用三层 FBO 渲染（更高级的视觉效果）
+  audioVolume?: number; // 音量 0-1，用于音乐驱动效果
 }
 
 const FluidBackground: React.FC<FluidBackgroundProps> = ({
@@ -39,9 +42,11 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
   theme = 'dark',
   musicFeatures,
   enableSmartPalette = true,
+  useMultiPass = true,
+  audioVolume = 0.5,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rendererRef = useRef<UIBackgroundRender | WebWorkerBackgroundRender | null>(null);
+  const rendererRef = useRef<UIBackgroundRender | WebWorkerBackgroundRender | MultiPassBackgroundRender | null>(null);
   const layersRef = useRef<FlowingLayer[]>([]);
   const isPlayingRef = useRef(isPlaying);
   const startTimeOffsetRef = useRef(0);
@@ -299,13 +304,15 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
       if (!canvas) return;
 
       if (canvas.dataset.offscreenTransferred === "true") {
-        if (rendererRef.current instanceof WebWorkerBackgroundRender) {
+        if (rendererRef.current instanceof WebWorkerBackgroundRender || 
+            rendererRef.current instanceof MultiPassBackgroundRender) {
           rendererRef.current.resize(width, height);
         }
         return;
       }
 
-      if (rendererRef.current instanceof WebWorkerBackgroundRender) {
+      if (rendererRef.current instanceof WebWorkerBackgroundRender ||
+          rendererRef.current instanceof MultiPassBackgroundRender) {
         rendererRef.current.resize(width, height);
         return;
       }
@@ -329,9 +336,18 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
       return;
     }
 
+    // 优先使用多层 FBO 渲染（桌面端 + 支持）
+    const shouldUseMultiPass = 
+      !isMobileLayout && useMultiPass && MultiPassBackgroundRender.isSupported(canvas);
+    
     const shouldUseWorker =
-      !isMobileLayout && WebWorkerBackgroundRender.isSupported(canvas);
+      !isMobileLayout && !shouldUseMultiPass && WebWorkerBackgroundRender.isSupported(canvas);
 
+    // 如果已经是正确的渲染器类型，不重新创建
+    if (shouldUseMultiPass && rendererRef.current instanceof MultiPassBackgroundRender) {
+      return;
+    }
+    
     if (shouldUseWorker && rendererRef.current instanceof WebWorkerBackgroundRender) {
       return;
     }
@@ -341,6 +357,26 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
       rendererRef.current = null;
     }
 
+    // 创建多层 FBO 渲染器
+    if (shouldUseMultiPass) {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const multiPassRenderer = new MultiPassBackgroundRender(canvas);
+      multiPassRenderer.start(colorsRef.current ?? [], {
+        swirlSpeed: 1.0,
+        glowIntensity: 1.0,
+        vignetteStrength: 0.8,
+        glowResolution: 0.5,
+        swirlResolution: 0.75,
+      });
+      rendererRef.current = multiPassRenderer;
+      return () => {
+        multiPassRenderer.stop();
+        rendererRef.current = null;
+      };
+    }
+
+    // 创建单层 WebWorker 渲染器
     if (shouldUseWorker) {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -353,6 +389,7 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
       };
     }
 
+    // 降级到 UI 渲染器（移动端或不支持 Worker）
     const renderCallback = isMobileLayout ? renderMobileFrame : renderGradientFrame;
     const uiRenderer = new UIBackgroundRender(canvas, renderCallback);
     uiRenderer.resize(window.innerWidth, window.innerHeight);
@@ -364,17 +401,29 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
       uiRenderer.stop();
       rendererRef.current = null;
     };
-  }, [isMobileLayout, renderGradientFrame, renderMobileFrame, canvasInstanceKey]);
+  }, [isMobileLayout, renderGradientFrame, renderMobileFrame, canvasInstanceKey, useMultiPass]);
 
   useEffect(() => {
     const renderer = rendererRef.current;
-    if (renderer instanceof WebWorkerBackgroundRender) {
+    if (renderer instanceof WebWorkerBackgroundRender || renderer instanceof MultiPassBackgroundRender) {
       renderer.setColors(colors ?? []);
       renderer.setPlaying(isPlaying);
     } else if (renderer instanceof UIBackgroundRender) {
       renderer.setPaused(!isPlaying);
     }
   }, [colors, isPlaying]);
+
+  // 音乐驱动效果
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (renderer instanceof MultiPassBackgroundRender && musicFeatures) {
+      renderer.setMusicDriven({
+        volume: audioVolume,
+        bpm: musicFeatures.bpm,
+        energy: musicFeatures.energy,
+      });
+    }
+  }, [audioVolume, musicFeatures]);
 
   const canvasKey = `${isMobileLayout ? "mobile" : "desktop"}-${canvasInstanceKey}`;
 
