@@ -38,10 +38,7 @@
             "core:window:allow-close",
             "core:window:allow-is-maximized",
             "core:window:allow-show",
-            "core:window:allow-hide",
-            "updater:allow-check",
-            "updater:allow-download",
-            "updater:allow-install"
+            "core:window:allow-hide"
           ]
         }
       ]
@@ -79,11 +76,7 @@
   },
   "plugins": {
     "updater": {
-      "active": true,
-      "endpoints": [
-        "https://github.com/SalixJFrost/Lumison/releases/latest/download/latest.json"
-      ],
-      "dialog": false
+      "active": false
     }
   }
 }

@@ -1,0 +1,35 @@
+{
+  "app": {
+    "security": {
+      "capabilities": [
+        {
+          "identifier": "main-capability",
+          "description": "Main window capabilities",
+          "windows": ["main"],
+          "permissions": [
+            "core:window:allow-minimize",
+            "core:window:allow-maximize",
+            "core:window:allow-unmaximize",
+            "core:window:allow-close",
+            "core:window:allow-is-maximized",
+            "core:window:allow-show",
+            "core:window:allow-hide",
+            "updater:allow-check",
+            "updater:allow-download",
+            "updater:allow-install"
+          ]
+        }
+      ]
+    }
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://github.com/SalixJFrost/Lumison/releases/latest/download/latest.json"
+      ],
+      "dialog": false,
+      "pubkey": ""
+    }
+  }
+}

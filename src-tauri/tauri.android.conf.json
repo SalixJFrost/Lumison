@@ -1,0 +1,23 @@
+{
+  "app": {
+    "security": {
+      "capabilities": [
+        {
+          "identifier": "main-capability",
+          "description": "Main window capabilities",
+          "windows": ["main"],
+          "permissions": [
+            "core:window:allow-minimize",
+            "core:window:allow-maximize",
+            "core:window:allow-unmaximize",
+            "core:window:allow-close",
+            "core:window:allow-is-maximized",
+            "core:window:allow-show",
+            "core:window:allow-hide"
+          ]
+        }
+      ]
+    }
+  },
+  "plugins": {}
+}
