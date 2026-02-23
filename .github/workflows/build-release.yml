@@ -34,7 +34,7 @@ jobs:
         run: npm ci
 
       - name: Build Tauri app
-        run: npm run tauri:build:windows
+        run: npm run tauri:build:windows -- --no-sign
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -71,7 +71,7 @@ jobs:
         run: npm ci
 
       - name: Build Tauri app (Universal)
-        run: npm run tauri:build:macos
+        run: npm run tauri:build:macos -- --no-sign
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -122,7 +122,7 @@ jobs:
         run: npm ci
 
       - name: Build Tauri app
-        run: npm run tauri:build:linux
+        run: npm run tauri:build:linux -- --no-sign
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4

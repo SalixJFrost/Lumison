@@ -13,7 +13,6 @@ fn main() {
             // Desktop-specific plugins
             #[cfg(desktop)]
             {
-                use tauri_plugin_updater::UpdaterExt;
                 app.handle().plugin(tauri_plugin_updater::Builder::new().build())?;
             }
             
