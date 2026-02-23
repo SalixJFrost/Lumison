@@ -1,4 +1,4 @@
-# Lumison - 视觉艺术音乐播放器
+# Lumison
 
 [English](README.md) | 简体中文
 
@@ -6,98 +6,75 @@
 
 ![Lumison Logo](public/icon.svg)
 
-**一款高保真、沉浸式的音乐播放器，灵感来自 Apple Music**
+**高保真音乐播放器，沉浸式视觉体验**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tauri](https://img.shields.io/badge/Tauri-2.0-blue.svg)](https://tauri.app/)
-[![React](https://img.shields.io/badge/React-19.2-61dafb.svg)](https://reactjs.org/)
+[![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)](https://www.typescriptlang.org/)
 
-[在线体验](https://salixjfrost.github.io/Lumison/) | [下载桌面版](https://github.com/SalixJFrost/Lumison/releases) | [查看文档](docs/GUIDE.md)
+[在线体验](https://salixjfrost.github.io/Lumison/) • [下载](https://github.com/SalixJFrost/Lumison/releases) • [文档](docs/)
 
 </div>
 
-## ✨ 特性
+---
 
-### 🎵 核心功能
-- **高保真音乐播放** - 支持多种格式（MP3、FLAC、WAV 等）
-- **流畅的背景动画** - 响应音乐和专辑封面的动态背景
-- **同步歌词显示** - 平滑滚动和基于物理的动画效果
-- **播放列表管理** - 支持拖放操作
-- **搜索集成** - 集成网易云音乐 API
+## 特性
 
-### 🎨 视觉体验
-- **无边框窗口设计** - 现代美学
-- **响应式布局** - 适配桌面和移动端
-- **深色/浅色主题** - 自动切换
-- **多语言支持** - 中文、英文、日文
-- **流畅动画** - 60fps 性能优化
+- **高保真播放** - 支持 MP3、FLAC、WAV、OGG、M4A 等格式
+- **流体动画** - 响应音乐和专辑封面的动态背景
+- **同步歌词** - 基于物理动画的平滑滚动
+- **毛玻璃 UI** - 现代磨砂玻璃设计与背景模糊
+- **多源搜索** - 网易云音乐、互联网档案馆、本地文件
+- **自动更新** - 静默检查，优雅通知
+- **性能优化** - 硬件加速，自适应质量
+- **跨平台** - Windows、macOS、Linux、Android、Web
 
-### 🎧 音频功能
-- **变速播放** (0.25x - 2.0x) 支持音调保持
-- **音量控制** 带可视化反馈
-- **音频可视化** (可选，可关闭以节省内存)
-- **空间音频引擎** 提供沉浸式体验
-- **智能格式检测** 和错误处理
+## 安装
 
-### 💻 桌面集成
-- 原生窗口控制（最小化、最大化、关闭）
-- 系统托盘集成
-- 媒体会话 API 支持
-- **自动更新功能** (启动时静默检查)
+从 [Releases](https://github.com/SalixJFrost/Lumison/releases) 下载或试用[网页版](https://salixjfrost.github.io/Lumison/)。
 
-## 📦 安装
-
-### Windows 桌面版
-
-从 [Releases](https://github.com/SalixJFrost/Lumison/releases) 下载最新版本：
-
-- **MSI 安装包** (推荐企业用户): `Lumison_x.x.x_x64_en-US.msi`
-- **NSIS 安装包** (更小、更快): `Lumison_x.x.x_x64-setup.exe`
-
-双击安装即可。应用将安装到 `C:\Program Files\Lumison\`。
-
-### 网页版
-
-直接访问：https://salixjfrost.github.io/Lumison/
-
-无需安装，在浏览器中即可使用。
-
-## 🚀 快速开始
-
-### 开发环境
+## 开发
 
 ```bash
-# 克隆仓库
-git clone https://github.com/SalixJFrost/Lumison.git
-cd Lumison
-
 # 安装依赖
 npm install
 
 # 启动开发服务器
 npm run dev
 
-# 启动 Tauri 桌面应用
-npm run tauri:dev
-```
-
-### 构建
-
-```bash
-# 构建网页版
-npm run build
-
 # 构建桌面应用
 npm run tauri:build
 ```
 
-## 🎹 键盘快捷键
+## 技术栈
 
-| 快捷键 | 功能 |
-|--------|------|
-| `空格` | 播放/暂停 |
-| `→` | 下一首 |
+- **前端**: React 19, TypeScript 5.8, Tailwind CSS
+- **桌面**: Tauri 2.0, Rust
+- **构建**: Vite 6.2
+
+## 文档
+
+- [专辑模式](docs/ALBUM_MODE.md)
+- [性能优化指南](docs/PERFORMANCE_OPTIMIZATION.md)
+- [更新设置](docs/UPDATE_SETUP.zh-CN.md)
+- [更新日志](CHANGELOG.md)
+
+## 许可证
+
+MIT License - 查看 [LICENSE](LICENSE) 了解详情。
+
+## 致谢
+
+灵感来自 Apple Music • Shader 作者 [wdyczG](https://www.shadertoy.com/view/wdyczG)
+
+---
+
+<div align="center">
+
+**用 ❤️ 制作**
+
+</div>
 | `←` | 上一首 |
 | `↑` | 音量增加 |
 | `↓` | 音量减少 |
