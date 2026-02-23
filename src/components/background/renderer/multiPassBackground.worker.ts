@@ -12,7 +12,7 @@ import {
   compositeFragmentShader,
 } from './shaders';
 
-const FRAME_INTERVAL = 1000 / 60; // 60 FPS
+const FRAME_INTERVAL = 1000 / 60; // 60 FPS 目标
 
 interface WorkerCommand {
   type: "init" | "resize" | "colors" | "play" | "pause" | "config";
@@ -65,14 +65,14 @@ let playing = true;
 let paused = false;
 let rafId: number | null = null;
 
-// 默认配置
+// 默认配置（保守优化）
 let config: Required<RenderConfig> = {
-  swirlSpeed: 1.0,
+  swirlSpeed: 0.8,
   glowIntensity: 1.0,
-  vignetteStrength: 0.8,
+  vignetteStrength: 0.7,
   glowResolution: 0.5,
-  swirlResolution: 0.75,
-  enableStreaks: true, // 默认启用流光
+  swirlResolution: 0.7,
+  enableStreaks: false,
 };
 
 // 默认颜色（电影感配色）

@@ -22,10 +22,11 @@ class PerformanceMonitor {
 
   private frameCount = 0;
   private lastFrameTime = performance.now();
-  private fpsUpdateInterval = 1000; // Update FPS every second
+  private fpsUpdateInterval = 3000; // 改为每3秒更新一次，减少抖动
   private observers: Set<(metrics: PerformanceMetrics) => void> = new Set();
   private rafId: number | null = null;
   private isMonitoring = false;
+  private lastNotifiedMetrics: PerformanceMetrics | null = null;
 
   /**
    * Start monitoring performance
@@ -95,8 +96,21 @@ class PerformanceMonitor {
 
   /**
    * Notify all observers of metrics update
+   * Only notify if there's a significant change to avoid unnecessary re-renders
    */
   private notifyObservers() {
+    // 只在有显著变化时才通知
+    if (this.lastNotifiedMetrics) {
+      const fpsDiff = Math.abs(this.metrics.fps - this.lastNotifiedMetrics.fps);
+      const memoryDiff = Math.abs(this.metrics.memoryUsage - this.lastNotifiedMetrics.memoryUsage);
+      
+      // FPS 变化小于 5 且内存变化小于 2% 时不通知
+      if (fpsDiff < 5 && memoryDiff < 2) {
+        return;
+      }
+    }
+    
+    this.lastNotifiedMetrics = { ...this.metrics };
     this.observers.forEach(callback => callback(this.metrics));
   }
 

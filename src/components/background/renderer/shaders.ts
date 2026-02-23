@@ -16,10 +16,10 @@ export const vertexShaderSource = `
   }
 `;
 
-// 通用噪声函数
+// 通用噪声函数（改进版 - 基于 iq 的实现）
 const noiseCommon = `
   vec2 hash(vec2 p) {
-    p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+    p = vec2(dot(p, vec2(2127.1, 81.17)), dot(p, vec2(1269.5, 283.37)));
     return fract(sin(p) * 43758.5453);
   }
 
@@ -56,9 +56,9 @@ const noiseCommon = `
   }
 `;
 
-// Pass 1: Base Flow Shader (低频空间层 - 增强流动感)
+// Pass 1: Base Flow Shader (优化性能版本)
 export const baseFlowFragmentShader = `
-  precision highp float;
+  precision mediump float;
   
   uniform vec2 uResolution;
   uniform float uTime;
@@ -72,30 +72,33 @@ export const baseFlowFragmentShader = `
   void main() {
     vec2 uv = vUv;
     float ratio = uResolution.x / uResolution.y;
-    uv.x *= ratio;
     
-    // 增强流动速度和幅度 - 更像 Apple Music
-    vec2 flowUv = uv * 0.35 + uTime * 0.06;
+    vec2 tuv = uv;
+    tuv -= 0.5;
     
-    // 多层流动叠加
-    float base = fbm(flowUv);
-    float flow1 = fbm(flowUv + vec2(uTime * 0.04, uTime * 0.03));
-    float flow2 = fbm(flowUv * 1.5 - vec2(uTime * 0.03, uTime * 0.04));
+    // 使用噪声旋转 - 降低频率
+    float degree = noise(vec2(uTime * 0.08, tuv.x * tuv.y));
+    tuv.y *= 1.0 / ratio;
+    tuv *= rotate2d(radians((degree - 0.5) * 600.0 + 180.0));
+    tuv.y *= ratio;
     
-    // 混合多层流动
-    base = mix(base, flow1, 0.4);
-    base = mix(base, flow2, 0.3);
+    // 波浪扭曲 - 降低频率和幅度
+    float frequency = 4.0;
+    float amplitude = 35.0;
+    float speed = uTime * 1.5;
+    tuv.x += sin(tuv.y * frequency + speed) / amplitude;
+    tuv.y += sin(tuv.x * frequency * 1.3 + speed) / (amplitude * 0.6);
     
-    // 增加对比度和平滑过渡
-    vec3 color = mix(uColor1, uColor2, smoothstep(0.15, 0.85, base));
+    // 颜色混合
+    vec3 col = mix(uColor1, uColor2, smoothstep(-0.3, 0.2, (tuv * rotate2d(radians(-5.0))).x));
     
-    gl_FragColor = vec4(color, 1.0);
+    gl_FragColor = vec4(col, 1.0);
   }
 `;
 
-// Pass 2: Swirl Layer Shader (旋转流体层 - 增强螺旋流动)
+// Pass 2: Swirl Layer Shader (优化性能版本)
 export const swirlLayerFragmentShader = `
-  precision highp float;
+  precision mediump float;
   
   uniform vec2 uResolution;
   uniform float uTime;
@@ -110,40 +113,33 @@ export const swirlLayerFragmentShader = `
   void main() {
     vec2 uv = vUv;
     float ratio = uResolution.x / uResolution.y;
-    uv.x *= ratio;
     
-    // 中心化
-    vec2 centered = uv - vec2(ratio * 0.5, 0.5);
-    float dist = length(centered);
+    vec2 tuv = uv;
+    tuv -= 0.5;
     
-    // 增强螺旋旋转 - 更流畅的旋转
-    float angle = uTime * uSwirlSpeed * 0.2 + dist * 2.0;
-    vec2 rotated = rotate2d(angle) * centered;
-    rotated += vec2(ratio * 0.5, 0.5);
+    // 使用噪声旋转 - 降低频率
+    float degree = noise(vec2(uTime * 0.12 * uSwirlSpeed, tuv.y * tuv.x));
+    tuv.y *= 1.0 / ratio;
+    tuv *= rotate2d(radians((degree - 0.5) * 480.0));
+    tuv.y *= ratio;
     
-    // 增强空间扭曲感 - 多层流动
-    vec2 swirlUv = rotated * 0.7 + vec2(sin(uTime * 0.1), cos(uTime * 0.08)) * 0.2;
-    float swirl = fbm(swirlUv);
+    // 不同的波浪参数 - 降低频率
+    float frequency = 3.5;
+    float amplitude = 28.0;
+    float speed = uTime * 1.2 * uSwirlSpeed;
+    tuv.x += sin(tuv.y * frequency + speed) / amplitude;
+    tuv.y += sin(tuv.x * frequency * 1.1 + speed) / (amplitude * 0.7);
     
-    // 增加层次和动态 - 更多细节
-    float detail1 = noise(swirlUv * 2.0 + uTime * 0.06);
-    float detail2 = noise(swirlUv * 3.5 - uTime * 0.04);
-    swirl = mix(swirl, detail1, 0.35);
-    swirl = mix(swirl, detail2, 0.25);
+    // 颜色混合
+    vec3 col = mix(uColor2, uColor3, smoothstep(-0.3, 0.2, (tuv * rotate2d(radians(-5.0))).x));
     
-    // 径向渐变增强深度
-    float radialGrad = 1.0 - smoothstep(0.0, 1.2, dist);
-    swirl = mix(swirl, swirl * radialGrad, 0.3);
-    
-    vec3 color = mix(uColor2, uColor3, smoothstep(0.1, 0.9, swirl));
-    
-    gl_FragColor = vec4(color, 1.0);
+    gl_FragColor = vec4(col, 1.0);
   }
 `;
 
-// Pass 3: Glow Layer Shader (体积高光层 - 增强光感)
+// Pass 3: Glow Layer Shader (优化性能版本)
 export const glowLayerFragmentShader = `
-  precision highp float;
+  precision mediump float;
   
   uniform vec2 uResolution;
   uniform float uTime;
@@ -159,26 +155,20 @@ export const glowLayerFragmentShader = `
     float ratio = uResolution.x / uResolution.y;
     uv.x *= ratio;
     
-    // 增强体积高光场的动态 - 更流畅的移动
-    vec2 glowUv = uv * 0.85 - vec2(uTime * 0.035, uTime * 0.028);
+    // 简化的高光场 - 减少计算
+    vec2 glowUv = uv * 0.9 - vec2(uTime * 0.03, uTime * 0.025);
     float glowField = fbm(glowUv);
     
-    // 增强多层次高光 - 更柔和的光感
-    float glow1 = pow(glowField, 2.5);
-    float glow2 = pow(noise(glowUv * 1.6 + uTime * 0.05), 3.0);
-    float glow3 = pow(noise(glowUv * 2.2 - uTime * 0.04), 3.5);
-    float glow = mix(glow1, glow2, 0.4);
-    glow = mix(glow, glow3, 0.3);
+    // 简化为两层高光
+    float glow1 = pow(glowField, 2.8);
+    float glow2 = pow(noise(glowUv * 1.5 + uTime * 0.04), 3.2);
+    float glow = mix(glow1, glow2, 0.5);
     
-    // 增强径向流光效果 - 更自然的扩散
+    // 径向流光效果
     vec2 center = vec2(ratio * 0.5, 0.5);
     float dist = length(uv - center);
-    float radial = 1.0 - smoothstep(0.0, 1.8, dist);
-    glow *= radial * 0.5 + 0.5;
-    
-    // 添加脉动效果
-    float pulse = sin(uTime * 0.5) * 0.15 + 0.85;
-    glow *= pulse;
+    float radial = 1.0 - smoothstep(0.0, 1.6, dist);
+    glow *= radial * 0.6 + 0.4;
     
     // 应用强度
     glow *= uGlowIntensity;
@@ -265,9 +255,9 @@ export const streaksLayerFragmentShader = `
   }
 `;
 
-// Final Composite Shader (合成层 - 增强混合效果 + 流光)
+// Final Composite Shader (优化性能版本)
 export const compositeFragmentShader = `
-  precision highp float;
+  precision mediump float;
   
   uniform sampler2D uBaseTexture;
   uniform sampler2D uSwirlTexture;
@@ -285,24 +275,6 @@ export const compositeFragmentShader = `
     return 1.0 - (1.0 - a) * (1.0 - b);
   }
   
-  // Soft light blend
-  vec3 softLight(vec3 a, vec3 b) {
-    return mix(
-      2.0 * a * b + a * a * (1.0 - 2.0 * b),
-      sqrt(a) * (2.0 * b - 1.0) + 2.0 * a * (1.0 - b),
-      step(0.5, b)
-    );
-  }
-  
-  // Overlay blend
-  vec3 overlay(vec3 a, vec3 b) {
-    return mix(
-      2.0 * a * b,
-      1.0 - 2.0 * (1.0 - a) * (1.0 - b),
-      step(0.5, a)
-    );
-  }
-  
   // Additive blend
   vec3 additive(vec3 a, vec3 b) {
     return min(a + b, vec3(1.0));
@@ -316,35 +288,27 @@ export const compositeFragmentShader = `
     vec3 swirl = texture2D(uSwirlTexture, uv).rgb;
     vec3 glow = texture2D(uGlowTexture, uv).rgb;
     
-    // 合成：先用 soft light 混合 base 和 swirl - 更柔和
-    vec3 merged = softLight(base, swirl);
-    merged = mix(base, merged, 0.7);
+    // 简化混合 - 直接 mix
+    vec3 merged = mix(base, swirl, 0.5);
     
-    // 使用 overlay 增加对比和深度
-    merged = mix(merged, overlay(merged, swirl), 0.4);
-    
-    // Screen blend 添加光感，增强 glow 效果
-    merged = screen(merged, glow * 1.4);
+    // Screen blend 添加 glow
+    merged = screen(merged, glow * 1.1);
     
     // 添加流光层（如果有）
     if (uHasStreaks) {
       vec3 streaks = texture2D(uStreaksTexture, uv).rgb;
-      merged = additive(merged, streaks * 1.2);
+      merged = additive(merged, streaks * 0.7);
     }
     
-    // 增强色偏漂移（增加流光感）- 更微妙
-    merged.r += sin(uTime * 0.1) * 0.018;
-    merged.b -= sin(uTime * 0.07) * 0.015;
-    merged.g += cos(uTime * 0.08) * 0.012;
+    // 简化色彩偏移
+    merged.r += sin(uTime * 0.06) * 0.01;
+    merged.b -= sin(uTime * 0.05) * 0.008;
     
-    // Vignette 效果 - 更柔和
+    // Vignette 效果
     vec2 centered = uv - 0.5;
-    float vignette = 1.0 - dot(centered, centered) * uVignetteStrength * 0.8;
-    vignette = smoothstep(0.15, 1.0, vignette);
+    float vignette = 1.0 - dot(centered, centered) * uVignetteStrength;
+    vignette = smoothstep(0.25, 1.0, vignette);
     merged *= vignette;
-    
-    // 微妙的整体亮度调整
-    merged = pow(merged, vec3(0.95));
     
     gl_FragColor = vec4(merged, 1.0);
   }

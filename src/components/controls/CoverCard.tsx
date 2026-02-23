@@ -4,14 +4,12 @@ import SmartImage from '../SmartImage';
 import { useI18n } from '../../contexts/I18nContext';
 import { PERFORMANCE_CONFIG } from '../../config/performance';
 import { getDefaultCoverArt } from '../../services/coverArtService';
-import { LikeIcon, MoreVerticalIcon } from '../Icons';
+import { MoreVerticalIcon } from '../Icons';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface CoverCardProps {
   coverUrl?: string;
   isPlaying: boolean;
-  onToggleLike?: () => void;
-  isLiked?: boolean;
   showSettingsPopup?: boolean;
   setShowSettingsPopup?: (show: boolean) => void;
   settingsPopupContent?: React.ReactNode;
@@ -22,8 +20,6 @@ interface CoverCardProps {
 const CoverCard: React.FC<CoverCardProps> = memo(({ 
   coverUrl, 
   isPlaying,
-  onToggleLike,
-  isLiked = false,
   showSettingsPopup = false,
   setShowSettingsPopup,
   settingsPopupContent,
@@ -262,21 +258,6 @@ const CoverCard: React.FC<CoverCardProps> = memo(({
 
       {/* Song Info and Actions Row - Below Cover */}
       <div className="w-64 md:w-72 lg:w-80 mx-auto mt-4 flex items-center justify-between gap-3">
-        {/* Like Button */}
-        {onToggleLike && (
-          <button
-            onClick={onToggleLike}
-            className={`p-2 rounded-full backdrop-blur-md transition-all duration-200 flex-shrink-0 ${
-              isLiked
-                ? theme === 'light' ? 'bg-black/10 text-black' : 'bg-white/10 text-white'
-                : theme === 'light' ? 'bg-black/5 text-black/60 hover:text-black hover:bg-black/10' : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'
-            }`}
-            title={isLiked ? t("player.unlike") : t("player.like")}
-          >
-            <LikeIcon className="w-5 h-5" filled={isLiked} />
-          </button>
-        )}
-
         {/* Song Info - Center */}
         <div className="flex-1 min-w-0 text-left">
           <h3 className="text-base font-semibold tracking-tight truncate theme-text-primary">

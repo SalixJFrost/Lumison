@@ -92,9 +92,6 @@ const Controls: React.FC<ControlsProps> = ({
   const { t } = useI18n();
   const settingsContainerRef = useRef<HTMLDivElement>(null);
   
-  // Like state
-  const [isLiked, setIsLiked] = useState(false);
-  
   // Spatial Audio Engine
   const spatialEngineRef = useRef<SpatialAudioEngine | null>(null);
   const [spatialAudioEnabled, setSpatialAudioEnabled] = useState(false);
@@ -147,12 +144,6 @@ const Controls: React.FC<ControlsProps> = ({
     const newEnabled = !spatialAudioEnabled;
     setSpatialAudioEnabled(newEnabled);
     spatialEngineRef.current.setEnabled(newEnabled);
-  };
-
-  // Toggle Like
-  const handleToggleLike = () => {
-    setIsLiked(!isLiked);
-    // TODO: Add persistence logic here
   };
 
   const settingsTransitions = useTransition(showSettingsPopup, {
@@ -374,8 +365,6 @@ const Controls: React.FC<ControlsProps> = ({
       <CoverCard 
         coverUrl={coverUrl}
         isPlaying={isPlaying}
-        onToggleLike={handleToggleLike}
-        isLiked={isLiked}
         showSettingsPopup={showSettingsPopup}
         setShowSettingsPopup={setShowSettingsPopup}
         title={title}

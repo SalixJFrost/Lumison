@@ -349,12 +349,12 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
         : desktopGradientDefaults;
       console.log('🎨 Using colors:', initialColors);
       multiPassRenderer.start(initialColors, {
-        swirlSpeed: 1.0,        // 降低旋转速度，更柔和
-        glowIntensity: 1.5,     // 降低光感强度，更自然
-        vignetteStrength: 0.4,  // 降低暗角强度
-        glowResolution: 0.6,    // 提高 glow 分辨率
-        swirlResolution: 0.8,   // 提高 swirl 分辨率
-        enableStreaks: true,    // 启用流光效果
+        swirlSpeed: 0.8,        // 进一步降低旋转速度
+        glowIntensity: 1.2,     // 降低光感强度
+        vignetteStrength: 0.35, // 降低暗角强度
+        glowResolution: 0.5,    // 降低 glow 分辨率以提升性能
+        swirlResolution: 0.7,   // 降低 swirl 分辨率
+        enableStreaks: false,   // 禁用流光效果
       });
       rendererRef.current = multiPassRenderer;
 
@@ -401,7 +401,7 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     const renderCallback = isMobileLayout ? renderMobileFrame : renderGradientFrame;
     const uiRenderer = new UIBackgroundRender(canvas, renderCallback);
     uiRenderer.resize(window.innerWidth, window.innerHeight);
-    uiRenderer.setPaused(!isPlaying);
+    uiRenderer.setPaused(!isPlayingRef.current); // 使用 ref 而不是 prop
     uiRenderer.start();
     rendererRef.current = uiRenderer;
 
@@ -423,7 +423,7 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
       uiRenderer.stop();
       rendererRef.current = null;
     };
-  }, [isMobileLayout, renderGradientFrame, renderMobileFrame, canvasInstanceKey, useMultiPass, isPlaying]);
+  }, [isMobileLayout, renderGradientFrame, renderMobileFrame, canvasInstanceKey, useMultiPass]); // 移除 isPlaying 依赖
 
   useEffect(() => {
     const renderer = rendererRef.current;

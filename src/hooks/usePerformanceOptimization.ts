@@ -27,6 +27,8 @@ export const usePerformanceOptimization = () => {
     connectionQuality: 'medium',
     shouldReduceEffects: false,
   });
+  
+  const lastUpdateRef = useRef<PerformanceState | null>(null);
 
   useEffect(() => {
     // Start performance monitoring
@@ -38,21 +40,32 @@ export const usePerformanceOptimization = () => {
       const connectionQuality = NetworkOptimizer.getConnectionQuality();
       const shouldReduce = isLowPerf || RenderOptimizer.prefersReducedMotion();
 
-      setPerfState({
+      const newState = {
         fps: metrics.fps,
         memoryUsage: metrics.memoryUsage,
         isLowPerformance: isLowPerf,
         connectionQuality,
         shouldReduceEffects: shouldReduce,
-      });
+      };
+      
+      // 只在状态真正改变时才更新
+      if (!lastUpdateRef.current || 
+          lastUpdateRef.current.fps !== newState.fps ||
+          lastUpdateRef.current.memoryUsage !== newState.memoryUsage ||
+          lastUpdateRef.current.isLowPerformance !== newState.isLowPerformance ||
+          lastUpdateRef.current.connectionQuality !== newState.connectionQuality ||
+          lastUpdateRef.current.shouldReduceEffects !== newState.shouldReduceEffects) {
+        lastUpdateRef.current = newState;
+        setPerfState(newState);
+      }
     });
 
-    // Periodic memory cleanup
+    // Periodic memory cleanup - 增加清理间隔
     const cleanupInterval = setInterval(() => {
       if (PERFORMANCE_CONFIG.memory.enableGCHints) {
         MemoryManager.requestGC();
       }
-    }, PERFORMANCE_CONFIG.memory.cleanupInterval);
+    }, PERFORMANCE_CONFIG.memory.cleanupInterval * 2); // 加倍清理间隔
 
     return () => {
       unsubscribe();
