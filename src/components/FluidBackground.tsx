@@ -311,7 +311,9 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      if (canvas.dataset.offscreenTransferred === "true") {
+      // 如果 canvas 已经转移控制权或即将转移，只通知渲染器 resize
+      const transferred = canvas.dataset.offscreenTransferred;
+      if (transferred === "true" || transferred === "pending") {
         if (rendererRef.current instanceof WebWorkerBackgroundRender || 
             rendererRef.current instanceof MultiPassBackgroundRender) {
           rendererRef.current.resize(width, height);
@@ -319,12 +321,14 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
         return;
       }
 
+      // 如果使用 Worker 渲染器，只通知渲染器
       if (rendererRef.current instanceof WebWorkerBackgroundRender ||
           rendererRef.current instanceof MultiPassBackgroundRender) {
         rendererRef.current.resize(width, height);
         return;
       }
 
+      // 只有在使用 UI 渲染器时才直接修改 canvas 尺寸
       canvas.width = width;
       canvas.height = height;
       rendererRef.current?.resize(width, height);
@@ -368,8 +372,11 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     // 创建多层 FBO 渲染器
     if (shouldUseMultiPass) {
       console.log('🎨 Initializing MultiPass Background Renderer');
+      // 在转移控制权之前设置尺寸和标记
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      canvas.dataset.offscreenTransferred = "pending"; // 标记即将转移
+      
       const multiPassRenderer = new MultiPassBackgroundRender(canvas);
       const initialColors = colorsRef.current && colorsRef.current.length > 0 
         ? colorsRef.current 
@@ -392,8 +399,11 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     // 创建单层 WebWorker 渲染器
     if (shouldUseWorker) {
       console.log('🎨 Initializing WebWorker Background Renderer');
+      // 在转移控制权之前设置尺寸和标记
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      canvas.dataset.offscreenTransferred = "pending"; // 标记即将转移
+      
       const workerRenderer = new WebWorkerBackgroundRender(canvas);
       const initialColors = colorsRef.current && colorsRef.current.length > 0 
         ? colorsRef.current 
