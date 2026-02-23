@@ -461,3 +461,177 @@
   transition: all 0.1s linear;
   z-index: 10;
 }
+
+/* Lyrics Mode Styles */
+.lyrics-mode-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+  padding: 4rem 2rem 8rem 2rem;
+}
+
+.lyrics-mode-container {
+  width: 100%;
+  max-width: 900px;
+  height: 70vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  scroll-behavior: smooth;
+}
+
+.lyrics-mode-line {
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 1rem;
+  opacity: 0.4;
+  transform: scale(0.95);
+}
+
+.lyrics-mode-line:hover {
+  opacity: 0.7;
+}
+
+.lyrics-mode-line.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.lyrics-mode-line.passed {
+  opacity: 0.3;
+}
+
+.lyrics-mode-text {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.5rem;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.lyrics-mode-words {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.lyrics-mode-word {
+  display: inline-block;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.lyrics-mode-word.active {
+  transform: scale(1.05);
+}
+
+.lyrics-mode-line.active .lyrics-mode-text {
+  font-size: 3rem;
+  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+}
+
+.lyrics-mode-translation {
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.lyrics-mode-line.active .lyrics-mode-translation {
+  font-size: 1.5rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.lyrics-mode-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+/* Scrollbar for lyrics */
+.lyrics-mode-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.lyrics-mode-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lyrics-mode-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.lyrics-mode-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive for lyrics mode */
+@media (max-width: 768px) {
+  .lyrics-mode-wrapper {
+    padding: 3rem 1.5rem 6rem 1.5rem;
+  }
+
+  .lyrics-mode-text {
+    font-size: 1.75rem;
+  }
+
+  .lyrics-mode-line.active .lyrics-mode-text {
+    font-size: 2.25rem;
+  }
+
+  .lyrics-mode-translation {
+    font-size: 1rem;
+  }
+
+  .lyrics-mode-line.active .lyrics-mode-translation {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .lyrics-mode-text {
+    font-size: 1.5rem;
+  }
+
+  .lyrics-mode-line.active .lyrics-mode-text {
+    font-size: 2rem;
+  }
+
+  .lyrics-mode-translation {
+    font-size: 0.875rem;
+  }
+
+  .lyrics-mode-line.active .lyrics-mode-translation {
+    font-size: 1.125rem;
+  }
+}
+
+/* Canvas wrapper for lyrics */
+.lyrics-mode-canvas-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.lyrics-mode-canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}

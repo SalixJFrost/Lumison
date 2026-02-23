@@ -110,23 +110,6 @@ export const parseNeteaseLink = (
   }
 };
 
-/**
- * @deprecated Use parseLyrics from services/lyrics instead
- */
-export const parseLrc = (
-  lrcContent: string,
-  translationContent?: string,
-): LyricLine[] => {
-  return parseLyrics(lrcContent, translationContent);
-};
-
-/**
- * @deprecated Use parseLyrics from services/lyrics instead
- */
-export const mergeLyrics = (original: string, translation: string): string => {
-  return original + "\n" + translation;
-};
-
 // Metadata Parser using jsmediatags
 export const parseAudioMetadata = (
   file: File,
@@ -236,73 +219,28 @@ export const extractColors = async (imageSrc: string): Promise<string[]> => {
 };
 
 /**
- * Check if browser supports a specific audio format
- */
-export const canPlayAudioFormat = (mimeType: string): boolean => {
-  const audio = document.createElement('audio');
-  const canPlay = audio.canPlayType(mimeType);
-  return canPlay === 'probably' || canPlay === 'maybe';
-};
-
-/**
  * Get supported audio formats for the current browser
  */
 export const getSupportedAudioFormats = (): Record<string, boolean> => {
-  return {
-    mp3: canPlayAudioFormat('audio/mpeg'),
-    wav: canPlayAudioFormat('audio/wav') || canPlayAudioFormat('audio/wave'),
-    flac: canPlayAudioFormat('audio/flac'),
-    m4a: canPlayAudioFormat('audio/mp4') || canPlayAudioFormat('audio/x-m4a'),
-    aac: canPlayAudioFormat('audio/aac') || canPlayAudioFormat('audio/aacp'),
-    ogg: canPlayAudioFormat('audio/ogg') || canPlayAudioFormat('audio/ogg; codecs="vorbis"'),
-    opus: canPlayAudioFormat('audio/ogg; codecs="opus"') || 
-          canPlayAudioFormat('audio/webm; codecs="opus"') || 
-          canPlayAudioFormat('audio/opus'),
-    webm: canPlayAudioFormat('audio/webm') || canPlayAudioFormat('audio/webm; codecs="opus"'),
-    aiff: canPlayAudioFormat('audio/aiff') || 
-          canPlayAudioFormat('audio/x-aiff') || 
-          canPlayAudioFormat('audio/aif'),
+  const audio = document.createElement('audio');
+  const canPlay = (mimeType: string) => {
+    const result = audio.canPlayType(mimeType);
+    return result === 'probably' || result === 'maybe';
   };
-};
 
-/**
- * Log supported audio formats to console
- */
-export const logSupportedFormats = (): void => {
-  const formats = getSupportedAudioFormats();
-  console.log('🎵 Supported Audio Formats:');
-  Object.entries(formats).forEach(([format, supported]) => {
-    console.log(`   ${supported ? '✅' : '❌'} ${format.toUpperCase()}`);
-  });
-  
-  // Add helpful note about unsupported formats
-  const unsupported = Object.entries(formats)
-    .filter(([_, supported]) => !supported)
-    .map(([format]) => format.toUpperCase());
-  
-  if (unsupported.length > 0) {
-    console.log('\n💡 Note: Unsupported formats depend on your browser and OS.');
-    console.log('   • OPUS: Try using .ogg or .webm containers');
-    console.log('   • AIFF: Limited browser support (mainly Safari)');
-    console.log('   • Consider converting to MP3, FLAC, or M4A for best compatibility');
-  }
-};
-
-/**
- * Get file extension from filename or URL
- */
-export const getFileExtension = (filename: string): string | null => {
-  const match = filename.match(/\.([^.]+)$/);
-  return match ? match[1].toLowerCase() : null;
-};
-
-/**
- * Check if a file format is likely supported based on extension
- */
-export const isFormatLikelySupported = (filename: string): boolean => {
-  const ext = getFileExtension(filename);
-  if (!ext) return false;
-  
-  const formats = getSupportedAudioFormats();
-  return formats[ext as keyof typeof formats] || false;
+  return {
+    mp3: canPlay('audio/mpeg'),
+    wav: canPlay('audio/wav') || canPlay('audio/wave'),
+    flac: canPlay('audio/flac'),
+    m4a: canPlay('audio/mp4') || canPlay('audio/x-m4a'),
+    aac: canPlay('audio/aac') || canPlay('audio/aacp'),
+    ogg: canPlay('audio/ogg') || canPlay('audio/ogg; codecs="vorbis"'),
+    opus: canPlay('audio/ogg; codecs="opus"') || 
+          canPlay('audio/webm; codecs="opus"') || 
+          canPlay('audio/opus'),
+    webm: canPlay('audio/webm') || canPlay('audio/webm; codecs="opus"'),
+    aiff: canPlay('audio/aiff') || 
+          canPlay('audio/x-aiff') || 
+          canPlay('audio/aif'),
+  };
 };

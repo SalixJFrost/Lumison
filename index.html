@@ -16,6 +16,19 @@
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#a855f7" />
         
+        <!-- Prevent flash of unstyled content -->
+        <style>
+            html, body {
+                margin: 0;
+                padding: 0;
+                background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 50%, #db2777 100%);
+                overflow: hidden;
+            }
+            #root {
+                min-height: 100vh;
+            }
+        </style>
+        
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link

@@ -255,7 +255,7 @@ export default {
   viewMode: {
     label: "View Mode",
     default: "Default",
-    album: "Album",
+    lyrics: "Lyrics",
   },
 
   // Update Notification

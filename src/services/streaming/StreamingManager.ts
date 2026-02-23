@@ -11,7 +11,6 @@ import {
   StreamingPlaybackState,
   StreamingSearchOptions
 } from './types';
-import { YouTubePlayer } from './youtube/YouTubePlayer';
 import { InternetArchivePlayer } from './archive/InternetArchivePlayer';
 
 export class StreamingManager {
@@ -35,24 +34,12 @@ export class StreamingManager {
     let player: IStreamingPlayer;
 
     switch (platform) {
-      case StreamingPlatform.YOUTUBE:
-        player = new YouTubePlayer();
-        break;
-      
       case StreamingPlatform.INTERNET_ARCHIVE:
         player = new InternetArchivePlayer();
         break;
       
-      case StreamingPlatform.SPOTIFY:
-        // TODO: Implement Spotify player
-        throw new Error('Spotify player not yet implemented');
-      
-      case StreamingPlatform.APPLE_MUSIC:
-        // TODO: Implement Apple Music player
-        throw new Error('Apple Music player not yet implemented');
-      
       default:
-        throw new Error(`Unsupported platform: ${platform}`);
+        throw new Error(`Unsupported platform: ${platform}. Only Internet Archive is currently supported.`);
     }
 
     await player.initialize(config);

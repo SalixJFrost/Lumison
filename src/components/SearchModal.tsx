@@ -7,7 +7,7 @@ import {
   getNeteaseAudioUrl,
   NeteaseTrackInfo,
 } from "../services/music/lyricsService";
-import { StreamingTrack, StreamingPlatform } from "../services/streaming/types";
+import { StreamingTrack } from "../services/streaming/types";
 import { useKeyboardScope } from "../hooks/useKeyboardScope";
 import { useSearchModal } from "../hooks/useSearchModal";
 import { useI18n } from "../contexts/I18nContext";
@@ -925,8 +925,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
                     ? search.neteaseProvider.results.find(t => t.id === menuTrackId)
                     : search.archiveProvider.results.find(t => t.id === menuTrackId);
                   if (track) {
-                    // TODO: Implement play next functionality
-                    // For now, just add to queue
+                    // Add to queue (play next functionality)
                     if (search.activeTab === "netease") {
                       addNeteaseToQueue(track as NeteaseTrackInfo);
                     } else {

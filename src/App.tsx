@@ -17,7 +17,7 @@ import { keyboardRegistry } from "./services/ui/keyboardRegistry";
 import MediaSessionController from "./components/MediaSessionController";
 import { useTheme } from "./contexts/ThemeContext";
 import { useI18n } from "./contexts/I18nContext";
-import { logSupportedFormats } from "./services/utils";
+import { getSupportedAudioFormats } from "./services/utils";
 import { usePerformanceOptimization, useOptimizedAudio } from "./hooks/usePerformanceOptimization";
 import { useAudioTransition, useGaplessPlayback } from "./hooks/useAudioTransition";
 import { UpdateService } from "./services/updateService";
@@ -36,7 +36,12 @@ const App: React.FC = () => {
   
   // Log supported audio formats and platform config on app start
   useEffect(() => {
-    logSupportedFormats();
+    // Log supported audio formats
+    const formats = getSupportedAudioFormats();
+    console.log('🎵 Supported Audio Formats:');
+    Object.entries(formats).forEach(([format, supported]) => {
+      console.log(`   ${supported ? '✅' : '❌'} ${format.toUpperCase()}`);
+    });
     
     // Log lyrics platform configuration (only in development)
     if (import.meta.env.DEV) {
@@ -151,8 +156,8 @@ const App: React.FC = () => {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updateVersion, setUpdateVersion] = useState('');
 
-  // View mode state - 'default' or 'album'
-  const [viewMode, setViewMode] = useState<'default' | 'album'>('default');
+  // View mode state - 'default' or 'lyrics'
+  const [viewMode, setViewMode] = useState<'default' | 'lyrics'>('default');
 
   // Optimize audio element
   useOptimizedAudio(audioRef);
@@ -552,8 +557,8 @@ const App: React.FC = () => {
       />
 
       {/* Main Content Split */}
-      {viewMode === 'album' ? (
-        // Album Mode - Full screen centered album view
+      {viewMode === 'lyrics' ? (
+        // Lyrics Mode - Full screen centered lyrics view
         <div className="flex-1 w-full h-full">
           <AlbumMode
             coverUrl={currentSong?.coverUrl}
@@ -564,6 +569,8 @@ const App: React.FC = () => {
             duration={duration}
             onSeek={handleSeek}
             accentColor={accentColor}
+            lyrics={currentSong?.lyrics}
+            showLyrics={true}
           />
         </div>
       ) : isMobileLayout ? (

@@ -114,36 +114,3 @@ export const useOptimizedBackdropFilter = (enabled: boolean = true) => {
     }
   }, [enabled]);
 };
-
-/**
- * Batch DOM updates for better performance
- */
-export const useBatchedUpdates = () => {
-  const pendingUpdatesRef = useRef<Array<() => void>>([]);
-  const rafIdRef = useRef<number | null>(null);
-
-  const scheduleUpdate = (update: () => void) => {
-    pendingUpdatesRef.current.push(update);
-
-    if (!rafIdRef.current) {
-      rafIdRef.current = requestAnimationFrame(() => {
-        const updates = pendingUpdatesRef.current;
-        pendingUpdatesRef.current = [];
-        rafIdRef.current = null;
-
-        // Execute all pending updates in a single frame
-        updates.forEach(update => update());
-      });
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (rafIdRef.current) {
-        cancelAnimationFrame(rafIdRef.current);
-      }
-    };
-  }, []);
-
-  return { scheduleUpdate };
-};

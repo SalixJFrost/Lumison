@@ -255,7 +255,7 @@ export default {
   viewMode: {
     label: "视图模式",
     default: "默认",
-    album: "专辑",
+    lyrics: "歌词",
   },
 
   // 更新通知

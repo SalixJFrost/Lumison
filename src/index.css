@@ -43,7 +43,7 @@
 
 body {
   font-family: "PingFang SC", "Inter", sans-serif;
-  background-color: transparent;
+  background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 50%, #db2777 100%);
   overflow: hidden;
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
@@ -54,7 +54,7 @@ body {
 }
 
 html {
-  background-color: transparent;
+  background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 50%, #db2777 100%);
   overflow: hidden;
 }
 

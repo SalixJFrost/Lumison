@@ -23,8 +23,8 @@ interface TopBarProps {
   onVisualizerToggle: (enabled: boolean) => void;
   gaplessEnabled: boolean;
   onGaplessToggle: (enabled: boolean) => void;
-  viewMode?: 'default' | 'album';
-  onViewModeChange?: (mode: 'default' | 'album') => void;
+  viewMode?: 'default' | 'lyrics';
+  onViewModeChange?: (mode: 'default' | 'lyrics') => void;
   currentSong?: {
     title: string;
     artist: string;
@@ -94,8 +94,8 @@ const TopBar: React.FC<TopBarProps> = ({
     }
     setIsTopBarActive(true);
     
-    // 在全屏模式或专辑模式下设置自动隐藏
-    if (isFullscreen || viewMode === 'album') {
+    // 在全屏模式或歌词模式下设置自动隐藏
+    if (isFullscreen || viewMode === 'lyrics') {
       hideTimeoutRef.current = setTimeout(() => {
         setIsTopBarActive(false);
         hideTimeoutRef.current = null;
@@ -109,12 +109,13 @@ const TopBar: React.FC<TopBarProps> = ({
 
   const handleMinimize = useCallback(async () => {
     try {
-      // For Tauri - use Window.getCurrent()
       const appWindow = Window.getCurrent();
       await appWindow.minimize();
     } catch (error) {
-      // Fallback for Electron
-      if (window.electronAPI?.minimize) {
+      // Silently handle errors in development (hot reload)
+      if (import.meta.env.DEV) {
+        console.debug('Window minimize failed (likely hot reload):', error);
+      } else if (window.electronAPI?.minimize) {
         window.electronAPI.minimize();
       }
     }
@@ -122,7 +123,6 @@ const TopBar: React.FC<TopBarProps> = ({
 
   const handleMaximize = useCallback(async () => {
     try {
-      // For Tauri
       const appWindow = Window.getCurrent();
       const maximized = await appWindow.isMaximized();
       if (maximized) {
@@ -133,12 +133,13 @@ const TopBar: React.FC<TopBarProps> = ({
         setIsMaximized(true);
       }
     } catch (error) {
-      // Fallback for Electron
-      if (window.electronAPI?.maximize) {
+      // Silently handle errors in development (hot reload)
+      if (import.meta.env.DEV) {
+        console.debug('Window maximize failed (likely hot reload):', error);
+      } else if (window.electronAPI?.maximize) {
         window.electronAPI.maximize();
         setIsMaximized(!isMaximized);
       } else {
-        // Fallback to fullscreen API
         toggleFullscreen();
       }
     }
@@ -146,15 +147,15 @@ const TopBar: React.FC<TopBarProps> = ({
 
   const handleClose = useCallback(async () => {
     try {
-      // For Tauri
       const appWindow = Window.getCurrent();
       await appWindow.close();
     } catch (error) {
-      // Fallback for Electron
-      if (window.electronAPI?.close) {
+      // Silently handle errors in development (hot reload)
+      if (import.meta.env.DEV) {
+        console.debug('Window close failed (likely hot reload):', error);
+      } else if (window.electronAPI?.close) {
         window.electronAPI.close();
       } else {
-        // Fallback for web
         window.close();
       }
     }
@@ -162,7 +163,7 @@ const TopBar: React.FC<TopBarProps> = ({
 
   // 监听鼠标移动，当鼠标在顶部区域时显示TopBar
   useEffect(() => {
-    if (!isFullscreen && viewMode !== 'album') return;
+    if (!isFullscreen && viewMode !== 'lyrics') return;
 
     const handleMouseMove = (e: MouseEvent) => {
       // 当鼠标在顶部100px区域时显示TopBar
@@ -238,17 +239,17 @@ const TopBar: React.FC<TopBarProps> = ({
     };
   }, []);
 
-  // View mode change listener - hide TopBar when entering album mode
+  // View mode change listener - hide TopBar when entering lyrics mode
   useEffect(() => {
-    if (viewMode === 'album') {
-      // 进入专辑模式时，立即隐藏TopBar
+    if (viewMode === 'lyrics') {
+      // 进入歌词模式时，立即隐藏TopBar
       setIsTopBarActive(false);
       if (hideTimeoutRef.current) {
         clearTimeout(hideTimeoutRef.current);
         hideTimeoutRef.current = null;
       }
     } else {
-      // 退出专辑模式时，显示TopBar
+      // 退出歌词模式时，显示TopBar
       setIsTopBarActive(true);
       if (hideTimeoutRef.current) {
         clearTimeout(hideTimeoutRef.current);
@@ -265,8 +266,10 @@ const TopBar: React.FC<TopBarProps> = ({
         const maximized = await appWindow.isMaximized();
         setIsMaximized(maximized);
       } catch (error) {
-        // Not in Tauri environment
-        console.debug('Not in Tauri environment');
+        // Silently ignore in development (hot reload)
+        if (!import.meta.env.DEV) {
+          console.debug('Not in Tauri environment');
+        }
       }
     };
     checkMaximized();
@@ -317,9 +320,9 @@ const TopBar: React.FC<TopBarProps> = ({
 
   // 使用 useMemo 缓存样式类
   const transitionClasses = useMemo(() => {
-    // 非全屏且非专辑模式：始终显示
-    // 全屏模式或专辑模式：根据 isTopBarActive 状态显示/隐藏
-    const shouldShow = (!isFullscreen && viewMode !== 'album') || isTopBarActive;
+    // 非全屏且非歌词模式：始终显示
+    // 全屏模式或歌词模式：根据 isTopBarActive 状态显示/隐藏
+    const shouldShow = (!isFullscreen && viewMode !== 'lyrics') || isTopBarActive;
     
     return {
       base: "transition-all duration-500 ease-out",
@@ -354,7 +357,7 @@ const TopBar: React.FC<TopBarProps> = ({
       {/* Blur Background Layer */}
       <div
         className={`absolute inset-0 bg-white/5 backdrop-blur-2xl transition-all duration-500 ${
-          (!isFullscreen && viewMode !== 'album') || isTopBarActive ? "opacity-100" : "opacity-0"
+          (!isFullscreen && viewMode !== 'lyrics') || isTopBarActive ? "opacity-100" : "opacity-0"
         }`}
         data-tauri-drag-region
       />
@@ -460,14 +463,14 @@ const TopBar: React.FC<TopBarProps> = ({
                           {t("viewMode.default") || "默认"}
                         </button>
                         <button
-                          onClick={() => onViewModeChange('album')}
+                          onClick={() => onViewModeChange('lyrics')}
                           className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 ease-out hover:scale-105 active:scale-95 ${
-                            viewMode === 'album'
+                            viewMode === 'lyrics'
                               ? 'bg-white/20 text-white border border-white/20 shadow-lg'
                               : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
                           }`}
                         >
-                          {t("viewMode.album") || "专辑"}
+                          {t("viewMode.lyrics") || "歌词"}
                         </button>
                       </div>
                     </div>

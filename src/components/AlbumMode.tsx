@@ -1,9 +1,10 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { useSpring, animated } from '@react-spring/web';
 import SmartImage from './SmartImage';
 import { getDefaultCoverArt } from '../services/coverArtService';
 import { useI18n } from '../contexts/I18nContext';
 import { formatTime } from '../services/utils';
+import { LyricLine as LyricLineType } from '../types';
 import './AlbumMode.css';
 
 interface AlbumModeProps {
@@ -15,6 +16,8 @@ interface AlbumModeProps {
   duration: number;
   onSeek: (time: number) => void;
   accentColor?: string;
+  lyrics?: LyricLineType[];
+  showLyrics?: boolean;
 }
 
 const AlbumMode: React.FC<AlbumModeProps> = ({
@@ -26,13 +29,58 @@ const AlbumMode: React.FC<AlbumModeProps> = ({
   duration,
   onSeek,
   accentColor = '#ff6b6b',
+  lyrics = [],
+  showLyrics = false,
 }) => {
   const { t } = useI18n();
   const progressBarRef = useRef<HTMLDivElement>(null);
+  const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
   const displayCover = coverUrl || getDefaultCoverArt();
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  // Find current lyric line
+  const currentLyricIndex = useMemo(() => {
+    if (!lyrics || lyrics.length === 0) return -1;
+    
+    for (let i = lyrics.length - 1; i >= 0; i--) {
+      if (currentTime >= lyrics[i].time) {
+        return i;
+      }
+    }
+    return -1;
+  }, [lyrics, currentTime]);
+
+  // Find current word in active line
+  const getCurrentWordIndex = useCallback((lineIndex: number) => {
+    if (lineIndex < 0 || !lyrics[lineIndex]?.words) return -1;
+    
+    const line = lyrics[lineIndex];
+    const words = line.words || [];
+    
+    for (let i = words.length - 1; i >= 0; i--) {
+      if (currentTime >= words[i].startTime) {
+        return i;
+      }
+    }
+    return -1;
+  }, [lyrics, currentTime]);
+
+  // Auto-scroll lyrics
+  useEffect(() => {
+    if (!showLyrics || !lyricsContainerRef.current || currentLyricIndex < 0) return;
+    
+    const container = lyricsContainerRef.current;
+    const currentLine = container.querySelector(`[data-index="${currentLyricIndex}"]`);
+    
+    if (currentLine) {
+      currentLine.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  }, [currentLyricIndex, showLyrics]);
 
   // Calculate border progress (0-400% for 4 sides)
   const getBorderProgress = () => {
@@ -175,39 +223,106 @@ const AlbumMode: React.FC<AlbumModeProps> = ({
 
   return (
     <div className="album-mode-container">
-      {/* Album Cover - Centered and Large */}
-      <div className="album-cover-wrapper-large">
-        <animated.div
-          style={{
-            transform: coverSpring.scale.to((s) => `scale(${s})`),
-          }}
-          className="album-cover-card-large"
-        >
-          <SmartImage
-            src={displayCover}
-            alt="Album Cover"
-            containerClassName="album-cover-image-container"
-            imgClassName="album-cover-image"
-            loading="eager"
-          />
-        </animated.div>
-      </div>
+      {showLyrics ? (
+        /* Lyrics Display with word-by-word highlighting */
+        <div className="lyrics-mode-wrapper">
+          <div 
+            ref={lyricsContainerRef}
+            className="lyrics-mode-container"
+          >
+            {lyrics && lyrics.length > 0 ? (
+              lyrics.map((line, index) => {
+                const isActive = index === currentLyricIndex;
+                const isPassed = index < currentLyricIndex;
+                const currentWordIndex = isActive ? getCurrentWordIndex(index) : -1;
+                const hasWords = line.words && line.words.length > 0;
 
-      {/* Song Info - Below Cover */}
-      <div className="song-info-section-large">
-        <div className="song-info-text">
-          <h2 className="song-title-large">{title || t('player.noMusicLoaded')}</h2>
-          <p className="song-artist-large">{artist || t('player.selectSong')}</p>
+                return (
+                  <div
+                    key={index}
+                    data-index={index}
+                    className={`lyrics-mode-line ${
+                      isActive ? 'active' : ''
+                    } ${isPassed ? 'passed' : ''}`}
+                    onClick={() => onSeek(line.time)}
+                  >
+                    {hasWords ? (
+                      <div className="lyrics-mode-text lyrics-mode-words">
+                        {line.words!.map((word, wordIndex) => (
+                          <span
+                            key={wordIndex}
+                            className={`lyrics-mode-word ${
+                              isActive && wordIndex <= currentWordIndex ? 'active' : ''
+                            }`}
+                            style={{
+                              color: isActive && wordIndex <= currentWordIndex ? accentColor : undefined,
+                            }}
+                          >
+                            {word.text}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div 
+                        className="lyrics-mode-text"
+                        style={{
+                          color: isActive ? accentColor : undefined,
+                        }}
+                      >
+                        {line.text}
+                      </div>
+                    )}
+                    {line.translation && (
+                      <div className="lyrics-mode-translation">{line.translation}</div>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <div className="lyrics-mode-empty">
+                <p>{t('lyrics.noLyrics')}</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Album Cover Display */
+        <>
+          <div className="album-cover-wrapper-large">
+            <animated.div
+              style={{
+                transform: coverSpring.scale.to((s) => `scale(${s})`),
+              }}
+              className="album-cover-card-large"
+            >
+              <SmartImage
+                src={displayCover}
+                alt="Album Cover"
+                containerClassName="album-cover-image-container"
+                imgClassName="album-cover-image"
+                loading="eager"
+              />
+            </animated.div>
+          </div>
 
-      {/* Border Progress Bar */}
-      <div className="progress-section">
-        <div className="time-display">
-          <span className="current-time">{formatTime(currentTime)}</span>
-          <span className="total-time">{formatTime(duration)}</span>
-        </div>
-        <div
+          {/* Song Info - Below Cover */}
+          <div className="song-info-section-large">
+            <div className="song-info-text">
+              <h2 className="song-title-large">{title || t('player.noMusicLoaded')}</h2>
+              <p className="song-artist-large">{artist || t('player.selectSong')}</p>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Border Progress Bar - Only show in album mode */}
+      {!showLyrics && (
+        <div className="progress-section">
+          <div className="time-display">
+            <span className="current-time">{formatTime(currentTime)}</span>
+            <span className="total-time">{formatTime(duration)}</span>
+          </div>
+          <div
           ref={progressBarRef}
           className="border-progress-container"
           onMouseDown={handleProgressMouseDown}
@@ -261,6 +376,7 @@ const AlbumMode: React.FC<AlbumModeProps> = ({
           />
         </div>
       </div>
+      )}
     </div>
   );
 };

@@ -497,19 +497,19 @@ const Controls: React.FC<ControlsProps> = ({
           {/* 2. Previous */}
           <button
             onClick={onPrev}
-            className={`w-11 h-11 flex items-center justify-center rounded-full hover:bg-white/10 active:bg-white/20 transition-all duration-150 ease-out active:scale-90 hw-accelerate`}
+            className={`w-14 h-14 flex items-center justify-center rounded-full hover:bg-white/10 active:bg-white/20 transition-all duration-150 ease-out active:scale-90 hw-accelerate`}
             style={{
               willChange: 'transform, background-color',
             }}
             aria-label={t("player.previous")}
           >
-            <PrevIcon className="w-6 h-6" />
+            <PrevIcon className="w-7 h-7" />
           </button>
 
           {/* 3. Play/Pause (Center) - Optimized Animation */}
           <button
             onClick={onPlayPause}
-            className={`w-14 h-14 flex items-center justify-center rounded-full hover:scale-105 active:scale-95 transition-all duration-150 ease-out hw-accelerate ${
+            className={`w-16 h-16 flex items-center justify-center rounded-full hover:scale-105 active:scale-95 transition-all duration-150 ease-out hw-accelerate ${
               theme === 'light' 
                 ? 'text-black hover:bg-white/5 active:bg-white/10' 
                 : 'text-white hover:bg-white/5 active:bg-white/10'
@@ -519,7 +519,7 @@ const Controls: React.FC<ControlsProps> = ({
             }}
             aria-label={isPlaying ? t("player.pause") : t("player.play")}
           >
-            <div className="relative w-11 h-11 hw-accelerate">
+            <div className="relative w-12 h-12 hw-accelerate">
               {/* Pause Icon */}
               <div
                 className={`absolute inset-0 w-full h-full hw-accelerate ${isPlaying
@@ -552,13 +552,13 @@ const Controls: React.FC<ControlsProps> = ({
           {/* 4. Next */}
           <button
             onClick={onNext}
-            className={`w-11 h-11 flex items-center justify-center rounded-full hover:bg-white/10 active:bg-white/20 transition-all duration-150 ease-out active:scale-90 hw-accelerate`}
+            className={`w-14 h-14 flex items-center justify-center rounded-full hover:bg-white/10 active:bg-white/20 transition-all duration-150 ease-out active:scale-90 hw-accelerate`}
             style={{
               willChange: 'transform, background-color',
             }}
             aria-label={t("player.next")}
           >
-            <NextIcon className="w-6 h-6" />
+            <NextIcon className="w-7 h-7" />
           </button>
 
           {/* 5. Playlist/Queue */}
@@ -816,8 +816,7 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
         <button
           onClick={() => {
             setAudioEffect('reverb');
-            // TODO: Implement reverb effect
-            console.log('Reverb effect activated');
+            console.log('Reverb effect activated (not yet implemented)');
           }}
           className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-200 ${
             audioEffect === 'reverb'

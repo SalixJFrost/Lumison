@@ -78,11 +78,3 @@ export const parseLyrics = (
 
   return lines;
 };
-
-/**
- * Merge raw lyrics strings.
- * @deprecated Use parseLyrics with translationContent parameter
- */
-export const mergeLyrics = (original: string, translation: string): string => {
-  return `${original}\n${translation}`;
-};
