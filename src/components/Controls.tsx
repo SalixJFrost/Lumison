@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import { useSpring, animated, useTransition, to } from "@react-spring/web";
 import { formatTime } from "../services/utils";
 import { SpatialAudioEngine } from "../services/audio/SpatialAudioEngine";
-import Visualizer from "./visualizer/Visualizer";
 import CoverCard from "./controls/CoverCard";
 import {
   LoopIcon,
@@ -56,7 +55,6 @@ interface ControlsProps {
   showSettingsPopup: boolean;
   setShowSettingsPopup: (show: boolean) => void;
   isBuffering: boolean;
-  visualizerEnabled?: boolean;
 }
 
 const Controls: React.FC<ControlsProps> = ({
@@ -86,7 +84,6 @@ const Controls: React.FC<ControlsProps> = ({
   showSettingsPopup,
   setShowSettingsPopup,
   isBuffering,
-  visualizerEnabled,
 }) => {
   const { theme } = useTheme();
   const { t } = useI18n();
@@ -360,7 +357,8 @@ const Controls: React.FC<ControlsProps> = ({
     : 0;
 
   return (
-    <div className="w-full flex flex-col items-center justify-center gap-1 theme-text-primary select-none">
+    <div className="w-full flex flex-col items-center justify-center gap-1 theme-text-primary select-none relative">
+      
       {/* Cover Section with 3D Effect */}
       <CoverCard 
         coverUrl={coverUrl}
@@ -388,17 +386,8 @@ const Controls: React.FC<ControlsProps> = ({
         }
       />
 
-      {/* Spectrum Visualizer */}
-      {visualizerEnabled && (
-        <div className="w-full max-w-xl flex justify-center h-12 mb-3">
-          <Visualizer 
-            audioRef={audioRef} 
-            isPlaying={isPlaying} 
-            spatialEngine={spatialEngineRef.current}
-          />
-        </div>
-      )}
-
+      {/* Spectrum Visualizer - Moved to bottom */}
+      
       {/* Progress Bar */}
       <div className="w-full max-w-xl flex items-center gap-3 text-sm font-medium theme-text-secondary group/bar relative">
         <span className="w-12 text-right font-mono tracking-wide">

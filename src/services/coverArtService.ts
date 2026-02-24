@@ -364,13 +364,4 @@ export async function searchCoverArtCached(params: {
   return result;
 }
 
-/**
- * Get the default cover art image
- * Returns the path to the default cover image in the public folder
- * Handles both Tauri and web deployment paths
- */
-export function getDefaultCoverArt(): string {
-  // In Vite, import.meta.env.BASE_URL provides the correct base path
-  const basePath = (import.meta as any).env?.BASE_URL || '/';
-  return `${basePath}default-cover.png`.replace('//', '/');
-}
+

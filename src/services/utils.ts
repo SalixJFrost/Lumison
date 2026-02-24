@@ -190,28 +190,74 @@ export const extractColors = async (imageSrc: string): Promise<string[]> => {
   try {
     const img = await loadImageElementWithCache(imageSrc);
     const colorThief = new ColorThief();
-    const palette = colorThief.getPalette(img, 5);
+    
+    // 获取调色板
+    const palette = colorThief.getPalette(img, 10);
 
     if (!palette || palette.length === 0) {
       return [];
     }
 
-    const vibrantCandidates = palette.filter((rgb: number[]) => {
-      const lum = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
-      return lum > 30;
+    // 计算颜色的"权重"分数，综合考虑多个因素
+    const scoredColors = palette.map((rgb: number[]) => {
+      const [r, g, b] = rgb;
+      
+      // 1. 亮度 (0-255)
+      const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      
+      // 2. 饱和度 (0-255)
+      const saturation = Math.max(r, g, b) - Math.min(r, g, b);
+      
+      // 3. 色彩丰富度（避免灰色）
+      const colorfulness = saturation / (luminance + 1);
+      
+      // 综合评分：
+      // - 亮度适中（不要太暗或太亮）
+      // - 有一定饱和度（但不过分）
+      // - 避免纯灰色
+      const luminanceScore = luminance > 40 && luminance < 200 ? 1 : 0.5;
+      const saturationScore = saturation > 20 ? Math.min(saturation / 100, 1) : 0.3;
+      const colorfulnessScore = colorfulness > 0.1 ? 1 : 0.5;
+      
+      const totalScore = luminanceScore * saturationScore * colorfulnessScore;
+      
+      return { rgb, score: totalScore, luminance, saturation };
     });
 
-    const candidates =
-      vibrantCandidates.length > 0 ? vibrantCandidates : palette;
+    // 按分数排序
+    scoredColors.sort((a, b) => b.score - a.score);
 
-    candidates.sort((a: number[], b: number[]) => {
-      const satA = Math.max(...a) - Math.min(...a);
-      const satB = Math.max(...b) - Math.min(...b);
-      return satB - satA;
-    });
+    // 选择前3个颜色，但确保它们有一定的差异性
+    const selectedColors: number[][] = [];
+    
+    for (const color of scoredColors) {
+      if (selectedColors.length >= 3) break;
+      
+      // 检查与已选颜色的差异
+      const isDifferent = selectedColors.every(selected => {
+        const diff = Math.abs(color.rgb[0] - selected[0]) +
+                     Math.abs(color.rgb[1] - selected[1]) +
+                     Math.abs(color.rgb[2] - selected[2]);
+        return diff > 60; // 确保颜色有足够差异
+      });
+      
+      if (isDifferent || selectedColors.length === 0) {
+        selectedColors.push(color.rgb);
+      }
+    }
 
-    const topColors = candidates.slice(0, 4);
-    return topColors.map((c: number[]) => `rgb(${c[0]}, ${c[1]}, ${c[2]})`);
+    // 如果没有足够的颜色，用评分最高的填充
+    while (selectedColors.length < 3 && scoredColors.length > 0) {
+      const nextColor = scoredColors[selectedColors.length];
+      if (nextColor) {
+        selectedColors.push(nextColor.rgb);
+      } else {
+        break;
+      }
+    }
+    
+    // 转换为 RGB 字符串
+    return selectedColors.map((c: number[]) => `rgb(${c[0]}, ${c[1]}, ${c[2]})`);
   } catch (err) {
     console.warn("Color extraction failed", err);
     return [];

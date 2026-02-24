@@ -508,12 +508,12 @@ export class NetworkOptimizer {
 if (process.env.NODE_ENV === 'development') {
   performanceMonitor.start();
   
-  // Log performance metrics every 5 seconds
+  // Log performance metrics every 5 seconds (disabled in production)
   performanceMonitor.subscribe((metrics) => {
-    console.log('[Performance]', {
-      fps: metrics.fps,
-      memory: `${metrics.memoryUsage}%`,
-      recommendations: performanceMonitor.getRecommendations(),
-    });
+    // console.log('[Performance]', {
+    //   fps: metrics.fps,
+    //   memory: `${metrics.memoryUsage}%`,
+    //   recommendations: performanceMonitor.getRecommendations(),
+    // });
   });
 }

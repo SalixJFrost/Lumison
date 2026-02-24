@@ -34,7 +34,7 @@ async function fetchWithFallback(
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         const url = endpoint.includes('http') ? endpoint : `${baseUrl}${endpoint}`;
-        console.log(`Trying API: ${url}`);
+        // console.log(`Trying API: ${url}`);
         
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);

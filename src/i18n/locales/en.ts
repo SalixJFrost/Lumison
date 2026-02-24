@@ -157,15 +157,23 @@ export default {
     failed: "Failed to load lyrics",
     importLyrics: "Import Lyrics File",
     fontSize: "Font Size",
-    effects: "Lyrics Effects",
-    gradient: "Gradient",
-    glow: "Glow",
-    shadow: "Shadow",
     originalAndTranslation: "Original + Translation",
     originalOnly: "Original Only",
     translation: "Trans",
     original: "Orig",
     playMusicToViewLyrics: "Play music to view lyrics",
+  },
+  
+  // Background
+  background: {
+    label: "Background Effects",
+    fluid: "Fluid",
+    shader1: "Melt",
+    shader2: "Black Hole",
+    shader3: "Waves",
+    shader4: "Halo",
+    shader5: "Swirl",
+    playMusicToChange: "Play music to change background effects",
   },
   
   // Visualizer

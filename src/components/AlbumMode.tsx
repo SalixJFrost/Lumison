@@ -1,6 +1,5 @@
 import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import SmartImage from './SmartImage';
-import { getDefaultCoverArt } from '../services/coverArtService';
 import { useI18n } from '../contexts/I18nContext';
 import { formatTime } from '../services/utils';
 import { LyricLine as LyricLineType } from '../types';
@@ -36,7 +35,7 @@ const AlbumMode: React.FC<AlbumModeProps> = ({
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const displayCover = coverUrl || getDefaultCoverArt();
+  const displayCover = coverUrl;
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   // Find current lyric line

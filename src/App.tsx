@@ -1,9 +1,13 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useToast } from "./hooks/useToast";
-import { PlayState, Song } from "./types";
+import ShaderBackground from "./components/ShaderBackground";
+import ShaderBackground2 from "./components/ShaderBackground2";
+import ShaderBackground3 from "./components/ShaderBackground3";
+import ShaderBackground4 from "./components/ShaderBackground4";
+import ShaderBackground5 from "./components/ShaderBackground5";
 import FluidBackground from "./components/FluidBackground";
 import Controls from "./components/Controls";
-import LyricsView from "./components/LyricsView";
+import LyricsView from "./components/LyricsViewSimple";
 import PlaylistPanel from "./components/PlaylistPanel";
 import KeyboardShortcuts from "./components/KeyboardShortcuts";
 import TopBar from "./components/TopBar";
@@ -19,9 +23,10 @@ import { useTheme } from "./contexts/ThemeContext";
 import { useI18n } from "./contexts/I18nContext";
 import { getSupportedAudioFormats } from "./services/utils";
 import { usePerformanceOptimization, useOptimizedAudio } from "./hooks/usePerformanceOptimization";
-import { useAudioTransition, useGaplessPlayback } from "./hooks/useAudioTransition";
+import { useGaplessPlayback } from "./hooks/useAudioTransition";
 import { UpdateService } from "./services/updateService";
 import { getPlatformConfig } from "./services/music/multiPlatformLyrics";
+import { PlayState, Song } from "./types";
 import { useWebViewOptimization, useOptimizedBackdropFilter } from "./hooks/useWebViewOptimization";
 
 const App: React.FC = () => {
@@ -30,8 +35,8 @@ const App: React.FC = () => {
   const { t } = useI18n();
   
   // Performance monitoring
-  const perfState = usePerformanceOptimization();
-  const webViewPerf = useWebViewOptimization();
+  usePerformanceOptimization();
+  useWebViewOptimization();
   useOptimizedBackdropFilter(true);
   
   // Log supported audio formats and platform config on app start
@@ -43,26 +48,14 @@ const App: React.FC = () => {
       console.log(`   ${supported ? '✅' : '❌'} ${format.toUpperCase()}`);
     });
     
-    // Log lyrics platform configuration (only in development)
-    if (import.meta.env.DEV) {
-      const platformConfig = getPlatformConfig();
-      console.log('\n🎵 Lyrics Platform Configuration:');
-      console.log('   Primary sources (parallel search):');
-      console.log(`     ${platformConfig.netease ? '✅' : '❌'} Netease Music (网易云音乐) - Word-by-word lyrics`);
-      console.log(`     ${platformConfig.thirdParty ? '✅' : '❌'} Third-party APIs (7 sources)`);
-      console.log('       • LrcLib, LRCAPI, Lyrics.ovh, Syair.info');
-      console.log('       • ChartLyrics, Musixmatch, OpenLyrics');
-      console.log('   Fallback sources:');
-      console.log(`     ${platformConfig.qq ? '✅' : '❌'} QQ Music (QQ音乐) ${!platformConfig.qq ? '- Disabled due to CORS' : ''}`);
-      console.log(`     ${platformConfig.kugou ? '✅' : '❌'} Kugou Music (酷狗音乐) ${!platformConfig.kugou ? '- Disabled due to CORS' : ''}`);
-      console.log('\n💡 Strategy: Parallel search for maximum coverage');
-      console.log('   • Netease + 7 third-party sources search simultaneously');
-      console.log('   • Failed sources are blacklisted for 5 minutes to reduce errors');
-      console.log('   • Best for songs unavailable on Netease (e.g., Jay Chou)');
-      if (!platformConfig.qq || !platformConfig.kugou) {
-        console.log('\n💡 To enable QQ/Kugou: updatePlatformConfig({ qq: true, kugou: true })');
-      }
-    }
+    // Log lyrics platform configuration
+    const platformConfig = getPlatformConfig();
+    console.log('\n🎵 Lyrics Platform Configuration:');
+    console.log('   Primary sources (parallel search):');
+    console.log(`     ${platformConfig.netease ? '✅' : '❌'} Netease Music (网易云音乐) - Word-by-word lyrics`);
+    console.log(`     ${platformConfig.thirdParty ? '✅' : '❌'} Third-party APIs (7 sources)`);
+    console.log('       • LrcLib, LRCAPI, Lyrics.ovh, Syair.info');
+    console.log('       • ChartLyrics, Musixmatch, OpenLyrics');
   }, []);
 
   // Check for updates on app start (silent check)
@@ -111,7 +104,6 @@ const App: React.FC = () => {
     handleTimeUpdate,
     handleLoadedMetadata,
     handlePlaylistAddition,
-    loadLyricsFile,
     playIndex,
     addSongAndPlay,
     handleAudioEnded,
@@ -142,12 +134,9 @@ const App: React.FC = () => {
     return window.innerWidth;
   });
   const [lyricsFontSize, setLyricsFontSize] = useState(46);
-  const [lyricsBlur, setLyricsBlur] = useState(false);
-  const [lyricsGlow, setLyricsGlow] = useState(false);
-  const [lyricsShadow, setLyricsShadow] = useState(false);
   
-  // Visualizer state - disabled by default for better performance
-  const [visualizerEnabled, setVisualizerEnabled] = useState(false);
+  // Background type state
+  const [backgroundType, setBackgroundType] = useState<'fluid' | 'shader1' | 'shader2' | 'shader3' | 'shader4' | 'shader5'>('shader4');
 
   // Gapless playback - experimental feature
   const [gaplessEnabled, setGaplessEnabled] = useState(false);
@@ -159,9 +148,22 @@ const App: React.FC = () => {
   // View mode state - 'default' or 'lyrics'
   const [viewMode, setViewMode] = useState<'default' | 'lyrics'>('default');
   
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  
   // Exit button visibility state for lyrics mode
   const [showExitButton, setShowExitButton] = useState(true);
   const exitButtonTimerRef = useRef<number | null>(null);
+
+  // Track if user has ever played (to keep layout split after first play)
+  const [hasEverPlayed, setHasEverPlayed] = useState(false);
+  
+  // Update hasEverPlayed when playing starts with lyrics
+  useEffect(() => {
+    if (playState === PlayState.PLAYING && currentSong?.lyrics && currentSong.lyrics.length > 0) {
+      setHasEverPlayed(true);
+    }
+  }, [playState, currentSong?.lyrics]);
 
   // Optimize audio element
   useOptimizedAudio(audioRef);
@@ -197,6 +199,16 @@ const App: React.FC = () => {
         window.clearTimeout(exitButtonTimerRef.current);
       }
     };
+  }, []);
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
   // Handle exit button auto-hide in lyrics mode
@@ -432,8 +444,8 @@ const App: React.FC = () => {
 
   // Memoize controls section to prevent unnecessary re-renders
   const controlsSection = useMemo(() => (
-    <div className="flex flex-col items-center justify-center w-full h-full z-30 relative p-4">
-      <div className="relative flex flex-col items-center gap-8 w-full max-w-[360px]">
+    <div className={`flex flex-col items-center justify-center w-full h-full z-30 relative ${hasEverPlayed ? 'pt-0' : 'pt-32'}`}>
+      <div className="relative flex flex-col items-center gap-8 w-full max-w-[360px] px-4">
         <Controls
           isPlaying={playState === PlayState.PLAYING}
           onPlayPause={togglePlay}
@@ -461,7 +473,6 @@ const App: React.FC = () => {
           setShowVolumePopup={setShowVolumePopup}
           showSettingsPopup={showSettingsPopup}
           setShowSettingsPopup={setShowSettingsPopup}
-          visualizerEnabled={visualizerEnabled}
         />
 
         {/* Floating Playlist Panel */}
@@ -479,7 +490,7 @@ const App: React.FC = () => {
         />
       </div>
     </div>
-  ), [playState, currentTime, duration, currentSong?.title, currentSong?.artist, currentSong?.id, currentSong?.coverUrl, t, playNext, playPrev, playMode, accentColor, volume, player.speed, player.preservesPitch, isBuffering, showVolumePopup, showSettingsPopup, visualizerEnabled, showPlaylist, playlist.queue, playlist.removeSongs]);
+  ), [playState, currentTime, duration, currentSong?.title, currentSong?.artist, currentSong?.id, currentSong?.coverUrl, t, playNext, playPrev, playMode, accentColor, volume, player.speed, player.preservesPitch, isBuffering, showVolumePopup, showSettingsPopup, showPlaylist, playlist.queue, playlist.removeSongs, hasEverPlayed]);
 
   const lyricsVersion = currentSong?.lyrics ? currentSong.lyrics.length : 0;
   const lyricsKey = currentSong ? `${currentSong.id}-${lyricsVersion}` : "no-song";
@@ -496,12 +507,10 @@ const App: React.FC = () => {
         onSeekRequest={handleSeek}
         matchStatus={matchStatus}
         fontSize={lyricsFontSize}
-        blur={lyricsBlur}
-        glow={lyricsGlow}
-        shadow={lyricsShadow}
+        accentColor={accentColor}
       />
     </div>
-  ), [lyricsKey, currentSong?.lyrics, playState, currentTime, matchStatus, lyricsFontSize, lyricsBlur, lyricsGlow, lyricsShadow]);
+  ), [lyricsKey, currentSong?.lyrics, playState, currentTime, matchStatus, lyricsFontSize, accentColor]);
 
   const fallbackWidth = typeof window !== "undefined" ? window.innerWidth : 0;
   const effectivePaneWidth = paneWidth || fallbackWidth;
@@ -510,14 +519,46 @@ const App: React.FC = () => {
 
   return (
     <div className="relative w-full h-screen flex flex-col overflow-hidden theme-transition bg-black">
-      <FluidBackground
-        key={isMobileLayout ? "mobile" : "desktop"}
-        colors={currentSong?.colors || []}
-        coverUrl={currentSong?.coverUrl}
-        isPlaying={playState === PlayState.PLAYING}
-        isMobileLayout={isMobileLayout}
-        theme={theme}
-      />
+      {backgroundType === 'fluid' && (
+        <FluidBackground
+          key={isMobileLayout ? "mobile" : "desktop"}
+          colors={currentSong?.colors || []}
+          coverUrl={currentSong?.coverUrl}
+          isPlaying={playState === PlayState.PLAYING}
+          isMobileLayout={isMobileLayout}
+          theme={theme}
+        />
+      )}
+      {backgroundType === 'shader1' && (
+        <ShaderBackground
+          isPlaying={playState === PlayState.PLAYING}
+          colors={currentSong?.colors || []}
+        />
+      )}
+      {backgroundType === 'shader2' && (
+        <ShaderBackground2
+          isPlaying={playState === PlayState.PLAYING}
+          colors={currentSong?.colors || []}
+        />
+      )}
+      {backgroundType === 'shader3' && (
+        <ShaderBackground3
+          isPlaying={playState === PlayState.PLAYING}
+          colors={currentSong?.colors || []}
+        />
+      )}
+      {backgroundType === 'shader4' && (
+        <ShaderBackground4
+          isPlaying={playState === PlayState.PLAYING}
+          colors={currentSong?.colors || []}
+        />
+      )}
+      {backgroundType === 'shader5' && (
+        <ShaderBackground5
+          isPlaying={playState === PlayState.PLAYING}
+          colors={currentSong?.colors || []}
+        />
+      )}
 
       <audio
         ref={audioRef}
@@ -570,21 +611,13 @@ const App: React.FC = () => {
         onSeek={handleSeek}
       />
 
-      {/* Top Bar - Hidden in lyrics mode */}
-      {viewMode !== 'lyrics' && (
+      {/* Top Bar - Hidden in lyrics mode and fullscreen */}
+      {viewMode !== 'lyrics' && !isFullscreen && (
         <TopBar
           lyricsFontSize={lyricsFontSize}
           onLyricsFontSizeChange={setLyricsFontSize}
           onImportUrl={handleImportUrl}
-          lyricsBlur={lyricsBlur}
-          onLyricsBlurChange={setLyricsBlur}
-          lyricsGlow={lyricsGlow}
-          onLyricsGlowChange={setLyricsGlow}
-          lyricsShadow={lyricsShadow}
-          onLyricsShadowChange={setLyricsShadow}
           onSearchClick={() => setShowSearch(true)}
-          visualizerEnabled={visualizerEnabled}
-          onVisualizerToggle={setVisualizerEnabled}
           gaplessEnabled={gaplessEnabled}
           onGaplessToggle={setGaplessEnabled}
           viewMode={viewMode}
@@ -594,6 +627,9 @@ const App: React.FC = () => {
             artist: currentSong.artist,
             coverUrl: currentSong.coverUrl,
           } : null}
+          backgroundType={backgroundType}
+          onBackgroundTypeChange={setBackgroundType}
+          isPlaying={playState === PlayState.PLAYING}
         />
       )}
 
@@ -699,9 +735,40 @@ const App: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="flex-1 grid lg:grid-cols-2 w-full h-full">
-          {controlsSection}
-          {lyricsSection}
+        // Desktop Layout - Center when not playing, split when playing
+        <div className="flex-1 relative w-full h-full overflow-hidden">
+          {/* Controls Section - Centered or left side */}
+          <div 
+            className={`absolute inset-0 flex items-center justify-center ${
+              hasEverPlayed ? '' : 'transition-all duration-1000 ease-in-out'
+            } ${
+              hasEverPlayed
+                ? 'lg:w-1/2 lg:justify-center' 
+                : 'w-full'
+            }`}
+            style={{
+              willChange: hasEverPlayed ? 'auto' : 'width',
+            }}
+          >
+            {controlsSection}
+          </div>
+          
+          {/* Lyrics Section - Slides in from right */}
+          <div 
+            className={`absolute inset-y-0 right-0 w-1/2 ${
+              hasEverPlayed ? '' : 'transition-all duration-1000'
+            } ${
+              hasEverPlayed
+                ? 'translate-x-0 opacity-100' 
+                : 'translate-x-full opacity-0 pointer-events-none'
+            }`}
+            style={{
+              willChange: hasEverPlayed ? 'auto' : 'transform, opacity',
+              transitionTimingFunction: hasEverPlayed ? 'auto' : 'cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+          >
+            {lyricsSection}
+          </div>
         </div>
       )}
     </div>

@@ -3,6 +3,16 @@ declare module "*?worker&url" {
   export default url;
 }
 
+// Vite ImportMeta interface
+interface ImportMeta {
+  readonly env: {
+    readonly DEV: boolean;
+    readonly PROD: boolean;
+    readonly MODE: string;
+    [key: string]: any;
+  };
+}
+
 // Tauri API types
 interface Window {
   __TAURI__?: {

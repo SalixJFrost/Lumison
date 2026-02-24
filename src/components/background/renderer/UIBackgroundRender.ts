@@ -37,7 +37,7 @@ export class UIBackgroundRender extends BaseBackgroundRender {
     this.rafId = window.requestAnimationFrame(this.tick);
   };
 
-  start() {
+  start(colors?: string[]) {
     if (this.running) {
       this.stop();
     }

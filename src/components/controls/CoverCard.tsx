@@ -2,7 +2,6 @@ import React, { useRef, useCallback, useEffect } from 'react';
 import { useSpring, animated } from '@react-spring/web';
 import SmartImage from '../SmartImage';
 import { useI18n } from '../../contexts/I18nContext';
-import { getDefaultCoverArt } from '../../services/coverArtService';
 import { MoreVerticalIcon } from '../Icons';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -29,8 +28,7 @@ const CoverCard: React.FC<CoverCardProps> = ({
   const { theme } = useTheme();
   const settingsContainerRef = useRef<HTMLDivElement>(null);
   
-  // Use default cover art when no cover URL is provided
-  const displayCover = coverUrl || getDefaultCoverArt();
+  const displayCover = coverUrl;
 
   // Close settings popup when clicking outside
   useEffect(() => {
@@ -50,18 +48,21 @@ const CoverCard: React.FC<CoverCardProps> = ({
 
   return (
     <div className="mb-6 w-full max-w-xl">
-      <div className="relative aspect-square w-64 md:w-72 lg:w-80 mx-auto rounded-3xl bg-gradient-to-br from-gray-800 to-gray-900 ring-1 ring-white/10 overflow-hidden shadow-lg">
-        <SmartImage
-          src={displayCover}
-          alt="Album Art"
-          containerClassName="absolute inset-0"
-          imgClassName="w-full h-full object-cover"
-          loading="eager"
-        />
+      {/* Only show cover when coverUrl exists */}
+      {displayCover && (
+        <div className="relative aspect-square w-64 md:w-72 lg:w-80 mx-auto rounded-3xl bg-gradient-to-br from-gray-800 to-gray-900 ring-1 ring-white/10 overflow-hidden shadow-lg">
+          <SmartImage
+            src={displayCover}
+            alt="Album Art"
+            containerClassName="absolute inset-0"
+            imgClassName="w-full h-full object-cover"
+            loading="eager"
+          />
 
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none"></div>
-      </div>
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none"></div>
+        </div>
+      )}
 
       {/* Song Info and Actions Row - Below Cover */}
       <div className="w-64 md:w-72 lg:w-80 mx-auto mt-4 flex items-center justify-between gap-3">

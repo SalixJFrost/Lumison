@@ -21,7 +21,7 @@ const fetchWithFallback = async (endpoint: string): Promise<any> => {
   for (const baseUrl of apis) {
     try {
       const url = endpoint.replace(NETEASECLOUD_API_BASE, baseUrl);
-      console.log(`Trying API: ${url}`);
+      // console.log(`Trying API: ${url}`);
       const result = await fetchViaProxy(url);
       return result;
     } catch (error) {

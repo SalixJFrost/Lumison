@@ -157,15 +157,23 @@ export default {
     failed: "歌词加载失败",
     importLyrics: "导入歌词文件",
     fontSize: "字体大小",
-    effects: "歌词效果",
-    gradient: "渐变",
-    glow: "发光",
-    shadow: "阴影",
     originalAndTranslation: "原文+译文",
     originalOnly: "仅原文",
     translation: "译",
     original: "原",
     playMusicToViewLyrics: "播放音乐以查看歌词",
+  },
+  
+  // 背景
+  background: {
+    label: "背景效果",
+    fluid: "流体",
+    shader1: "熔化",
+    shader2: "黑洞",
+    shader3: "波浪",
+    shader4: "光环",
+    shader5: "漩涡",
+    playMusicToChange: "播放音乐后才能切换背景效果",
   },
   
   // 可视化器

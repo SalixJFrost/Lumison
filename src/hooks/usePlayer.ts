@@ -321,19 +321,7 @@ export const usePlayer = ({
       return;
     }
 
-    console.log(`🎵 Lyrics matching check for: "${currentSong.title}" by "${currentSong.artist}"`);
-    console.log(`   - needsLyricsMatch: ${currentSong.needsLyricsMatch}`);
-    console.log(`   - existing lyrics: ${currentSong.lyrics?.length || 0} lines`);
-    console.log(`   - LRC file (lowest priority fallback): ${currentSong.localLyrics?.length || 0} lines`);
-    
-    if (currentSong.lyrics && currentSong.lyrics.length > 0) {
-      console.log(`   ✅ Using existing embedded lyrics (highest priority)`);
-    } else if (!currentSong.needsLyricsMatch) {
-      console.log(`   ⏭️ No lyrics needed for this song`);
-    } else {
-      console.log(`   🔍 Will search online (no embedded lyrics found)`);
-    }
-
+    // 静默检查歌词状态
     const songId = currentSong.id;
     const songTitle = currentSong.title;
     const songArtist = currentSong.artist;
@@ -358,7 +346,6 @@ export const usePlayer = ({
     };
 
     if (existingLyrics.length > 0) {
-      console.log("✅ Lyrics already exist, skipping search");
       markMatchSuccess();
       return;
     }
@@ -371,27 +358,22 @@ export const usePlayer = ({
 
     const fetchLyrics = async () => {
       setMatchStatus("matching");
-      console.log(`🎵 Starting lyrics search for: "${songTitle}" by "${songArtist}"`);
       try {
         if (isNeteaseSong && songNeteaseId) {
-          console.log(`📀 Fetching lyrics by Netease ID: ${songNeteaseId}`);
           const raw = await withTimeout(
             fetchLyricsById(songNeteaseId),
             MATCH_TIMEOUT_MS,
           );
           if (cancelled) return;
           if (raw) {
-            console.log("✅ Successfully fetched lyrics by ID");
             updateSongInQueue(songId, {
               lyrics: mergeLyricsWithMetadata(raw),
               needsLyricsMatch: false,
             });
             markMatchSuccess();
           } else {
-            console.warn("❌ Failed to fetch lyrics by ID");
             // 网易云歌曲失败，尝试使用LRC文件作为最后备用
             if (currentSong.localLyrics && currentSong.localLyrics.length > 0) {
-              console.log("📝 Using LRC file as last resort fallback");
               updateSongInQueue(songId, {
                 lyrics: currentSong.localLyrics,
                 needsLyricsMatch: false,
@@ -402,14 +384,12 @@ export const usePlayer = ({
             }
           }
         } else {
-          console.log(`🔍 Searching lyrics online for: "${songTitle}" - "${songArtist}"`);
           const result = await withTimeout(
             searchAndMatchLyrics(songTitle, songArtist),
             MATCH_TIMEOUT_MS,
           );
           if (cancelled) return;
           if (result) {
-            console.log("✅ Successfully found lyrics online");
             updateSongInQueue(songId, {
               lyrics: mergeLyricsWithMetadata(result),
               needsLyricsMatch: false,
@@ -465,7 +445,7 @@ export const usePlayer = ({
 
     // 延迟 2 秒后开始预加载，避免影响当前歌曲的播放
     const preloadTimer = setTimeout(async () => {
-      console.log(`🔮 Preloading lyrics for next song: "${nextSong.title}"`);
+      // console.log(`🔮 Preloading lyrics for next song: "${nextSong.title}"`);
       
       try {
         if (nextSong.isNetease && nextSong.neteaseId) {
@@ -474,7 +454,7 @@ export const usePlayer = ({
             MATCH_TIMEOUT_MS,
           );
           if (raw) {
-            console.log(`✅ Preloaded lyrics for: "${nextSong.title}"`);
+            // console.log(`✅ Preloaded lyrics for: "${nextSong.title}"`);
             updateSongInQueue(nextSong.id, {
               lyrics: mergeLyricsWithMetadata(raw),
               needsLyricsMatch: false,
@@ -486,7 +466,7 @@ export const usePlayer = ({
             MATCH_TIMEOUT_MS,
           );
           if (result) {
-            console.log(`✅ Preloaded lyrics for: "${nextSong.title}"`);
+            // console.log(`✅ Preloaded lyrics for: "${nextSong.title}"`);
             updateSongInQueue(nextSong.id, {
               lyrics: mergeLyricsWithMetadata(result),
               needsLyricsMatch: false,
@@ -591,22 +571,26 @@ export const usePlayer = ({
   }, [audioRef]);
 
   useEffect(() => {
-    if (
-      !currentSong ||
-      !currentSong.isNetease ||
-      !currentSong.coverUrl ||
-      (currentSong.colors && currentSong.colors.length > 0)
-    ) {
+    if (!currentSong || !currentSong.coverUrl) {
       return;
     }
 
-    extractColors(currentSong.coverUrl)
-      .then((colors) => {
-        if (colors.length > 0) {
-          updateSongInQueue(currentSong.id, { colors });
-        }
-      })
-      .catch((err) => console.warn("Color extraction failed", err));
+    // 强制重新提取颜色以应用新的3色方案
+    // 检查是否已经是3色方案（新方案）
+    const hasOldColorScheme = currentSong.colors && currentSong.colors.length !== 3;
+    const needsExtraction = !currentSong.colors || hasOldColorScheme;
+
+    if (needsExtraction) {
+      console.log('[Color Extraction] Extracting colors for:', currentSong.title);
+      extractColors(currentSong.coverUrl)
+        .then((colors) => {
+          console.log('[Color Extraction] Extracted colors:', colors);
+          if (colors.length > 0) {
+            updateSongInQueue(currentSong.id, { colors });
+          }
+        })
+        .catch((err) => console.warn("Color extraction failed", err));
+    }
   }, [currentSong, updateSongInQueue]);
 
   useEffect(() => {

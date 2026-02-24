@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import { InfoIcon, FullscreenIcon, SettingsIcon, ThemeIcon, MinimizeIcon, MaximizeIcon, RestoreIcon, CloseIcon, LabIcon } from "./Icons";
 import AboutDialog from "./AboutDialog";
@@ -12,15 +13,7 @@ interface TopBarProps {
   lyricsFontSize: number;
   onLyricsFontSizeChange: (size: number) => void;
   onImportUrl: (url: string) => Promise<boolean>;
-  lyricsBlur: boolean;
-  onLyricsBlurChange: (enabled: boolean) => void;
-  lyricsGlow: boolean;
-  onLyricsGlowChange: (enabled: boolean) => void;
-  lyricsShadow: boolean;
-  onLyricsShadowChange: (enabled: boolean) => void;
   onSearchClick?: () => void;
-  visualizerEnabled: boolean;
-  onVisualizerToggle: (enabled: boolean) => void;
   gaplessEnabled: boolean;
   onGaplessToggle: (enabled: boolean) => void;
   viewMode?: 'default' | 'lyrics';
@@ -30,6 +23,9 @@ interface TopBarProps {
     artist: string;
     coverUrl?: string;
   } | null;
+  backgroundType: 'fluid' | 'shader1' | 'shader2' | 'shader3' | 'shader4' | 'shader5';
+  onBackgroundTypeChange: (type: 'fluid' | 'shader1' | 'shader2' | 'shader3' | 'shader4' | 'shader5') => void;
+  isPlaying: boolean;
 }
 
 // 常量提取到组件外部
@@ -45,20 +41,15 @@ const TopBar: React.FC<TopBarProps> = ({
   lyricsFontSize,
   onLyricsFontSizeChange,
   onImportUrl,
-  lyricsBlur,
-  onLyricsBlurChange,
-  lyricsGlow,
-  onLyricsGlowChange,
-  lyricsShadow,
-  onLyricsShadowChange,
   onSearchClick,
-  visualizerEnabled,
-  onVisualizerToggle,
   gaplessEnabled,
   onGaplessToggle,
   viewMode = 'default',
   onViewModeChange,
   currentSong,
+  backgroundType,
+  onBackgroundTypeChange,
+  isPlaying,
 }) => {
   const { theme, toggleTheme } = useTheme();
   const { t } = useI18n();
@@ -73,6 +64,8 @@ const TopBar: React.FC<TopBarProps> = ({
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settingsContainerRef = useRef<HTMLDivElement>(null);
   const labContainerRef = useRef<HTMLDivElement>(null);
+  const [showBackgroundToast, setShowBackgroundToast] = useState(false);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 使用 useCallback 优化函数
   const toggleFullscreen = useCallback(() => {
@@ -281,8 +274,33 @@ const TopBar: React.FC<TopBarProps> = ({
       if (hideTimeoutRef.current) {
         clearTimeout(hideTimeoutRef.current);
       }
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
     };
   }, []);
+
+  // Handle background change with playing check
+  const handleBackgroundChange = useCallback((type: 'fluid' | 'shader1' | 'shader2' | 'shader3' | 'shader4' | 'shader5') => {
+    if (!isPlaying) {
+      // Show toast notification
+      setShowBackgroundToast(true);
+      
+      // Clear existing timer
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+      
+      // Hide after 2 seconds
+      toastTimerRef.current = setTimeout(() => {
+        setShowBackgroundToast(false);
+      }, 2000);
+      
+      return;
+    }
+    
+    onBackgroundTypeChange(type);
+  }, [isPlaying, onBackgroundTypeChange]);
 
   // Close settings popup when clicking outside
   useEffect(() => {
@@ -332,21 +350,6 @@ const TopBar: React.FC<TopBarProps> = ({
       hoverSupport: "", // 移除 group-hover，完全依赖定时器控制
     };
   }, [isTopBarActive, isFullscreen, viewMode]);
-
-  // 歌词效果按钮配置 - 移除无效果，添加新效果
-  const lyricsEffects = useMemo(() => [
-    { key: 'gradient', active: lyricsBlur, onChange: onLyricsBlurChange, label: t("lyrics.gradient") || "渐变" },
-    { key: 'glow', active: lyricsGlow, onChange: onLyricsGlowChange, label: t("lyrics.glow") },
-    { key: 'shadow', active: lyricsShadow, onChange: onLyricsShadowChange, label: t("lyrics.shadow") },
-  ], [lyricsBlur, lyricsGlow, lyricsShadow, onLyricsBlurChange, onLyricsGlowChange, onLyricsShadowChange, t]);
-  
-  // 可视化器切换按钮
-  const visualizerToggle = useMemo(() => ({
-    key: 'visualizer',
-    active: visualizerEnabled,
-    onChange: onVisualizerToggle,
-    label: t("visualizer.toggle") || "可视化器",
-  }), [visualizerEnabled, onVisualizerToggle, t]);
 
   return (
     <div
@@ -533,51 +536,95 @@ const TopBar: React.FC<TopBarProps> = ({
                     {t("topBar.lab")}
                   </h3>
                   
-                  {/* Lyrics Effects */}
+                  {/* Background Selector */}
                   <div className="space-y-2">
-                    <label className="text-white/70 text-xs">{t("lyrics.effects")}</label>
-                    <div className="flex gap-2">
-                      {lyricsEffects.map(({ key, active, onChange, label }) => (
-                        <button
-                          key={key}
-                          onClick={() => onChange(!active)}
-                          className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 ease-out hover:scale-105 active:scale-95 ${
-                            active
-                              ? 'bg-white/20 text-white border border-white/20 shadow-lg'
-                              : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
-                          }`}
-                          aria-pressed={active}
-                        >
-                          {label}
-                        </button>
-                      ))}
+                    <label className="text-white/70 text-xs">{t("background.label") || "背景效果"}</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => handleBackgroundChange('fluid')}
+                        disabled={!isPlaying}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 ease-out ${
+                          isPlaying ? 'hover:scale-105 active:scale-95' : 'opacity-50 cursor-not-allowed'
+                        } ${
+                          backgroundType === 'fluid'
+                            ? 'bg-white/20 text-white border border-white/20 shadow-lg'
+                            : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
+                        }`}
+                        aria-pressed={backgroundType === 'fluid'}
+                      >
+                        {t("background.fluid") || "流体"}
+                      </button>
+                      <button
+                        onClick={() => handleBackgroundChange('shader1')}
+                        disabled={!isPlaying}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 ease-out ${
+                          isPlaying ? 'hover:scale-105 active:scale-95' : 'opacity-50 cursor-not-allowed'
+                        } ${
+                          backgroundType === 'shader1'
+                            ? 'bg-white/20 text-white border border-white/20 shadow-lg'
+                            : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
+                        }`}
+                        aria-pressed={backgroundType === 'shader1'}
+                      >
+                        {t("background.shader1") || "熔化"}
+                      </button>
+                      <button
+                        onClick={() => handleBackgroundChange('shader2')}
+                        disabled={!isPlaying}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 ease-out ${
+                          isPlaying ? 'hover:scale-105 active:scale-95' : 'opacity-50 cursor-not-allowed'
+                        } ${
+                          backgroundType === 'shader2'
+                            ? 'bg-white/20 text-white border border-white/20 shadow-lg'
+                            : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
+                        }`}
+                        aria-pressed={backgroundType === 'shader2'}
+                      >
+                        {t("background.shader2") || "黑洞"}
+                      </button>
+                      <button
+                        onClick={() => handleBackgroundChange('shader3')}
+                        disabled={!isPlaying}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 ease-out ${
+                          isPlaying ? 'hover:scale-105 active:scale-95' : 'opacity-50 cursor-not-allowed'
+                        } ${
+                          backgroundType === 'shader3'
+                            ? 'bg-white/20 text-white border border-white/20 shadow-lg'
+                            : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
+                        }`}
+                        aria-pressed={backgroundType === 'shader3'}
+                      >
+                        {t("background.shader3") || "波浪"}
+                      </button>
+                      <button
+                        onClick={() => handleBackgroundChange('shader4')}
+                        disabled={!isPlaying}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 ease-out ${
+                          isPlaying ? 'hover:scale-105 active:scale-95' : 'opacity-50 cursor-not-allowed'
+                        } ${
+                          backgroundType === 'shader4'
+                            ? 'bg-white/20 text-white border border-white/20 shadow-lg'
+                            : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
+                        }`}
+                        aria-pressed={backgroundType === 'shader4'}
+                      >
+                        {t("background.shader4") || "光环"}
+                      </button>
+                      <button
+                        onClick={() => handleBackgroundChange('shader5')}
+                        disabled={!isPlaying}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 ease-out ${
+                          isPlaying ? 'hover:scale-105 active:scale-95' : 'opacity-50 cursor-not-allowed'
+                        } ${
+                          backgroundType === 'shader5'
+                            ? 'bg-white/20 text-white border border-white/20 shadow-lg'
+                            : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
+                        }`}
+                        aria-pressed={backgroundType === 'shader5'}
+                      >
+                        {t("background.shader5") || "漩涡"}
+                      </button>
                     </div>
-                  </div>
-
-                  {/* Visualizer Toggle */}
-                  <div className="space-y-2">
-                    <label className="text-white/70 text-xs">{t("visualizer.label") || "音频可视化"}</label>
-                    <button
-                      onClick={() => visualizerToggle.onChange(!visualizerToggle.active)}
-                      className={`w-full px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] ${
-                        visualizerToggle.active
-                          ? 'bg-white/20 text-white border border-white/20 shadow-lg'
-                          : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
-                      }`}
-                      aria-pressed={visualizerToggle.active}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span>{visualizerToggle.label}</span>
-                        <span className="text-xs opacity-60">
-                          {visualizerToggle.active ? '✓' : '○'}
-                        </span>
-                      </div>
-                      {!visualizerToggle.active && (
-                        <div className="text-xs opacity-50 mt-1 text-left">
-                          {t("visualizer.memoryHint") || "关闭可节省 5-10MB 内存"}
-                        </div>
-                      )}
-                    </button>
                   </div>
 
                   {/* Audio Transitions */}
@@ -664,6 +711,17 @@ const TopBar: React.FC<TopBarProps> = ({
         onClose={() => setIsImportDialogOpen(false)}
         onImport={onImportUrl}
       />
+
+      {/* Background Change Toast */}
+      {showBackgroundToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[70] animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="px-6 py-3 rounded-full bg-black/60 backdrop-blur-2xl border border-white/20 shadow-2xl">
+            <p className="text-white/90 text-sm font-medium">
+              {t("background.playMusicToChange") || "播放音乐后才能切换背景效果"}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
