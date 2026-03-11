@@ -492,8 +492,8 @@ const Controls: React.FC<ControlsProps> = ({
           <button
             onClick={onPlayPause}
             className={`w-16 h-16 flex items-center justify-center rounded-full hover:scale-105 active:scale-95 transition-all duration-150 ease-out hw-accelerate ${theme === 'light'
-                ? 'text-black hover:bg-white/5 active:bg-white/10'
-                : 'text-white hover:bg-white/5 active:bg-white/10'
+              ? 'text-black hover:bg-white/5 active:bg-white/10'
+              : 'text-white hover:bg-white/5 active:bg-white/10'
               }`}
             style={{
               willChange: 'transform, background-color',
@@ -715,8 +715,8 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
                   setShowPresets(false);
                 }}
                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap ${Math.abs(speed - preset) < 0.01
-                    ? "bg-white text-black"
-                    : "bg-white/10 text-white hover:bg-white/20"
+                  ? "bg-white text-black"
+                  : "bg-white/10 text-white hover:bg-white/20"
                   }`}
               >
                 {preset}x
@@ -725,6 +725,6 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </animated.div>
   );
 };
