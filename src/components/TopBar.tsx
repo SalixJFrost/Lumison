@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
-import { InfoIcon, FullscreenIcon, SettingsIcon, ThemeIcon, MinimizeIcon, MaximizeIcon, RestoreIcon, CloseIcon, LabIcon } from "./Icons";
+import { InfoIcon, FullscreenIcon, SettingsIcon, ThemeIcon, MinimizeIcon, MaximizeIcon, RestoreIcon, CloseIcon } from "./Icons";
 import AboutDialog from "./AboutDialog";
 import ImportMusicDialog from "./ImportMusicDialog";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -14,8 +14,6 @@ interface TopBarProps {
   onLyricsFontSizeChange: (size: number) => void;
   onImportUrl: (url: string) => Promise<boolean>;
   onSearchClick?: () => void;
-  gaplessEnabled: boolean;
-  onGaplessToggle: (enabled: boolean) => void;
   viewMode?: 'default' | 'lyrics';
   onViewModeChange?: (mode: 'default' | 'lyrics') => void;
   currentSong?: {
@@ -23,8 +21,8 @@ interface TopBarProps {
     artist: string;
     coverUrl?: string;
   } | null;
-  backgroundType: 'fluid' | 'shader1' | 'shader5';
-  onBackgroundTypeChange: (type: 'fluid' | 'shader1' | 'shader5') => void;
+  backgroundType: 'fluid' | 'shader1';
+  onBackgroundTypeChange: (type: 'fluid' | 'shader1') => void;
   isPlaying: boolean;
 }
 
@@ -42,8 +40,6 @@ const TopBar: React.FC<TopBarProps> = ({
   onLyricsFontSizeChange,
   onImportUrl,
   onSearchClick,
-  gaplessEnabled,
-  onGaplessToggle,
   viewMode = 'default',
   onViewModeChange,
   currentSong,
@@ -51,11 +47,10 @@ const TopBar: React.FC<TopBarProps> = ({
   onBackgroundTypeChange,
   isPlaying,
 }) => {
-  const { theme, toggleTheme } = useTheme();
+  const { toggleTheme } = useTheme();
   const { t } = useI18n();
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isLabOpen, setIsLabOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
@@ -63,7 +58,6 @@ const TopBar: React.FC<TopBarProps> = ({
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settingsContainerRef = useRef<HTMLDivElement>(null);
-  const labContainerRef = useRef<HTMLDivElement>(null);
   const [showBackgroundToast, setShowBackgroundToast] = useState(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -281,7 +275,7 @@ const TopBar: React.FC<TopBarProps> = ({
   }, []);
 
   // Handle background change with playing check
-  const handleBackgroundChange = useCallback((type: 'fluid' | 'shader1' | 'shader2' | 'shader3' | 'shader4' | 'shader5') => {
+  const handleBackgroundChange = useCallback((type: 'fluid' | 'shader1') => {
     if (!isPlaying) {
       // Show toast notification
       setShowBackgroundToast(true);
@@ -469,58 +463,7 @@ const TopBar: React.FC<TopBarProps> = ({
                   {/* Language Switcher */}
                   <LanguageSwitcher variant="settings" />
 
-                  {/* Check Update Button */}
-                  <button
-                    onClick={handleCheckUpdate}
-                    disabled={isCheckingUpdate}
-                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <span className="text-sm">{t("topBar.checkUpdate") || "检查更新"}</span>
-                    {isCheckingUpdate ? (
-                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    )}
-                  </button>
-
-                  {/* About Button */}
-                  <button
-                    onClick={handleAboutClick}
-                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <span className="text-sm">{t("topBar.about")}</span>
-                    <InfoIcon className="w-4 h-4 transition-transform duration-300" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Lab Button */}
-          <div className="relative" ref={labContainerRef} onPointerDown={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setIsLabOpen(!isLabOpen)}
-              className={`w-10 h-10 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center transition-all duration-300 ease-out shadow-sm hover:scale-110 active:scale-95 ${isLabOpen ? "text-white bg-white/20 scale-110" : "text-white/80 hover:bg-white/20 hover:text-white"
-                }`}
-              title={t("topBar.lab")}
-              aria-label={t("topBar.lab")}
-            >
-              <LabIcon className={`w-5 h-5 transition-transform duration-500 ease-out ${isLabOpen ? 'rotate-12' : ''}`} />
-            </button>
-
-            {/* Lab Popup */}
-            {isLabOpen && (
-              <div className="absolute top-full right-0 mt-3 w-72 rounded-2xl bg-black/40 backdrop-blur-2xl saturate-150 border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="p-4 space-y-6">
-                  <h3 className="text-white font-semibold mb-4 text-sm flex items-center gap-2">
-                    <LabIcon className="w-4 h-4" />
-                    {t("topBar.lab")}
-                  </h3>
+                  <div className="h-px bg-white/10 my-1" />
 
                   {/* Background Selector */}
                   <div className="space-y-2">
@@ -550,43 +493,38 @@ const TopBar: React.FC<TopBarProps> = ({
                       >
                         {t("background.shader1") || "熔化"}
                       </button>
-                      <button
-                        onClick={() => handleBackgroundChange('shader5')}
-                        disabled={!isPlaying}
-                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 ease-out ${isPlaying ? 'hover:scale-105 active:scale-95' : 'opacity-50 cursor-not-allowed'
-                          } ${backgroundType === 'shader5'
-                            ? 'bg-white/20 text-white border border-white/20 shadow-lg'
-                            : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
-                          }`}
-                        aria-pressed={backgroundType === 'shader5'}
-                      >
-                        {t("background.shader5") || "漩涡"}
-                      </button>
                     </div>
                   </div>
 
-                  {/* Audio Transitions */}
-                  <div className="space-y-2">
-                    <label className="text-white/70 text-xs">{t("audioTransition.label") || "音频过渡"}</label>
-                    <div className="space-y-2">
-                      {/* Gapless Playback */}
-                      <button
-                        onClick={() => onGaplessToggle(!gaplessEnabled)}
-                        className={`w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] ${gaplessEnabled
-                          ? 'bg-white/20 text-white border border-white/20 shadow-lg'
-                          : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white'
-                          }`}
-                        aria-pressed={gaplessEnabled}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span>{t("audioTransition.gapless") || "无缝切换"}</span>
-                          <span className="text-xs opacity-60">
-                            {gaplessEnabled ? '✓' : '○'}
-                          </span>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
+                  <div className="h-px bg-white/10 my-1" />
+
+                  {/* Check Update Button */}
+                  <button
+                    onClick={handleCheckUpdate}
+                    disabled={isCheckingUpdate}
+                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="text-sm">{t("topBar.checkUpdate") || "检查更新"}</span>
+                    {isCheckingUpdate ? (
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    )}
+                  </button>
+
+                  {/* About Button */}
+                  <button
+                    onClick={handleAboutClick}
+                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all duration-300 ease-out hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <span className="text-sm">{t("topBar.about")}</span>
+                    <InfoIcon className="w-4 h-4 transition-transform duration-300" />
+                  </button>
                 </div>
               </div>
             )}

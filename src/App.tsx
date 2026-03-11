@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useToast } from "./hooks/useToast";
 import ShaderBackground from "./components/ShaderBackground";
-import ShaderBackground5 from "./components/ShaderBackground5";
 import FluidBackground from "./components/FluidBackground";
 import Controls from "./components/Controls";
 import LyricsView from "./components/LyricsView";
@@ -133,14 +132,7 @@ const App: React.FC = () => {
   const [lyricsFontSize, setLyricsFontSize] = useState(46);
 
   // Background type state
-  const [backgroundType, setBackgroundType] = useState<'fluid' | 'shader1' | 'shader5'>('shader5');
-
-  // Gapless playback - experimental feature
-  const [gaplessEnabled, setGaplessEnabled] = useState(false);
-
-  // Update notification state
-  const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [updateVersion, setUpdateVersion] = useState('');
+  const [backgroundType, setBackgroundType] = useState<'fluid' | 'shader1'>('fluid');
 
   // View mode state - 'default' or 'lyrics'
   const [viewMode, setViewMode] = useState<'default' | 'lyrics'>('default');
@@ -532,12 +524,6 @@ const App: React.FC = () => {
           colors={currentSong?.colors || []}
         />
       )}
-      {backgroundType === 'shader5' && (
-        <ShaderBackground5
-          isPlaying={playState === PlayState.PLAYING}
-          colors={currentSong?.colors || []}
-        />
-      )}
 
       <audio
         ref={audioRef}
@@ -597,8 +583,6 @@ const App: React.FC = () => {
           onLyricsFontSizeChange={setLyricsFontSize}
           onImportUrl={handleImportUrl}
           onSearchClick={() => setShowSearch(true)}
-          gaplessEnabled={gaplessEnabled}
-          onGaplessToggle={setGaplessEnabled}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           currentSong={currentSong ? {

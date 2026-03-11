@@ -88,26 +88,26 @@ const Controls: React.FC<ControlsProps> = ({
   const { theme } = useTheme();
   const { t } = useI18n();
   const settingsContainerRef = useRef<HTMLDivElement>(null);
-  
+
   // Spatial Audio Engine
   const spatialEngineRef = useRef<SpatialAudioEngine | null>(null);
   const [spatialAudioEnabled, setSpatialAudioEnabled] = useState(false);
   const isInitializingRef = useRef(false); // 防止重复初始化的标记
-  
+
   // Initialize Spatial Audio Engine
   useEffect(() => {
     console.log('[Controls] Spatial audio init effect - audioRef:', !!audioRef.current);
-    
+
     if (!audioRef.current) return;
-    
+
     // Prevent double initialization in React Strict Mode
     if (spatialEngineRef.current || isInitializingRef.current) {
       console.log('[Controls] Skipping spatial audio initialization - already initialized');
       return;
     }
-    
+
     isInitializingRef.current = true;
-    
+
     try {
       console.log('[Controls] Creating SpatialAudioEngine...');
       const engine = new SpatialAudioEngine();
@@ -116,7 +116,7 @@ const Controls: React.FC<ControlsProps> = ({
       engine.setEnabled(false); // Start with spatial audio disabled
       spatialEngineRef.current = engine;
       console.log('[Controls] ✓ Spatial audio engine initialized');
-      
+
       // Resume audio context on user interaction
       const resumeContext = () => {
         console.log('[Controls] Resuming audio context');
@@ -127,14 +127,14 @@ const Controls: React.FC<ControlsProps> = ({
       console.error('[Controls] Failed to initialize spatial audio:', error);
       isInitializingRef.current = false;
     }
-    
+
     return () => {
       // Don't destroy on unmount in Strict Mode - just disconnect
       // The engine will be reused on remount
       console.log('[Controls] Spatial audio cleanup (keeping engine for remount)');
     };
   }, [audioRef]);
-  
+
   // Toggle Spatial Audio
   const handleToggleSpatialAudio = () => {
     if (!spatialEngineRef.current) return;
@@ -317,9 +317,8 @@ const Controls: React.FC<ControlsProps> = ({
         return (
           <div className="relative">
             <LoopOneIcon className={iconClass} />
-            <span className={`absolute -top-1 -right-1 text-[8px] font-bold rounded-[2px] px-0.5 leading-none ${
-              theme === 'light' ? 'bg-black text-white' : 'bg-white text-black'
-            }`}>
+            <span className={`absolute -top-1 -right-1 text-[8px] font-bold rounded-[2px] px-0.5 leading-none ${theme === 'light' ? 'bg-black text-white' : 'bg-white text-black'
+              }`}>
               1
             </span>
           </div>
@@ -358,9 +357,9 @@ const Controls: React.FC<ControlsProps> = ({
 
   return (
     <div className="w-full flex flex-col items-center justify-center gap-1 theme-text-primary select-none relative">
-      
+
       {/* Cover Section with 3D Effect */}
-      <CoverCard 
+      <CoverCard
         coverUrl={coverUrl}
         isPlaying={isPlaying}
         showSettingsPopup={showSettingsPopup}
@@ -381,7 +380,7 @@ const Controls: React.FC<ControlsProps> = ({
       />
 
       {/* Spectrum Visualizer - Moved to bottom */}
-      
+
       {/* Progress Bar */}
       <div className="w-full max-w-xl flex items-center gap-3 text-sm font-medium theme-text-secondary group/bar relative">
         <span className="w-12 text-right font-mono tracking-wide">
@@ -492,11 +491,10 @@ const Controls: React.FC<ControlsProps> = ({
           {/* 3. Play/Pause (Center) - Optimized Animation */}
           <button
             onClick={onPlayPause}
-            className={`w-16 h-16 flex items-center justify-center rounded-full hover:scale-105 active:scale-95 transition-all duration-150 ease-out hw-accelerate ${
-              theme === 'light' 
-                ? 'text-black hover:bg-white/5 active:bg-white/10' 
+            className={`w-16 h-16 flex items-center justify-center rounded-full hover:scale-105 active:scale-95 transition-all duration-150 ease-out hw-accelerate ${theme === 'light'
+                ? 'text-black hover:bg-white/5 active:bg-white/10'
                 : 'text-white hover:bg-white/5 active:bg-white/10'
-            }`}
+              }`}
             style={{
               willChange: 'transform, background-color',
             }}
@@ -547,9 +545,8 @@ const Controls: React.FC<ControlsProps> = ({
           {/* 5. Playlist/Queue */}
           <button
             onClick={onTogglePlaylist}
-            className={`p-2 rounded-full transition-all duration-150 ease-out active:scale-90 hover:bg-white/10 active:bg-white/20 ${
-              theme === 'light' ? 'text-black/60 hover:text-black' : 'text-white/60 hover:text-white'
-            }`}
+            className={`p-2 rounded-full transition-all duration-150 ease-out active:scale-90 hover:bg-white/10 active:bg-white/20 ${theme === 'light' ? 'text-black/60 hover:text-black' : 'text-white/60 hover:text-white'
+              }`}
             style={{
               willChange: 'transform, background-color',
             }}
@@ -566,9 +563,8 @@ const Controls: React.FC<ControlsProps> = ({
           {/* Volume Icon */}
           <button
             onClick={() => onVolumeChange(volume === 0 ? 0.5 : 0)}
-            className={`p-2 rounded-full transition-all duration-150 ease-out active:scale-90 hover:bg-white/10 active:bg-white/20 ${
-              theme === 'light' ? 'text-black/60 hover:text-black' : 'text-white/60 hover:text-white'
-            }`}
+            className={`p-2 rounded-full transition-all duration-150 ease-out active:scale-90 hover:bg-white/10 active:bg-white/20 ${theme === 'light' ? 'text-black/60 hover:text-black' : 'text-white/60 hover:text-white'
+              }`}
             title={t("player.volume")}
           >
             {getVolumeButtonIcon()}
@@ -707,7 +703,7 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
             {speed === 1 ? '1x' : `${speed.toFixed(2)}x`}
           </span>
         </button>
-        
+
         {/* Speed Presets Popup */}
         {showPresets && (
           <div className="absolute bottom-full mb-2 left-0 p-2 rounded-2xl bg-black/10 backdrop-blur-optimized saturate-150 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/5 flex flex-col gap-1 hw-accelerate">
@@ -718,11 +714,10 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
                   onSpeedChange(preset);
                   setShowPresets(false);
                 }}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap ${
-                  Math.abs(speed - preset) < 0.01
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap ${Math.abs(speed - preset) < 0.01
                     ? "bg-white text-black"
                     : "bg-white/10 text-white hover:bg-white/20"
-                }`}
+                  }`}
               >
                 {preset}x
               </button>
