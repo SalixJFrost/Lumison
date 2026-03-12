@@ -130,6 +130,7 @@ export default {
     placeholder: "Search songs, artists, or albums...",
     noResults: "No results found",
     searching: "Searching...",
+    online: "Online Search",
     netease: "Netease Music",
     youtube: "YouTube Music",
     archive: "Internet Archive",
@@ -163,7 +164,7 @@ export default {
     original: "Orig",
     playMusicToViewLyrics: "Play music to view lyrics",
   },
-  
+
   // Background
   background: {
     label: "Background Effects",
@@ -175,7 +176,7 @@ export default {
     shader5: "Swirl",
     playMusicToChange: "Play music to change background effects",
   },
-  
+
   // Visualizer
   visualizer: {
     label: "Audio Visualizer",

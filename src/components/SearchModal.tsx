@@ -373,7 +373,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
         {/* Header Area */}
         <div className="flex flex-col px-5 pt-5 pb-3 gap-4 border-b border-white/10 shrink-0 bg-white/5 z-10">
           {/* Animated Tabs */}
-          <div className="relative flex items-center justify-center p-1 rounded-lg self-center w-full max-w-sm mb-1 bg-black/20 backdrop-blur-md shadow-inner">
+          <div className="relative flex items-center justify-center p-1 rounded-lg self-center w-full max-w-md mb-1 bg-black/20 backdrop-blur-md shadow-inner">
             {/* Gliding Pill */}
             <div
               className="absolute top-1 bottom-1 rounded-[6px] bg-white/15 shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
@@ -388,7 +388,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
                 search.setActiveTab("queue");
               }}
               className={`
-                        relative flex-1 py-1.5 text-[13px] font-medium transition-colors duration-200 z-10
+                        relative min-w-0 flex-1 py-1.5 px-1 text-xs sm:text-[13px] font-medium truncate transition-colors duration-200 z-10
                         ${search.activeTab === "queue" ? "text-white" : "text-white/50 hover:text-white/70"}
                     `}
             >
@@ -399,11 +399,11 @@ const SearchModal: React.FC<SearchModalProps> = ({
                 search.setActiveTab("online");
               }}
               className={`
-                        relative flex-1 py-1.5 text-[13px] font-medium transition-colors duration-200 z-10
+                        relative min-w-0 flex-1 py-1.5 px-1 text-xs sm:text-[13px] font-medium truncate transition-colors duration-200 z-10
                         ${search.activeTab === "online" ? "text-white" : "text-white/50 hover:text-white/70"}
                     `}
             >
-              {t("search.online") || "在线搜索"}
+              {t("search.online")}
             </button>
           </div>
 
@@ -442,24 +442,24 @@ const SearchModal: React.FC<SearchModalProps> = ({
 
             {/* Provider Toggle (Only shown for Online tab) */}
             <div className={`flex items-center justify-center transition-all duration-300 overflow-hidden ${search.activeTab === "online" ? "h-9 opacity-100 mb-1" : "h-0 opacity-0"}`}>
-              <div className="inline-flex p-1 rounded-full bg-black/20 backdrop-blur-md border border-white/5 shadow-inner">
+              <div className="inline-flex max-w-full overflow-x-auto p-1 rounded-full bg-black/20 backdrop-blur-md border border-white/5 shadow-inner">
                 <button
                   onClick={() => search.setOnlineSource("netease")}
-                  className={`px-4 py-1 rounded-full text-xs font-medium transition-all duration-200 ${search.onlineSource === "netease"
+                  className={`px-3 sm:px-4 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 ${search.onlineSource === "netease"
                     ? "bg-white/15 text-white shadow-sm"
                     : "text-white/40 hover:text-white/60"
                     }`}
                 >
-                  {t("search.netease") || "网易云音乐"}
+                  {t("search.netease")}
                 </button>
                 <button
                   onClick={() => search.setOnlineSource("archive")}
-                  className={`px-4 py-1 rounded-full text-xs font-medium transition-all duration-200 ${search.onlineSource === "archive"
+                  className={`px-3 sm:px-4 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 ${search.onlineSource === "archive"
                     ? "bg-white/15 text-white shadow-sm"
                     : "text-white/40 hover:text-white/60"
                     }`}
                 >
-                  {t("search.archive") || "Internet Archive"}
+                  {t("search.archive")}
                 </button>
               </div>
             </div>

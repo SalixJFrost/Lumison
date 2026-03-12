@@ -92,7 +92,12 @@ export const usePlayer = ({
     if (!audioRef.current) return;
     audioRef.current
       .play()
-      .catch((err) => console.error(errorPrefix, err));
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+        console.error(errorPrefix, err);
+      });
   }, []);
 
   const switchToIndexAndPlay = useCallback(

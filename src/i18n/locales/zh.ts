@@ -130,6 +130,7 @@ export default {
     placeholder: "搜索歌曲、艺术家或专辑...",
     noResults: "未找到结果",
     searching: "搜索中...",
+    online: "在线搜索",
     netease: "网易云音乐",
     youtube: "YouTube Music",
     archive: "Internet Archive",
@@ -163,7 +164,7 @@ export default {
     original: "原",
     playMusicToViewLyrics: "播放音乐以查看歌词",
   },
-  
+
   // 背景
   background: {
     label: "背景效果",
@@ -175,7 +176,7 @@ export default {
     shader5: "漩涡",
     playMusicToChange: "播放音乐后才能切换背景效果",
   },
-  
+
   // 可视化器
   visualizer: {
     label: "音频可视化",

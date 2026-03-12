@@ -28,6 +28,9 @@ import { PlayMode } from "../types";
 import { useTheme } from "../contexts/ThemeContext";
 import { useI18n } from "../contexts/I18nContext";
 
+// Cache one spatial engine per audio element to avoid duplicate MediaElementSource creation.
+const spatialEngineCache = new WeakMap<HTMLAudioElement, SpatialAudioEngine>();
+
 interface ControlsProps {
   isPlaying: boolean;
   onPlayPause: () => void;
@@ -92,13 +95,14 @@ const Controls: React.FC<ControlsProps> = ({
   // Spatial Audio Engine
   const spatialEngineRef = useRef<SpatialAudioEngine | null>(null);
   const [spatialAudioEnabled, setSpatialAudioEnabled] = useState(false);
-  const isInitializingRef = useRef(false); // 防止重复初始化的标记
+  const isInitializingRef = useRef(false); // Guard against duplicate init.
 
   // Initialize Spatial Audio Engine
   useEffect(() => {
     console.log('[Controls] Spatial audio init effect - audioRef:', !!audioRef.current);
 
-    if (!audioRef.current) return;
+    const audioElement = audioRef.current;
+    if (!audioElement) return;
 
     // Prevent double initialization in React Strict Mode
     if (spatialEngineRef.current || isInitializingRef.current) {
@@ -108,17 +112,29 @@ const Controls: React.FC<ControlsProps> = ({
 
     isInitializingRef.current = true;
 
+    const cachedEngine = spatialEngineCache.get(audioElement);
+    if (cachedEngine) {
+      console.log('[Controls] Reusing cached SpatialAudioEngine for this audio element');
+      spatialEngineRef.current = cachedEngine;
+      cachedEngine.setEnabled(spatialAudioEnabled);
+      isInitializingRef.current = false;
+      return;
+    }
+
+    let resumeContext: (() => void) | null = null;
+
     try {
       console.log('[Controls] Creating SpatialAudioEngine...');
       const engine = new SpatialAudioEngine();
-      engine.attachToAudioElement(audioRef.current);
+      engine.attachToAudioElement(audioElement);
       engine.applyPreset('music');
       engine.setEnabled(false); // Start with spatial audio disabled
       spatialEngineRef.current = engine;
+      spatialEngineCache.set(audioElement, engine);
       console.log('[Controls] ✓ Spatial audio engine initialized');
 
       // Resume audio context on user interaction
-      const resumeContext = () => {
+      resumeContext = () => {
         console.log('[Controls] Resuming audio context');
         engine.resume();
       };
@@ -131,9 +147,13 @@ const Controls: React.FC<ControlsProps> = ({
     return () => {
       // Don't destroy on unmount in Strict Mode - just disconnect
       // The engine will be reused on remount
+      if (resumeContext) {
+        document.removeEventListener('click', resumeContext);
+      }
+      isInitializingRef.current = false;
       console.log('[Controls] Spatial audio cleanup (keeping engine for remount)');
     };
-  }, [audioRef]);
+  }, [audioRef, spatialAudioEnabled]);
 
   // Toggle Spatial Audio
   const handleToggleSpatialAudio = () => {
