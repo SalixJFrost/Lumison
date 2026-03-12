@@ -131,7 +131,7 @@ export enum StreamingPlayerEvent {
   STATE_CHANGE = 'statechange'
 }
 
-export interface StreamingPlayerEventData {
+interface StreamingPlayerEventData {
   [StreamingPlayerEvent.READY]: void;
   [StreamingPlayerEvent.PLAYING]: StreamingTrack;
   [StreamingPlayerEvent.PAUSED]: void;
@@ -147,7 +147,7 @@ export interface StreamingSearchOptions {
   offset?: number;
 }
 
-export interface StreamingSearchResult {
+interface StreamingSearchResult {
   platform: StreamingPlatform;
   tracks: StreamingTrack[];
   total: number;

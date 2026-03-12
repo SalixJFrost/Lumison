@@ -4,7 +4,6 @@ import { NeteaseTrackInfo } from "../services/music/lyricsService";
 import { useQueueSearchProvider } from "./useQueueSearchProvider";
 import {
   useNeteaseSearchProvider,
-  NeteaseSearchProviderExtended,
 } from "./useNeteaseSearchProvider";
 import { useInternetArchiveSearch } from "./useInternetArchiveSearch";
 import { StreamingTrack } from "../services/streaming/types";
@@ -16,8 +15,8 @@ import {
   getSearchResultKey,
 } from "../utils/searchResultLookup";
 
-export type SearchSource = "queue" | "online";
-export type SearchResultItem = Song | NeteaseTrackInfo | StreamingTrack;
+type SearchSource = "queue" | "online";
+type SearchResultItem = Song | NeteaseTrackInfo | StreamingTrack;
 
 interface ContextMenuState {
   visible: boolean;
@@ -69,6 +68,9 @@ export const useSearchModal = ({
   const [archiveHasSearched, setArchiveHasSearched] = useState(false);
 
   const LIMIT = 30;
+  const trimmedQuery = query.trim();
+  const isOnlineNetease = activeTab === "online" && onlineSource === "netease";
+  const isOnlineArchive = activeTab === "online" && onlineSource === "archive";
   const queueIndexMap = useMemo(() => buildSongIdIndexMap(queue), [queue]);
   const queueResultKeySet = useMemo(
     () => buildSearchResultKeySet(queue),
@@ -104,26 +106,6 @@ export const useSearchModal = ({
     }
   }, [query, activeTab, queueProvider, queueIndexMap]);
 
-  // Auto-search for Netease when query changes (with debounce)
-  useEffect(() => {
-    if (activeTab === "online" && onlineSource === "netease" && query.trim().length > 0) {
-      const timer = setTimeout(() => {
-        performNeteaseSearch();
-      }, 500); // 500ms debounce
-      return () => clearTimeout(timer);
-    }
-  }, [query, activeTab, onlineSource]);
-
-  // Auto-search for Archive when query changes (with debounce)
-  useEffect(() => {
-    if (activeTab === "online" && onlineSource === "archive" && query.trim().length > 0) {
-      const timer = setTimeout(() => {
-        performArchiveSearch();
-      }, 500); // 500ms debounce
-      return () => clearTimeout(timer);
-    }
-  }, [query, activeTab, onlineSource]);
-
   // Reset selected index when switching tabs or query changes
   useEffect(() => {
     setSelectedIndex(-1);
@@ -158,6 +140,23 @@ export const useSearchModal = ({
     setArchiveHasSearched(true);
     await archiveProvider.search(query, { limit: 20 });
   }, [query, archiveProvider]);
+
+  // Auto-search for online providers when query changes (with debounce)
+  useEffect(() => {
+    if (trimmedQuery.length === 0 || activeTab !== "online") {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      if (onlineSource === "netease") {
+        performNeteaseSearch();
+      } else {
+        performArchiveSearch();
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [activeTab, onlineSource, performArchiveSearch, performNeteaseSearch, trimmedQuery.length]);
 
   const handleScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
@@ -262,52 +261,37 @@ export const useSearchModal = ({
   );
 
   // Determine what to show in results area
-  const showNeteasePrompt =
-    activeTab === "netease" &&
-    !neteaseProvider.hasSearched &&
-    query.trim().length > 0;
-
   const showNeteaseEmpty =
-    activeTab === "netease" &&
+    isOnlineNetease &&
     neteaseProvider.hasSearched &&
     neteaseResults.length === 0 &&
     !neteaseProvider.isLoading;
 
   const showNeteaseLoading =
-    activeTab === "netease" &&
+    isOnlineNetease &&
     neteaseProvider.isLoading &&
     neteaseResults.length === 0;
 
   const showNeteaseInitial =
-    activeTab === "online" &&
-    onlineSource === "netease" &&
+    isOnlineNetease &&
     !neteaseProvider.hasSearched &&
-    query.trim().length === 0;
-
-  const showArchivePrompt =
-    activeTab === "online" &&
-    onlineSource === "archive" &&
-    !archiveHasSearched &&
-    query.trim().length > 0;
+    trimmedQuery.length === 0;
 
   const showArchiveEmpty =
-    activeTab === "online" &&
-    onlineSource === "archive" &&
+    isOnlineArchive &&
     archiveHasSearched &&
     archiveResults.length === 0 &&
     !archiveProvider.isLoading;
 
   const showArchiveLoading =
-    activeTab === "online" &&
-    onlineSource === "archive" &&
+    isOnlineArchive &&
     archiveProvider.isLoading &&
     archiveResults.length === 0;
 
   const showArchiveInitial =
-    activeTab === "online" &&
-    onlineSource === "archive" &&
+    isOnlineArchive &&
     !archiveHasSearched &&
-    query.trim().length === 0;
+    trimmedQuery.length === 0;
 
   return {
     // State
@@ -357,11 +341,9 @@ export const useSearchModal = ({
     getResultKey: getSearchResultKey,
 
     // Display flags
-    showNeteasePrompt,
     showNeteaseEmpty,
     showNeteaseInitial,
     showNeteaseLoading,
-    showArchivePrompt,
     showArchiveEmpty,
     showArchiveInitial,
     showArchiveLoading,

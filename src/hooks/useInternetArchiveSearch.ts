@@ -13,7 +13,7 @@ import {
 import { StreamingTrack, StreamingPlatform } from '../services/streaming/types';
 import { dedupeSearchResults } from '../utils/searchResultLookup';
 
-export interface UseInternetArchiveSearchResult {
+interface UseInternetArchiveSearchResult {
     results: StreamingTrack[];
     isLoading: boolean;
     error: string | null;

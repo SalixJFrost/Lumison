@@ -17,105 +17,127 @@ import * as jsmediat from 'jsmediatags';
 // Handle both default and named exports
 const jsmediatags = (jsmediat as any).default || jsmediat;
 
-/**
- * Extract lyrics from audio file metadata
- * Uses jsmediatags library for ID3 parsing
- * Optimized with timeout and better error handling
- */
-export const extractEmbeddedLyrics = async (
-  file: File
-): Promise<{ lyrics: LyricLine[]; source: 'id3' | 'flac' | 'none' }> => {
+export interface AudioTagExtractionResult {
+  title?: string;
+  artist?: string;
+  picture?: string;
+  lyrics: LyricLine[];
+  source: 'id3' | 'flac' | 'none';
+}
+
+const extractPictureFromTags = (tags: any): string | undefined => {
+  if (!tags?.picture?.data || !tags?.picture?.format) {
+    return undefined;
+  }
+
   try {
-    // Check if jsmediatags is available
+    const { data, format } = tags.picture;
+    let base64String = "";
+    const len = data.length;
+    for (let i = 0; i < len; i++) {
+      base64String += String.fromCharCode(data[i]);
+    }
+    return `data:${format};base64,${window.btoa(base64String)}`;
+  } catch (error) {
+    console.warn('Failed to extract cover art from tags:', error);
+    return undefined;
+  }
+};
+
+const extractLyricsFromTags = (tags: any, fileName: string): { lyrics: LyricLine[]; source: 'id3' | 'flac' | 'none' } => {
+  // Try USLT (Unsynchronized Lyrics) - most common
+  if (tags.USLT) {
+    const usltData = Array.isArray(tags.USLT) ? tags.USLT[0] : tags.USLT;
+    const lyricsText = usltData.lyrics || usltData.text || usltData;
+
+    if (typeof lyricsText === 'string' && lyricsText.trim()) {
+      console.log(`✓ Found ID3 USLT lyrics in: ${fileName}`);
+      return { lyrics: parseLyrics(lyricsText), source: 'id3' };
+    }
+  }
+
+  // Try SYLT (Synchronized Lyrics)
+  if (tags.SYLT) {
+    const syltData = Array.isArray(tags.SYLT) ? tags.SYLT[0] : tags.SYLT;
+    const lyrics = parseSYLT(syltData);
+
+    if (lyrics.length > 0) {
+      console.log(`✓ Found ID3 SYLT synchronized lyrics in: ${fileName}`);
+      return { lyrics, source: 'id3' };
+    }
+  }
+
+  // Try generic LYRICS tag (some taggers use this)
+  if (tags.LYRICS) {
+    const lyricsText = tags.LYRICS;
+    if (typeof lyricsText === 'string' && lyricsText.trim()) {
+      console.log(`✓ Found ID3 LYRICS tag in: ${fileName}`);
+      return { lyrics: parseLyrics(lyricsText), source: 'id3' };
+    }
+  }
+
+  // Try Vorbis Comments (FLAC)
+  if (tags.comment && typeof tags.comment === 'object') {
+    const comment = tags.comment as any;
+
+    // Check for LYRICS field
+    if (comment.LYRICS) {
+      const lyricsText = Array.isArray(comment.LYRICS)
+        ? comment.LYRICS[0]
+        : comment.LYRICS;
+
+      if (typeof lyricsText === 'string' && lyricsText.trim()) {
+        console.log(`✓ Found FLAC LYRICS comment in: ${fileName}`);
+        return { lyrics: parseLyrics(lyricsText), source: 'flac' };
+      }
+    }
+
+    // Check for UNSYNCEDLYRICS field (alternative)
+    if (comment.UNSYNCEDLYRICS) {
+      const lyricsText = Array.isArray(comment.UNSYNCEDLYRICS)
+        ? comment.UNSYNCEDLYRICS[0]
+        : comment.UNSYNCEDLYRICS;
+
+      if (typeof lyricsText === 'string' && lyricsText.trim()) {
+        console.log(`✓ Found FLAC UNSYNCEDLYRICS comment in: ${fileName}`);
+        return { lyrics: parseLyrics(lyricsText), source: 'flac' };
+      }
+    }
+  }
+
+  return { lyrics: [], source: 'none' };
+};
+
+export const extractAudioTagData = async (
+  file: File
+): Promise<AudioTagExtractionResult> => {
+  try {
     if (!jsmediatags || typeof jsmediatags.read !== 'function') {
       console.warn('jsmediatags not properly loaded');
       return { lyrics: [], source: 'none' };
     }
 
-    // 添加超时机制（5秒），避免大文件卡住
-    const timeoutPromise = new Promise<{ lyrics: LyricLine[]; source: 'id3' | 'flac' | 'none' }>((resolve) => {
+    const timeoutPromise = new Promise<AudioTagExtractionResult>((resolve) => {
       setTimeout(() => {
         console.warn(`ID3 parsing timeout for: ${file.name}`);
         resolve({ lyrics: [], source: 'none' });
       }, 5000);
     });
 
-    const parsePromise = new Promise<{ lyrics: LyricLine[]; source: 'id3' | 'flac' | 'none' }>((resolve) => {
+    const parsePromise = new Promise<AudioTagExtractionResult>((resolve) => {
       jsmediatags.read(file, {
         onSuccess: (tag: any) => {
           const tags = tag.tags;
 
-          // Try USLT (Unsynchronized Lyrics) - most common
-          if (tags.USLT) {
-            const usltData = Array.isArray(tags.USLT) ? tags.USLT[0] : tags.USLT;
-            const lyricsText = usltData.lyrics || usltData.text || usltData;
+          const { lyrics, source } = extractLyricsFromTags(tags, file.name);
 
-            if (typeof lyricsText === 'string' && lyricsText.trim()) {
-              console.log(`✓ Found ID3 USLT lyrics in: ${file.name}`);
-              const parsed = parseLyrics(lyricsText);
-              resolve({ lyrics: parsed, source: 'id3' });
-              return;
-            }
-          }
-
-          // Try SYLT (Synchronized Lyrics)
-          if (tags.SYLT) {
-            const syltData = Array.isArray(tags.SYLT) ? tags.SYLT[0] : tags.SYLT;
-            const lyrics = parseSYLT(syltData);
-
-            if (lyrics.length > 0) {
-              console.log(`✓ Found ID3 SYLT synchronized lyrics in: ${file.name}`);
-              resolve({ lyrics, source: 'id3' });
-              return;
-            }
-          }
-
-          // Try generic LYRICS tag (some taggers use this)
-          if (tags.LYRICS) {
-            const lyricsText = tags.LYRICS;
-            if (typeof lyricsText === 'string' && lyricsText.trim()) {
-              console.log(`✓ Found ID3 LYRICS tag in: ${file.name}`);
-              const parsed = parseLyrics(lyricsText);
-              resolve({ lyrics: parsed, source: 'id3' });
-              return;
-            }
-          }
-
-          // Try Vorbis Comments (FLAC)
-          if (tags.comment && typeof tags.comment === 'object') {
-            const comment = tags.comment as any;
-            
-            // Check for LYRICS field
-            if (comment.LYRICS) {
-              const lyricsText = Array.isArray(comment.LYRICS)
-                ? comment.LYRICS[0]
-                : comment.LYRICS;
-
-              if (typeof lyricsText === 'string' && lyricsText.trim()) {
-                console.log(`✓ Found FLAC LYRICS comment in: ${file.name}`);
-                const parsed = parseLyrics(lyricsText);
-                resolve({ lyrics: parsed, source: 'flac' });
-                return;
-              }
-            }
-
-            // Check for UNSYNCEDLYRICS field (alternative)
-            if (comment.UNSYNCEDLYRICS) {
-              const lyricsText = Array.isArray(comment.UNSYNCEDLYRICS)
-                ? comment.UNSYNCEDLYRICS[0]
-                : comment.UNSYNCEDLYRICS;
-
-              if (typeof lyricsText === 'string' && lyricsText.trim()) {
-                console.log(`✓ Found FLAC UNSYNCEDLYRICS comment in: ${file.name}`);
-                const parsed = parseLyrics(lyricsText);
-                resolve({ lyrics: parsed, source: 'flac' });
-                return;
-              }
-            }
-          }
-
-          // No lyrics found
-          resolve({ lyrics: [], source: 'none' });
+          resolve({
+            title: tags.title,
+            artist: tags.artist,
+            picture: extractPictureFromTags(tags),
+            lyrics,
+            source,
+          });
         },
         onError: (error: any) => {
           console.warn(`ID3 tag reading failed for ${file.name}:`, error.type || error);
@@ -124,12 +146,23 @@ export const extractEmbeddedLyrics = async (
       });
     });
 
-    // 使用 Promise.race 实现超时
     return await Promise.race([parsePromise, timeoutPromise]);
   } catch (error) {
     console.warn(`jsmediatags error for ${file.name}:`, error);
     return { lyrics: [], source: 'none' };
   }
+};
+
+/**
+ * Extract lyrics from audio file metadata
+ * Uses jsmediatags library for ID3 parsing
+ * Optimized with timeout and better error handling
+ */
+export const extractEmbeddedLyrics = async (
+  file: File
+): Promise<{ lyrics: LyricLine[]; source: 'id3' | 'flac' | 'none' }> => {
+  const result = await extractAudioTagData(file);
+  return { lyrics: result.lyrics, source: result.source };
 };
 
 /**
@@ -251,31 +284,3 @@ export const loadLRCFile = async (file: File): Promise<LyricLine[]> => {
   }
 };
 
-/**
- * Priority order for lyrics sources:
- * 1. Embedded ID3/FLAC lyrics (highest priority - most reliable)
- * 2. Online API (fallback when no embedded lyrics)
- * 3. External LRC file (lowest priority)
- */
-export const getLyricsPriority = (sources: {
-  lrcFile?: LyricLine[];
-  embedded?: LyricLine[];
-  online?: LyricLine[];
-}): { lyrics: LyricLine[]; source: string } => {
-  // 1. 最高优先级：内嵌歌词
-  if (sources.embedded && sources.embedded.length > 0) {
-    return { lyrics: sources.embedded, source: 'embedded' };
-  }
-
-  // 2. 次优先级：在线API
-  if (sources.online && sources.online.length > 0) {
-    return { lyrics: sources.online, source: 'online' };
-  }
-
-  // 3. 最低优先级：外部LRC文件
-  if (sources.lrcFile && sources.lrcFile.length > 0) {
-    return { lyrics: sources.lrcFile, source: 'lrc-file' };
-  }
-
-  return { lyrics: [], source: 'none' };
-};

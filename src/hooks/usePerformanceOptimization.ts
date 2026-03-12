@@ -27,7 +27,7 @@ export const usePerformanceOptimization = () => {
     connectionQuality: 'medium',
     shouldReduceEffects: false,
   });
-  
+
   const lastUpdateRef = useRef<PerformanceState | null>(null);
 
   useEffect(() => {
@@ -47,14 +47,14 @@ export const usePerformanceOptimization = () => {
         connectionQuality,
         shouldReduceEffects: shouldReduce,
       };
-      
+
       // 只在状态真正改变时才更新
-      if (!lastUpdateRef.current || 
-          lastUpdateRef.current.fps !== newState.fps ||
-          lastUpdateRef.current.memoryUsage !== newState.memoryUsage ||
-          lastUpdateRef.current.isLowPerformance !== newState.isLowPerformance ||
-          lastUpdateRef.current.connectionQuality !== newState.connectionQuality ||
-          lastUpdateRef.current.shouldReduceEffects !== newState.shouldReduceEffects) {
+      if (!lastUpdateRef.current ||
+        lastUpdateRef.current.fps !== newState.fps ||
+        lastUpdateRef.current.memoryUsage !== newState.memoryUsage ||
+        lastUpdateRef.current.isLowPerformance !== newState.isLowPerformance ||
+        lastUpdateRef.current.connectionQuality !== newState.connectionQuality ||
+        lastUpdateRef.current.shouldReduceEffects !== newState.shouldReduceEffects) {
         lastUpdateRef.current = newState;
         setPerfState(newState);
       }
@@ -101,47 +101,3 @@ export const useOptimizedAudio = (audioRef: React.RefObject<HTMLAudioElement>) =
   return { getAudioLatency };
 };
 
-/**
- * Hook for adaptive quality based on performance
- */
-export const useAdaptiveQuality = () => {
-  const perfState = usePerformanceOptimization();
-  
-  const getQualitySettings = useCallback(() => {
-    if (perfState.isLowPerformance) {
-      return {
-        enableBlur: false,
-        enableGlow: false,
-        enableShadow: true,
-        animationQuality: 'low' as const,
-        maxParticles: 20,
-        targetFPS: 30,
-      };
-    }
-
-    if (perfState.fps < 45) {
-      return {
-        enableBlur: false,
-        enableGlow: true,
-        enableShadow: true,
-        animationQuality: 'medium' as const,
-        maxParticles: 50,
-        targetFPS: 45,
-      };
-    }
-
-    return {
-      enableBlur: true,
-      enableGlow: true,
-      enableShadow: true,
-      animationQuality: 'high' as const,
-      maxParticles: 100,
-      targetFPS: 60,
-    };
-  }, [perfState]);
-
-  return {
-    ...perfState,
-    qualitySettings: getQualitySettings(),
-  };
-};

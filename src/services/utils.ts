@@ -1,9 +1,6 @@
-import { LyricLine } from "../types";
-import { parseLyrics } from "./lyrics";
 import { loadImageElementWithCache } from "./cache";
 
 // Declare global for the script loaded in index.html
-declare const jsmediatags: any;
 declare const ColorThief: any;
 
 export const formatTime = (seconds: number): string => {
@@ -110,77 +107,6 @@ export const parseNeteaseLink = (
   }
 };
 
-// Metadata Parser using jsmediatags
-export const parseAudioMetadata = (
-  file: File,
-): Promise<{
-  title?: string;
-  artist?: string;
-  picture?: string;
-  lyrics?: string;
-}> => {
-  return new Promise((resolve) => {
-    if (typeof jsmediatags === "undefined") {
-      console.warn("jsmediatags not loaded");
-      resolve({});
-      return;
-    }
-
-    try {
-      jsmediatags.read(file, {
-        onSuccess: (tag: any) => {
-          try {
-            const tags = tag.tags;
-            let pictureUrl = undefined;
-            let lyricsText = undefined;
-
-            if (tags.picture) {
-              const { data, format } = tags.picture;
-              let base64String = "";
-              const len = data.length;
-              for (let i = 0; i < len; i++) {
-                base64String += String.fromCharCode(data[i]);
-              }
-              pictureUrl = `data:${format};base64,${window.btoa(base64String)}`;
-            }
-
-            // Extract embedded lyrics (USLT tag for unsynchronized lyrics)
-            // Some formats also use "lyrics" or "LYRICS" tag
-            if (tags.USLT) {
-              // USLT can be an object with lyrics.text or just a string
-              lyricsText =
-                typeof tags.USLT === "object"
-                  ? tags.USLT.lyrics || tags.USLT.text
-                  : tags.USLT;
-            } else if (tags.lyrics) {
-              lyricsText = tags.lyrics;
-            } else if (tags.LYRICS) {
-              lyricsText = tags.LYRICS;
-            }
-
-            resolve({
-              title: tags.title,
-              artist: tags.artist,
-              picture: pictureUrl,
-              lyrics: lyricsText,
-            });
-          } catch (innerErr) {
-            console.error("Error parsing tags structure:", innerErr);
-            resolve({});
-          }
-        },
-        onError: (error: any) => {
-          console.warn("Error reading tags:", error);
-          resolve({});
-        },
-      });
-    } catch (err) {
-      console.error("jsmediatags crashed:", err);
-      resolve({});
-    }
-  });
-};
-
 export const extractColors = async (imageSrc: string): Promise<string[]> => {
   if (typeof ColorThief === "undefined") {
     console.warn("ColorThief not loaded");
@@ -190,7 +116,7 @@ export const extractColors = async (imageSrc: string): Promise<string[]> => {
   try {
     const img = await loadImageElementWithCache(imageSrc);
     const colorThief = new ColorThief();
-    
+
     // 获取调色板
     const palette = colorThief.getPalette(img, 10);
 
@@ -201,16 +127,16 @@ export const extractColors = async (imageSrc: string): Promise<string[]> => {
     // 计算颜色的"权重"分数，综合考虑多个因素
     const scoredColors = palette.map((rgb: number[]) => {
       const [r, g, b] = rgb;
-      
+
       // 1. 亮度 (0-255)
       const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-      
+
       // 2. 饱和度 (0-255)
       const saturation = Math.max(r, g, b) - Math.min(r, g, b);
-      
+
       // 3. 色彩丰富度（避免灰色）
       const colorfulness = saturation / (luminance + 1);
-      
+
       // 综合评分：
       // - 亮度适中（不要太暗或太亮）
       // - 有一定饱和度（但不过分）
@@ -218,9 +144,9 @@ export const extractColors = async (imageSrc: string): Promise<string[]> => {
       const luminanceScore = luminance > 40 && luminance < 200 ? 1 : 0.5;
       const saturationScore = saturation > 20 ? Math.min(saturation / 100, 1) : 0.3;
       const colorfulnessScore = colorfulness > 0.1 ? 1 : 0.5;
-      
+
       const totalScore = luminanceScore * saturationScore * colorfulnessScore;
-      
+
       return { rgb, score: totalScore, luminance, saturation };
     });
 
@@ -229,18 +155,18 @@ export const extractColors = async (imageSrc: string): Promise<string[]> => {
 
     // 选择前3个颜色，但确保它们有一定的差异性
     const selectedColors: number[][] = [];
-    
+
     for (const color of scoredColors) {
       if (selectedColors.length >= 3) break;
-      
+
       // 检查与已选颜色的差异
       const isDifferent = selectedColors.every(selected => {
         const diff = Math.abs(color.rgb[0] - selected[0]) +
-                     Math.abs(color.rgb[1] - selected[1]) +
-                     Math.abs(color.rgb[2] - selected[2]);
+          Math.abs(color.rgb[1] - selected[1]) +
+          Math.abs(color.rgb[2] - selected[2]);
         return diff > 60; // 确保颜色有足够差异
       });
-      
+
       if (isDifferent || selectedColors.length === 0) {
         selectedColors.push(color.rgb);
       }
@@ -255,7 +181,7 @@ export const extractColors = async (imageSrc: string): Promise<string[]> => {
         break;
       }
     }
-    
+
     // 转换为 RGB 字符串
     return selectedColors.map((c: number[]) => `rgb(${c[0]}, ${c[1]}, ${c[2]})`);
   } catch (err) {
@@ -281,12 +207,12 @@ export const getSupportedAudioFormats = (): Record<string, boolean> => {
     m4a: canPlay('audio/mp4') || canPlay('audio/x-m4a'),
     aac: canPlay('audio/aac') || canPlay('audio/aacp'),
     ogg: canPlay('audio/ogg') || canPlay('audio/ogg; codecs="vorbis"'),
-    opus: canPlay('audio/ogg; codecs="opus"') || 
-          canPlay('audio/webm; codecs="opus"') || 
-          canPlay('audio/opus'),
+    opus: canPlay('audio/ogg; codecs="opus"') ||
+      canPlay('audio/webm; codecs="opus"') ||
+      canPlay('audio/opus'),
     webm: canPlay('audio/webm') || canPlay('audio/webm; codecs="opus"'),
-    aiff: canPlay('audio/aiff') || 
-          canPlay('audio/x-aiff') || 
-          canPlay('audio/aif'),
+    aiff: canPlay('audio/aiff') ||
+      canPlay('audio/x-aiff') ||
+      canPlay('audio/aif'),
   };
 };

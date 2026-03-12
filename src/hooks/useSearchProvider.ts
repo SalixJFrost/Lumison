@@ -20,8 +20,3 @@ export interface SearchProvider {
   isLoading?: boolean;
 }
 
-export interface UseSearchProviderResult {
-  providers: SearchProvider[];
-  activeProvider: SearchProvider;
-  setActiveProviderId: (id: string) => void;
-}

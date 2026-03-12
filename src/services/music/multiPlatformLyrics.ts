@@ -48,12 +48,12 @@ const API_ENDPOINTS = {
     "https://netease-cloud-music-api-psi-ten.vercel.app",
     "https://music-api.heheda.top",
     "https://netease-api.fe-mm.com",
-    
+
     // 第三方聚合 API（备用）
     "https://api.no0a.cn/api/cloudmusic",
     "https://api.injahow.cn/netease",
     "https://api.uomg.com/api/rand.music",
-    
+
     // 更多社区部署的镜像
     "https://netease-music-api.vercel.app",
     "https://music.ghxi.com",
@@ -74,17 +74,17 @@ const neteaseApiStats = API_ENDPOINTS.netease.map(url => ({
 const getFastestNeteaseApi = (): string => {
   // 计算每个 API 的平均响应时间
   const sorted = [...neteaseApiStats].sort((a, b) => {
-    const avgA = a.responseTimes.length > 0 
-      ? a.responseTimes.reduce((sum, t) => sum + t, 0) / a.responseTimes.length 
+    const avgA = a.responseTimes.length > 0
+      ? a.responseTimes.reduce((sum, t) => sum + t, 0) / a.responseTimes.length
       : Infinity;
-    const avgB = b.responseTimes.length > 0 
-      ? b.responseTimes.reduce((sum, t) => sum + t, 0) / b.responseTimes.length 
+    const avgB = b.responseTimes.length > 0
+      ? b.responseTimes.reduce((sum, t) => sum + t, 0) / b.responseTimes.length
       : Infinity;
-    
+
     // 失败次数也作为参考
     return (avgA + a.failCount * 1000) - (avgB + b.failCount * 1000);
   });
-  
+
   return sorted[0].url;
 };
 
@@ -94,7 +94,7 @@ const getFastestNeteaseApi = (): string => {
 const recordNeteaseApiPerformance = (url: string, responseTime: number, success: boolean) => {
   const stat = neteaseApiStats.find(s => s.url === url);
   if (!stat) return;
-  
+
   if (success) {
     stat.responseTimes.push(responseTime);
     // 只保留最近 10 次记录
@@ -122,12 +122,12 @@ interface LyricsResult {
 const searchNeteaseMusic = async (keyword: string): Promise<any> => {
   const apiUrl = getFastestNeteaseApi();
   const startTime = Date.now();
-  
+
   try {
     const url = `${apiUrl}/cloudsearch?keywords=${encodeURIComponent(keyword)}&limit=5`;
     const response = await fetchViaProxy(url);
     const responseTime = Date.now() - startTime;
-    
+
     recordNeteaseApiPerformance(apiUrl, responseTime, true);
     return response?.result?.songs?.[0];
   } catch (error) {
@@ -143,11 +143,11 @@ const searchNeteaseMusic = async (keyword: string): Promise<any> => {
 const fetchNeteaseMusicLyrics = async (songId: string, coverUrl?: string): Promise<LyricsResult | null> => {
   const apiUrl = getFastestNeteaseApi();
   const startTime = Date.now();
-  
+
   try {
     const url = `${apiUrl}/lyric/new?id=${songId}`;
     const response = await fetchViaProxy(url);
-    
+
     if (!response?.lrc?.lyric) {
       recordNeteaseApiPerformance(apiUrl, 0, false);
       return null;
@@ -177,7 +177,7 @@ const fetchNeteaseMusicLyrics = async (songId: string, coverUrl?: string): Promi
  */
 const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promise<LyricsResult | null> => {
   const startTime = Date.now();
-  
+
   // LrcLib API - 最大的开源歌词库
   const tryLrcLib = async (): Promise<LyricsResult | null> => {
     if (isSourceBlacklisted('lrclib')) return null;
@@ -325,7 +325,7 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
     try {
       const url = `https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get?q_track=${encodeURIComponent(title)}&q_artist=${encodeURIComponent(artist)}&format=json&namespace=lyrics_synched`;
       const response = await fetchViaProxy(url);
-      
+
       if (response?.message?.body?.macro_calls) {
         const subtitles = response.message.body.macro_calls['track.subtitles.get']?.message?.body?.subtitle_list;
         if (subtitles && subtitles.length > 0) {
@@ -366,12 +366,12 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
         'https://openlyrics.io/api/search',
         'https://api.openlyrics.org/search',
       ];
-      
+
       for (const mirror of mirrors) {
         try {
           const url = `${mirror}?q=${encodeURIComponent(searchQuery)}`;
           const response = await fetchViaProxy(url);
-          
+
           if (response?.results && Array.isArray(response.results) && response.results.length > 0) {
             const result = response.results[0];
             if (result.lrc || result.lyrics) {
@@ -420,7 +420,7 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
 
   // 同时等待所有结果，以防 race 失败
   const allResults = await Promise.allSettled(promises);
-  
+
   // 先尝试 race 的结果（最快的）
   const fastestResult = await racePromise;
   if (fastestResult) {
@@ -481,79 +481,9 @@ export const searchAndFetchLyrics = async (
     }
   }
 
-  
+
   console.warn("No lyrics found on any platform");
   return null;
-};
-
-/**
- * 根据平台 ID 直接获取歌词
- */
-export const fetchLyricsByPlatform = async (
-  platform: "netease",
-  id: string
-): Promise<LyricsResult | null> => {
-  if (platform === "netease") {
-    return fetchNeteaseMusicLyrics(id);
-  }
-  return null;
-};
-
-/**
- * 测试所有网易云 API 的可用性和速度
- * 用于初始化或定期检查 API 健康状态
- */
-export const testNeteaseApis = async (): Promise<void> => {
-  console.log("Testing Netease API mirrors...");
-  
-  const testPromises = API_ENDPOINTS.netease.map(async (apiUrl) => {
-    const startTime = Date.now();
-    try {
-      // 使用一个简单的搜索请求测试
-      const url = `${apiUrl}/cloudsearch?keywords=test&limit=1`;
-      await fetchViaProxy(url);
-      const responseTime = Date.now() - startTime;
-      
-      recordNeteaseApiPerformance(apiUrl, responseTime, true);
-      console.log(`✓ ${apiUrl}: ${responseTime}ms`);
-      return { url: apiUrl, success: true, time: responseTime };
-    } catch (error) {
-      recordNeteaseApiPerformance(apiUrl, 0, false);
-      console.warn(`✗ ${apiUrl}: failed`);
-      return { url: apiUrl, success: false, time: Infinity };
-    }
-  });
-  
-  await Promise.allSettled(testPromises);
-  console.log(`Fastest API: ${getFastestNeteaseApi()}`);
-};
-
-/**
- * 获取 API 性能统计信息
- */
-export const getApiStats = () => {
-  return {
-    netease: neteaseApiStats.map(stat => ({
-      url: stat.url,
-      avgResponseTime: stat.responseTimes.length > 0
-        ? Math.round(stat.responseTimes.reduce((a, b) => a + b, 0) / stat.responseTimes.length)
-        : null,
-      failCount: stat.failCount,
-      requestCount: stat.responseTimes.length,
-    })),
-    fastestApi: getFastestNeteaseApi(),
-  };
-};
-
-/**
- * 重置 API 统计数据
- */
-export const resetApiStats = () => {
-  neteaseApiStats.forEach(stat => {
-    stat.responseTimes = [];
-    stat.failCount = 0;
-  });
-  console.log("API stats reset");
 };
 
 /**
@@ -562,13 +492,4 @@ export const resetApiStats = () => {
  */
 export const getPlatformConfig = () => {
   return { ...PLATFORM_CONFIG };
-};
-
-/**
- * 更新平台配置
- * 注意：需要重新加载页面才能生效
- */
-export const updatePlatformConfig = (config: Partial<typeof PLATFORM_CONFIG>) => {
-  Object.assign(PLATFORM_CONFIG, config);
-  console.log("Platform config updated:", PLATFORM_CONFIG);
 };

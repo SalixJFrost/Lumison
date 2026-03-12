@@ -13,7 +13,7 @@ import {
 } from './types';
 import { InternetArchivePlayer } from './archive/InternetArchivePlayer';
 
-export class StreamingManager {
+class StreamingManager {
   private players: Map<StreamingPlatform, IStreamingPlayer> = new Map();
   private currentPlayer: IStreamingPlayer | null = null;
   private currentPlatform: StreamingPlatform | null = null;
@@ -37,7 +37,7 @@ export class StreamingManager {
       case StreamingPlatform.INTERNET_ARCHIVE:
         player = new InternetArchivePlayer();
         break;
-      
+
       default:
         throw new Error(`Unsupported platform: ${platform}. Only Internet Archive is currently supported.`);
     }
@@ -265,7 +265,7 @@ export class StreamingManager {
 // Singleton instance
 let streamingManagerInstance: StreamingManager | null = null;
 
-export function getStreamingManager(): StreamingManager {
+function getStreamingManager(): StreamingManager {
   if (!streamingManagerInstance) {
     streamingManagerInstance = new StreamingManager();
   }

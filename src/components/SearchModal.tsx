@@ -857,15 +857,9 @@ const SearchModal: React.FC<SearchModalProps> = ({
                       })}
 
                       {/* Loading Indicator for IA */}
-                      {search.archiveProvider.hasMore && (
+                      {search.archiveProvider.isLoading && (
                         <div className="py-6 flex items-center justify-center">
-                          {search.archiveProvider.isLoading ? (
-                            <div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin"></div>
-                          ) : (
-                            <div className="text-white/20 text-xs">
-                              {t("search.scrollForMore")}
-                            </div>
-                          )}
+                          <div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin"></div>
                         </div>
                       )}
                     </>
@@ -874,214 +868,155 @@ const SearchModal: React.FC<SearchModalProps> = ({
               )}
             </div>
           )}
-          <div
-            className="w-[2px] bg-current rounded-full animate-[eq-bounce_1s_ease-in-out_infinite]"
-            style={{ height: "8px", color: accentColor }}
-          ></div>
-          <div
-            className="w-[2px] bg-current rounded-full animate-[eq-bounce_1s_ease-in-out_infinite_0.2s]"
-            style={{ height: "14px", color: accentColor }}
-          ></div>
-          <div
-            className="w-[2px] bg-current rounded-full animate-[eq-bounce_1s_ease-in-out_infinite_0.4s]"
-            style={{ height: "10px", color: accentColor }}
-          ></div>
         </div>
-                          )}
-      </div>
-      <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
-        <div
-          className={`text-[15px] font-medium truncate ${search.selectedIndex === idx ? "text-white" : nowPlaying ? "" : "text-white/90"}`}
-          style={nowPlaying ? { color: accentColor } : {}}
-        >
-          {track.title}
-        </div>
-        <div
-          className={`text-[13px] truncate ${search.selectedIndex === idx ? "text-white/70" : "text-white/40"}`}
-        >
-          {track.artist}
-        </div>
-      </div>
-      <div className="flex items-center gap-1">
-        <button
-          onClick={(e) => handleMenuClick(e, trackKey)}
-          className={`track-menu w-7 h-7 rounded-lg flex items-center justify-center transition-all ${menuTrackId === trackKey
-            ? "bg-white/20 text-white"
-            : "text-white/40 hover:bg-white/10 hover:text-white/70"
-            }`}
-          title={t("search.moreOptions")}
-        >
-          <MoreVerticalIcon className="w-4 h-4" />
-        </button>
-        <span
-          className={`
-                              text-[10px] font-bold px-1.5 py-0.5 rounded border
-                              ${search.selectedIndex === idx
-              ? "border-white/30 text-white/80 bg-white/20"
-              : "border-white/10 text-white/30 bg-white/5"
-            }
-                            `}
-        >
-          IA
-        </span>
-      </div>
-    </div>
-  );
-})}
-                </>
+
+        {/* Context Menu Portal */}
+        {
+          search.contextMenu &&
+          createPortal(
+            <div
+              className="context-menu-container fixed z-[10000] w-48 bg-[#1e1e1e]/60 backdrop-blur-[80px] saturate-150 border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top-left p-1.5 flex flex-col gap-0.5"
+              style={{ top: search.contextMenu.y, left: search.contextMenu.x }}
+              onContextMenu={(e) => e.preventDefault()}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (search.contextMenu!.type === "queue") {
+                    const qItem = search.contextMenu!.track as Song;
+                    const idx = queueIndexMap.get(qItem.id) ?? -1;
+                    onPlayQueueIndex(idx);
+                  } else if (search.contextMenu!.type === "netease") {
+                    playNeteaseTrack(
+                      search.contextMenu!.track as NeteaseTrackInfo,
+                    );
+                  } else if (search.contextMenu!.type === "archive") {
+                    playArchiveTrack(
+                      search.contextMenu!.track as StreamingTrack,
+                    );
+                  }
+                  search.closeContextMenu();
+                  onClose();
+                }}
+                className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
+              >
+                <PlayIcon className="w-4 h-4" />
+                {t("search.playNow")}
+              </button>
+
+              {search.contextMenu.type === "netease" && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addNeteaseToQueue(
+                      search.contextMenu!.track as NeteaseTrackInfo,
+                    );
+                    search.closeContextMenu();
+                  }}
+                  disabled={search.isResultInQueue(search.contextMenu.track)}
+                  className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                >
+                  <PlusIcon className="w-4 h-4" />
+                  {t("search.addToQueue")}
+                </button>
               )}
-            </div >
-          )}
+              {search.contextMenu.type === "archive" && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addArchiveToQueue(
+                      search.contextMenu!.track as StreamingTrack,
+                    );
+                    search.closeContextMenu();
+                  }}
+                  disabled={search.isResultInQueue(search.contextMenu.track)}
+                  className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                >
+                  <PlusIcon className="w-4 h-4" />
+                  {t("search.addToQueue")}
+                </button>
+              )}
 
-        </div >
+            </div>,
+            document.body,
+          )
+        }
 
-  {/* Context Menu Portal */ }
-{
-  search.contextMenu &&
-  createPortal(
-    <div
-      className="context-menu-container fixed z-[10000] w-48 bg-[#1e1e1e]/60 backdrop-blur-[80px] saturate-150 border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top-left p-1.5 flex flex-col gap-0.5"
-      style={{ top: search.contextMenu.y, left: search.contextMenu.x }}
-      onContextMenu={(e) => e.preventDefault()}
-    >
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          if (search.contextMenu!.type === "queue") {
-            const qItem = search.contextMenu!.track as Song;
-            const idx = queueIndexMap.get(qItem.id) ?? -1;
-            onPlayQueueIndex(idx);
-          } else if (search.contextMenu!.type === "netease") {
-            playNeteaseTrack(
-              search.contextMenu!.track as NeteaseTrackInfo,
-            );
-          } else if (search.contextMenu!.type === "archive") {
-            playArchiveTrack(
-              search.contextMenu!.track as StreamingTrack,
-            );
-          }
-          search.closeContextMenu();
-          onClose();
-        }}
-        className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
-      >
-        <PlayIcon className="w-4 h-4" />
-        {t("search.playNow")}
-      </button>
+        {/* Track Menu Portal */}
+        {
+          menuTrackId && menuPosition &&
+          createPortal(
+            <div
+              className="track-menu fixed z-[10000] w-48 bg-[#1e1e1e]/60 backdrop-blur-[80px] saturate-150 border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top-left p-1.5 flex flex-col gap-0.5"
+              style={{ top: menuPosition.y, left: menuPosition.x }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const track = activeMenuTrack;
+                  if (track) {
+                    if (search.onlineSource === "netease") {
+                      playNeteaseTrack(track as NeteaseTrackInfo);
+                    } else {
+                      playArchiveTrack(track as StreamingTrack);
+                    }
+                    closeMenu();
+                    onClose();
+                  }
+                }}
+                className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
+              >
+                <PlayIcon className="w-4 h-4" />
+                {t("search.playNow")}
+              </button>
 
-      {search.contextMenu.type === "netease" && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            addNeteaseToQueue(
-              search.contextMenu!.track as NeteaseTrackInfo,
-            );
-            search.closeContextMenu();
-          }}
-          disabled={search.isResultInQueue(search.contextMenu.track)}
-          className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-        >
-          <PlusIcon className="w-4 h-4" />
-          {t("search.addToQueue")}
-        </button>
-      )}
-      {search.contextMenu.type === "archive" && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            addArchiveToQueue(
-              search.contextMenu!.track as StreamingTrack,
-            );
-            search.closeContextMenu();
-          }}
-          disabled={search.isResultInQueue(search.contextMenu.track)}
-          className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-        >
-          <PlusIcon className="w-4 h-4" />
-          {t("search.addToQueue")}
-        </button>
-      )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const track = activeMenuTrack;
+                  if (track) {
+                    if (search.onlineSource === "netease") {
+                      addNeteaseToQueue(track as NeteaseTrackInfo);
+                    } else {
+                      addArchiveToQueue(track as StreamingTrack);
+                    }
+                    closeMenu();
+                  }
+                }}
+                disabled={!!activeMenuTrack && search.isResultInQueue(activeMenuTrack)}
+                className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              >
+                <NextIcon className="w-4 h-4" />
+                {t("search.playNext")}
+              </button>
 
-    </div>,
-    document.body,
-  )
-}
-
-{/* Track Menu Portal */ }
-{
-  menuTrackId && menuPosition &&
-  createPortal(
-    <div
-      className="track-menu fixed z-[10000] w-48 bg-[#1e1e1e]/60 backdrop-blur-[80px] saturate-150 border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top-left p-1.5 flex flex-col gap-0.5"
-      style={{ top: menuPosition.y, left: menuPosition.x }}
-      onMouseDown={(e) => e.stopPropagation()}
-    >
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          const track = activeMenuTrack;
-          if (track) {
-            if (search.activeTab === "netease") {
-              playNeteaseTrack(track as NeteaseTrackInfo);
-            } else {
-              playArchiveTrack(track as StreamingTrack);
-            }
-            closeMenu();
-            onClose();
-          }
-        }}
-        className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
-      >
-        <PlayIcon className="w-4 h-4" />
-        {t("search.playNow")}
-      </button>
-
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          const track = activeMenuTrack;
-          if (track) {
-            if (search.activeTab === "netease") {
-              addNeteaseToQueue(track as NeteaseTrackInfo);
-            } else {
-              addArchiveToQueue(track as StreamingTrack);
-            }
-            closeMenu();
-          }
-        }}
-        disabled={!!activeMenuTrack && search.isResultInQueue(activeMenuTrack)}
-        className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-      >
-        <NextIcon className="w-4 h-4" />
-        {t("search.playNext")}
-      </button>
-
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          const track = activeMenuTrack;
-          if (track) {
-            if (search.activeTab === "netease") {
-              addNeteaseToQueue(track as NeteaseTrackInfo);
-            } else {
-              addArchiveToQueue(track as StreamingTrack);
-            }
-            closeMenu();
-          }
-        }}
-        disabled={!!activeMenuTrack && search.isResultInQueue(activeMenuTrack)}
-        className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-      >
-        <PlusIcon className="w-4 h-4" />
-        {t("search.addToQueue")}
-      </button>
-    </div>,
-    document.body,
-  )
-}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const track = activeMenuTrack;
+                  if (track) {
+                    if (search.onlineSource === "netease") {
+                      addNeteaseToQueue(track as NeteaseTrackInfo);
+                    } else {
+                      addArchiveToQueue(track as StreamingTrack);
+                    }
+                    closeMenu();
+                  }
+                }}
+                disabled={!!activeMenuTrack && search.isResultInQueue(activeMenuTrack)}
+                className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              >
+                <PlusIcon className="w-4 h-4" />
+                {t("search.addToQueue")}
+              </button>
+            </div>,
+            document.body,
+          )
+        }
       </div >
     </div >,
-  document.body,
+    document.body,
   );
 };
 

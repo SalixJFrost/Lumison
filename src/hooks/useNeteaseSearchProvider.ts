@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { SearchProvider, SearchResultItem } from "./useSearchProvider";
+import { SearchProvider } from "./useSearchProvider";
 import {
     searchNetEase,
     NeteaseTrackInfo,
@@ -8,7 +8,7 @@ import { dedupeSearchResults } from "../utils/searchResultLookup";
 
 const LIMIT = 30;
 
-export interface NeteaseSearchProviderExtended extends SearchProvider {
+interface NeteaseSearchProviderExtended extends SearchProvider {
     performSearch: (query: string) => Promise<void>;
     hasSearched: boolean;
     results: NeteaseTrackInfo[];
@@ -20,10 +20,29 @@ export const useNeteaseSearchProvider = (): NeteaseSearchProviderExtended => {
     const [hasMore, setHasMore] = useState(true);
     const [hasSearched, setHasSearched] = useState(false);
 
+    const fetchPage = useCallback(
+        async (
+            query: string,
+            offset: number,
+            limit: number,
+            errorLabel: string,
+        ): Promise<NeteaseTrackInfo[] | null> => {
+            try {
+                return await searchNetEase(query, { limit, offset });
+            } catch (e) {
+                console.error(errorLabel, e);
+                return null;
+            }
+        },
+        [],
+    );
+
     const performSearch = useCallback(async (query: string) => {
-        if (!query.trim()) {
+        const normalizedQuery = query.trim();
+        if (!normalizedQuery) {
             setResults([]);
             setHasSearched(false);
+            setHasMore(true);
             return;
         }
 
@@ -32,50 +51,54 @@ export const useNeteaseSearchProvider = (): NeteaseSearchProviderExtended => {
         setResults([]);
         setHasMore(true);
 
-        try {
-            const searchResults = await searchNetEase(query, {
-                limit: LIMIT,
-                offset: 0,
-            });
-            setResults(dedupeSearchResults(searchResults));
-            setHasMore(searchResults.length >= LIMIT);
-        } catch (e) {
-            console.error("Netease search failed:", e);
+        const searchResults = await fetchPage(
+            normalizedQuery,
+            0,
+            LIMIT,
+            "Netease search failed:",
+        );
+
+        if (!searchResults) {
             setHasMore(false);
-        } finally {
             setIsLoading(false);
+            return;
         }
-    }, []);
+
+        setResults(dedupeSearchResults(searchResults));
+        setHasMore(searchResults.length >= LIMIT);
+        setIsLoading(false);
+    }, [fetchPage]);
 
     const loadMore = useCallback(
-        async (query: string, offset: number, limit: number): Promise<SearchResultItem[]> => {
+        async (
+            query: string,
+            offset: number,
+            limit: number,
+        ): Promise<NeteaseTrackInfo[]> => {
             if (isLoading || !hasMore) return [];
 
             setIsLoading(true);
-            try {
-                const searchResults = await searchNetEase(query, {
-                    limit,
-                    offset,
-                });
+            const searchResults = await fetchPage(query, offset, limit, "Load more failed:");
 
-                if (searchResults.length === 0) {
-                    setHasMore(false);
-                } else {
-                    setResults((prev) => dedupeSearchResults([...prev, ...searchResults]));
-                }
-                return searchResults;
-            } catch (e) {
-                console.error("Load more failed:", e);
+            if (!searchResults) {
                 setHasMore(false);
-                return [];
-            } finally {
                 setIsLoading(false);
+                return [];
             }
+
+            if (searchResults.length === 0) {
+                setHasMore(false);
+            } else {
+                setResults((prev) => dedupeSearchResults([...prev, ...searchResults]));
+            }
+
+            setIsLoading(false);
+            return searchResults;
         },
-        [isLoading, hasMore]
+        [fetchPage, isLoading, hasMore],
     );
 
-    const provider: NeteaseSearchProviderExtended = {
+    return {
         id: "netease",
         label: "Netease", // Not used in UI, translated directly in SearchModal
         requiresExplicitSearch: true,
@@ -84,7 +107,7 @@ export const useNeteaseSearchProvider = (): NeteaseSearchProviderExtended => {
         hasSearched,
         results,
 
-        search: async (query: string): Promise<SearchResultItem[]> => {
+        search: async (): Promise<NeteaseTrackInfo[]> => {
             // For explicit search providers, this returns current results
             // Actual search is triggered by performSearch
             return results;
@@ -93,6 +116,4 @@ export const useNeteaseSearchProvider = (): NeteaseSearchProviderExtended => {
         loadMore,
         performSearch,
     };
-
-    return provider;
 };

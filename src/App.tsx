@@ -1,16 +1,12 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { Suspense, lazy, useCallback, useState, useRef, useEffect, useMemo } from "react";
 import { useToast } from "./hooks/useToast";
 import ShaderBackground from "./components/ShaderBackground";
 import FluidBackground from "./components/FluidBackground";
 import Controls from "./components/Controls";
 import LyricsView from "./components/LyricsView";
-import PlaylistPanel from "./components/PlaylistPanel";
 import KeyboardShortcuts from "./components/KeyboardShortcuts";
 import TopBar from "./components/TopBar";
-import SearchModal from "./components/SearchModal";
 import SpeedIndicator from "./components/SpeedIndicator";
-import UpdateNotification from "./components/UpdateNotification";
-import AlbumMode from "./components/AlbumMode";
 import { usePlaylist } from "./hooks/usePlaylist";
 import { usePlayer } from "./hooks/usePlayer";
 import { keyboardRegistry } from "./services/ui/keyboardRegistry";
@@ -24,6 +20,16 @@ import { getPlatformConfig } from "./services/music/multiPlatformLyrics";
 import { PlayState, Song } from "./types";
 import { useWebViewOptimization, useOptimizedBackdropFilter } from "./hooks/useWebViewOptimization";
 import { buildSongLookupIndexMap, getSongLookupKey } from "./utils/songLookup";
+
+const importPlaylistPanel = () => import("./components/PlaylistPanel");
+const importSearchModal = () => import("./components/SearchModal");
+const importUpdateNotification = () => import("./components/UpdateNotification");
+const importAlbumMode = () => import("./components/AlbumMode");
+
+const LazyPlaylistPanel = lazy(importPlaylistPanel);
+const LazySearchModal = lazy(importSearchModal);
+const LazyUpdateNotification = lazy(importUpdateNotification);
+const LazyAlbumMode = lazy(importAlbumMode);
 
 const App: React.FC = () => {
   const { toast } = useToast();
@@ -111,6 +117,8 @@ const App: React.FC = () => {
 
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [hasOpenedPlaylist, setHasOpenedPlaylist] = useState(false);
+  const [hasOpenedSearch, setHasOpenedSearch] = useState(false);
   const [showVolumePopup, setShowVolumePopup] = useState(false);
   const [showSettingsPopup, setShowSettingsPopup] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
@@ -118,6 +126,7 @@ const App: React.FC = () => {
   const [volume, setVolume] = useState(1);
   const [showSpeedIndicator, setShowSpeedIndicator] = useState(false);
   const speedIndicatorTimerRef = useRef<number | null>(null);
+  const hasPrefetchedLazyChunksRef = useRef(false);
 
   const [isMobileLayout, setIsMobileLayout] = useState(false);
   const [activePanel, setActivePanel] = useState<"controls" | "lyrics">(
@@ -138,6 +147,7 @@ const App: React.FC = () => {
 
   // View mode state - 'default' or 'lyrics'
   const [viewMode, setViewMode] = useState<'default' | 'lyrics'>('default');
+  const [hasEnteredLyricsMode, setHasEnteredLyricsMode] = useState(false);
 
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -152,6 +162,44 @@ const App: React.FC = () => {
     () => buildSongLookupIndexMap(playlist.queue),
     [playlist.queue],
   );
+
+  const preloadPlaylistPanel = useCallback(() => {
+    void importPlaylistPanel();
+  }, []);
+
+  const preloadSearchModal = useCallback(() => {
+    void importSearchModal();
+  }, []);
+
+  const preloadUpdateNotification = useCallback(() => {
+    void importUpdateNotification();
+  }, []);
+
+  const preloadAlbumMode = useCallback(() => {
+    void importAlbumMode();
+  }, []);
+
+  const handleOpenSearch = useCallback(() => {
+    preloadSearchModal();
+    setShowSearch(true);
+  }, [preloadSearchModal]);
+
+  const handleOpenPlaylist = useCallback(() => {
+    preloadPlaylistPanel();
+    setShowPlaylist(true);
+  }, [preloadPlaylistPanel]);
+
+  const handleTogglePlaylist = useCallback(() => {
+    preloadPlaylistPanel();
+    setShowPlaylist((prev) => !prev);
+  }, [preloadPlaylistPanel]);
+
+  const handleViewModeChange = useCallback((mode: 'default' | 'lyrics') => {
+    if (mode === 'lyrics') {
+      preloadAlbumMode();
+    }
+    setViewMode(mode);
+  }, [preloadAlbumMode]);
 
   // Update hasEverPlayed when playing starts with lyrics
   useEffect(() => {
@@ -255,6 +303,85 @@ const App: React.FC = () => {
   }, [volume, audioRef]);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const win = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+
+    let idleId: number | null = null;
+    let timeoutId: number | null = null;
+
+    const runPrefetch = () => {
+      if (hasPrefetchedLazyChunksRef.current) {
+        return;
+      }
+
+      hasPrefetchedLazyChunksRef.current = true;
+      preloadSearchModal();
+      preloadPlaylistPanel();
+      preloadAlbumMode();
+      preloadUpdateNotification();
+    };
+
+    const onFirstInteraction = () => {
+      runPrefetch();
+      window.removeEventListener("pointerdown", onFirstInteraction);
+      window.removeEventListener("keydown", onFirstInteraction);
+      window.removeEventListener("touchstart", onFirstInteraction);
+    };
+
+    window.addEventListener("pointerdown", onFirstInteraction, { passive: true });
+    window.addEventListener("keydown", onFirstInteraction);
+    window.addEventListener("touchstart", onFirstInteraction, { passive: true });
+
+    if (typeof win.requestIdleCallback === "function") {
+      idleId = win.requestIdleCallback(() => {
+        runPrefetch();
+      }, { timeout: 3000 });
+    } else {
+      timeoutId = window.setTimeout(() => {
+        runPrefetch();
+      }, 1500);
+    }
+
+    return () => {
+      window.removeEventListener("pointerdown", onFirstInteraction);
+      window.removeEventListener("keydown", onFirstInteraction);
+      window.removeEventListener("touchstart", onFirstInteraction);
+
+      if (idleId !== null && typeof win.cancelIdleCallback === "function") {
+        win.cancelIdleCallback(idleId);
+      }
+
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [preloadAlbumMode, preloadPlaylistPanel, preloadSearchModal, preloadUpdateNotification]);
+
+  useEffect(() => {
+    if (showPlaylist) {
+      setHasOpenedPlaylist(true);
+    }
+  }, [showPlaylist]);
+
+  useEffect(() => {
+    if (showSearch) {
+      setHasOpenedSearch(true);
+    }
+  }, [showSearch]);
+
+  useEffect(() => {
+    if (viewMode === "lyrics") {
+      setHasEnteredLyricsMode(true);
+    }
+  }, [viewMode]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const query = window.matchMedia("(max-width: 1024px)");
     const updateLayout = (event: MediaQueryListEvent | MediaQueryList) => {
@@ -300,12 +427,13 @@ const App: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
+        preloadSearchModal();
         setShowSearch((prev) => !prev);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [preloadSearchModal]);
 
   // Handle song changes (auto-play, etc)
   useEffect(() => {
@@ -434,7 +562,7 @@ const App: React.FC = () => {
           onPrev={playPrev}
           playMode={playMode}
           onToggleMode={toggleMode}
-          onTogglePlaylist={() => setShowPlaylist(true)}
+          onTogglePlaylist={handleOpenPlaylist}
           accentColor={accentColor}
           volume={volume}
           onVolumeChange={setVolume}
@@ -451,21 +579,25 @@ const App: React.FC = () => {
         />
 
         {/* Floating Playlist Panel */}
-        <PlaylistPanel
-          isOpen={showPlaylist}
-          onClose={() => setShowPlaylist(false)}
-          queue={playlist.queue}
-          currentSongId={currentSong?.id}
-          onPlay={playIndex}
-          onImport={handleImportUrl}
-          onRemove={playlist.removeSongs}
-          accentColor={accentColor}
-          onFilesSelected={handleFileChange}
-          onSearchClick={() => setShowSearch(true)}
-        />
+        {(hasOpenedPlaylist || showPlaylist) && (
+          <Suspense fallback={null}>
+            <LazyPlaylistPanel
+              isOpen={showPlaylist}
+              onClose={() => setShowPlaylist(false)}
+              queue={playlist.queue}
+              currentSongId={currentSong?.id}
+              onPlay={playIndex}
+              onImport={handleImportUrl}
+              onRemove={playlist.removeSongs}
+              accentColor={accentColor}
+              onFilesSelected={handleFileChange}
+              onSearchClick={handleOpenSearch}
+            />
+          </Suspense>
+        )}
       </div>
     </div>
-  ), [playState, currentTime, duration, currentSong?.title, currentSong?.artist, currentSong?.id, currentSong?.coverUrl, t, playNext, playPrev, playMode, accentColor, volume, player.speed, player.preservesPitch, isBuffering, showVolumePopup, showSettingsPopup, showPlaylist, playlist.queue, playlist.removeSongs, hasEverPlayed]);
+  ), [playState, currentTime, duration, currentSong?.title, currentSong?.artist, currentSong?.id, currentSong?.coverUrl, t, playNext, playPrev, playMode, accentColor, volume, player.speed, player.preservesPitch, isBuffering, showVolumePopup, showSettingsPopup, showPlaylist, playlist.queue, playlist.removeSongs, hasEverPlayed, handleOpenPlaylist, handleOpenSearch]);
 
   const lyricsVersion = currentSong?.lyrics ? currentSong.lyrics.length : 0;
   const lyricsKey = currentSong ? `${currentSong.id}-${lyricsVersion}` : "no-song";
@@ -531,7 +663,7 @@ const App: React.FC = () => {
         volume={volume}
         onVolumeChange={setVolume}
         onToggleMode={toggleMode}
-        onTogglePlaylist={() => setShowPlaylist((prev) => !prev)}
+        onTogglePlaylist={handleTogglePlaylist}
         speed={player.speed}
         onSpeedChange={handleSpeedChange}
         onToggleVolumeDialog={() => setShowVolumePopup((prev) => !prev)}
@@ -542,11 +674,13 @@ const App: React.FC = () => {
 
       {/* Update Notification */}
       {updateAvailable && (
-        <UpdateNotification
-          version={updateVersion}
-          onClose={() => setUpdateAvailable(false)}
-          onUpdate={() => { }}
-        />
+        <Suspense fallback={null}>
+          <LazyUpdateNotification
+            version={updateVersion}
+            onClose={() => setUpdateAvailable(false)}
+            onUpdate={() => { }}
+          />
+        </Suspense>
       )}
 
       <MediaSessionController
@@ -568,9 +702,9 @@ const App: React.FC = () => {
           lyricsFontSize={lyricsFontSize}
           onLyricsFontSizeChange={setLyricsFontSize}
           onImportUrl={handleImportUrl}
-          onSearchClick={() => setShowSearch(true)}
+          onSearchClick={handleOpenSearch}
           viewMode={viewMode}
-          onViewModeChange={setViewMode}
+          onViewModeChange={handleViewModeChange}
           currentSong={currentSong ? {
             title: currentSong.title,
             artist: currentSong.artist,
@@ -606,34 +740,42 @@ const App: React.FC = () => {
       )}
 
       {/* Search Modal - Always rendered to preserve state, visibility handled internally */}
-      <SearchModal
-        isOpen={showSearch}
-        onClose={() => setShowSearch(false)}
-        queue={playlist.queue}
-        onPlayQueueIndex={playIndex}
-        onImportAndPlay={handleImportAndPlay}
-        onAddToQueue={handleAddToQueue}
-        currentSong={currentSong}
-        isPlaying={playState === PlayState.PLAYING}
-        accentColor={accentColor}
-      />
+      {(hasOpenedSearch || showSearch) && (
+        <Suspense fallback={null}>
+          <LazySearchModal
+            isOpen={showSearch}
+            onClose={() => setShowSearch(false)}
+            queue={playlist.queue}
+            onPlayQueueIndex={playIndex}
+            onImportAndPlay={handleImportAndPlay}
+            onAddToQueue={handleAddToQueue}
+            currentSong={currentSong}
+            isPlaying={playState === PlayState.PLAYING}
+            accentColor={accentColor}
+          />
+        </Suspense>
+      )}
 
       {/* Main Content Split */}
       {viewMode === 'lyrics' ? (
         // Lyrics Mode - Full screen centered lyrics view
         <div className="flex-1 w-full h-full">
-          <AlbumMode
-            coverUrl={currentSong?.coverUrl}
-            title={currentSong?.title || t("player.welcomeTitle")}
-            artist={currentSong?.artist || t("player.selectSong")}
-            isPlaying={playState === PlayState.PLAYING}
-            currentTime={currentTime}
-            duration={duration}
-            onSeek={handleSeek}
-            accentColor={accentColor}
-            lyrics={currentSong?.lyrics}
-            showLyrics={true}
-          />
+          {(hasEnteredLyricsMode || viewMode === "lyrics") && (
+            <Suspense fallback={null}>
+              <LazyAlbumMode
+                coverUrl={currentSong?.coverUrl}
+                title={currentSong?.title || t("player.welcomeTitle")}
+                artist={currentSong?.artist || t("player.selectSong")}
+                isPlaying={playState === PlayState.PLAYING}
+                currentTime={currentTime}
+                duration={duration}
+                onSeek={handleSeek}
+                accentColor={accentColor}
+                lyrics={currentSong?.lyrics}
+                showLyrics={true}
+              />
+            </Suspense>
+          )}
         </div>
       ) : isMobileLayout ? (
         <div className="flex-1 relative w-full h-full">

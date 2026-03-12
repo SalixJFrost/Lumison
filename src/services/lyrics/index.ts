@@ -21,15 +21,6 @@ import { mergeTranslations } from "./translation";
 // Re-export types
 export type { LyricLine, LyricWord } from "./types";
 
-// Re-export parsers  
-export { parseLrc } from "./lrc";
-export { parseNeteaseLyrics, isNeteaseFormat } from "./netease";
-export { mergeTranslations, buildTranslationMap } from "./translation";
-
-// Re-export utilities for backward compatibility
-export { INTERLUDE_TEXT } from "./parser";
-export { parseTime as parseTimeTag } from "./parser";
-
 /**
  * Parse lyrics with automatic format detection.
  *

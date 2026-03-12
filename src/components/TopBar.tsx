@@ -7,6 +7,7 @@ import LanguageSwitcher from "./LanguageSwitcher";
 import { useTheme } from "../contexts/ThemeContext";
 import { useI18n } from "../contexts/I18nContext";
 import { Window } from "@tauri-apps/api/window";
+import { UpdateService } from "../services/updateService";
 
 interface TopBarProps {
   disabled?: boolean;
@@ -186,7 +187,6 @@ const TopBar: React.FC<TopBarProps> = ({
   const handleCheckUpdate = useCallback(async () => {
     setIsCheckingUpdate(true);
     try {
-      const { UpdateService } = await import('../services/updateService');
       const updateInfo = await UpdateService.checkForUpdates();
 
       if (updateInfo.available) {

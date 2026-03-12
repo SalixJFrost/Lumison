@@ -78,6 +78,41 @@ export default defineConfig(({ mode }) => {
       target: isTauri ? 'esnext' : 'es2015',
       minify: mode === 'production',
       sourcemap: mode === 'development',
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) {
+              return;
+            }
+
+            if (id.includes('react') || id.includes('scheduler')) {
+              return 'react-vendor';
+            }
+
+            if (id.includes('@tauri-apps')) {
+              return 'tauri-vendor';
+            }
+
+            if (id.includes('@google/genai')) {
+              return 'ai-vendor';
+            }
+
+            if (id.includes('@react-spring')) {
+              return 'animation-vendor';
+            }
+
+            if (id.includes('jsmediatags')) {
+              return 'media-tags-vendor';
+            }
+
+            if (id.includes('colorthief')) {
+              return 'image-vendor';
+            }
+
+            return 'vendor';
+          },
+        },
+      },
     },
   };
 });

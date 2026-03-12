@@ -29,16 +29,16 @@ async function fetchWithFallback(
 ): Promise<any> {
   const { timeout = 12000, retries = 1 } = config; // 增加超时时间，减少重试次数
   const apis = [API_ENDPOINTS.primary, ...API_ENDPOINTS.backup];
-  
+
   for (const baseUrl of apis) {
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         const url = endpoint.includes('http') ? endpoint : `${baseUrl}${endpoint}`;
         // console.log(`Trying API: ${url}`);
-        
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
-        
+
         try {
           const result = await fetchViaProxy(url, { signal: controller.signal });
           clearTimeout(timeoutId);
@@ -54,13 +54,13 @@ async function fetchWithFallback(
       }
     }
   }
-  
+
   throw new Error("All Netease API endpoints failed");
 }
 
 // ==================== 类型定义 ====================
 
-export interface NeteaseTrack {
+interface NeteaseTrack {
   id: number;
   name: string;
   artists: Array<{ id: number; name: string }>;
@@ -74,7 +74,7 @@ export interface NeteaseTrack {
   mvid?: number;
 }
 
-export interface NeteasePlaylist {
+interface NeteasePlaylist {
   id: number;
   name: string;
   coverImgUrl: string;
@@ -89,7 +89,7 @@ export interface NeteasePlaylist {
   tags: string[];
 }
 
-export interface NeteaseAlbum {
+interface NeteaseAlbum {
   id: number;
   name: string;
   picUrl: string;
@@ -102,7 +102,7 @@ export interface NeteaseAlbum {
   description: string;
 }
 
-export interface NeteaseArtist {
+interface NeteaseArtist {
   id: number;
   name: string;
   picUrl: string;
@@ -111,14 +111,14 @@ export interface NeteaseArtist {
   briefDesc: string;
 }
 
-export interface NeteaseLyric {
+interface NeteaseLyric {
   lrc?: { lyric: string };
   tlyric?: { lyric: string };
   romalrc?: { lyric: string };
   yrc?: { lyric: string };
 }
 
-export interface NeteaseComment {
+interface NeteaseComment {
   commentId: number;
   content: string;
   time: number;
@@ -135,13 +135,13 @@ export interface NeteaseComment {
 /**
  * 搜索歌曲
  */
-export async function searchSongs(
+async function searchSongs(
   keyword: string,
   options: { limit?: number; offset?: number } = {}
 ): Promise<{ songs: NeteaseTrack[]; songCount: number }> {
   const { limit = 30, offset = 0 } = options;
   const endpoint = `/cloudsearch?keywords=${encodeURIComponent(keyword)}&type=1&limit=${limit}&offset=${offset}`;
-  
+
   const data = await fetchWithFallback(endpoint);
   return {
     songs: data.result?.songs || [],
@@ -152,13 +152,13 @@ export async function searchSongs(
 /**
  * 搜索歌单
  */
-export async function searchPlaylists(
+async function searchPlaylists(
   keyword: string,
   options: { limit?: number; offset?: number } = {}
 ): Promise<{ playlists: NeteasePlaylist[]; playlistCount: number }> {
   const { limit = 30, offset = 0 } = options;
   const endpoint = `/cloudsearch?keywords=${encodeURIComponent(keyword)}&type=1000&limit=${limit}&offset=${offset}`;
-  
+
   const data = await fetchWithFallback(endpoint);
   return {
     playlists: data.result?.playlists || [],
@@ -169,13 +169,13 @@ export async function searchPlaylists(
 /**
  * 搜索专辑
  */
-export async function searchAlbums(
+async function searchAlbums(
   keyword: string,
   options: { limit?: number; offset?: number } = {}
 ): Promise<{ albums: NeteaseAlbum[]; albumCount: number }> {
   const { limit = 30, offset = 0 } = options;
   const endpoint = `/cloudsearch?keywords=${encodeURIComponent(keyword)}&type=10&limit=${limit}&offset=${offset}`;
-  
+
   const data = await fetchWithFallback(endpoint);
   return {
     albums: data.result?.albums || [],
@@ -186,13 +186,13 @@ export async function searchAlbums(
 /**
  * 搜索歌手
  */
-export async function searchArtists(
+async function searchArtists(
   keyword: string,
   options: { limit?: number; offset?: number } = {}
 ): Promise<{ artists: NeteaseArtist[]; artistCount: number }> {
   const { limit = 30, offset = 0 } = options;
   const endpoint = `/cloudsearch?keywords=${encodeURIComponent(keyword)}&type=100&limit=${limit}&offset=${offset}`;
-  
+
   const data = await fetchWithFallback(endpoint);
   return {
     artists: data.result?.artists || [],
@@ -205,10 +205,10 @@ export async function searchArtists(
 /**
  * 获取歌曲详情
  */
-export async function getSongDetail(ids: number | number[]): Promise<NeteaseTrack[]> {
+async function getSongDetail(ids: number | number[]): Promise<NeteaseTrack[]> {
   const idStr = Array.isArray(ids) ? ids.join(',') : String(ids);
   const endpoint = `/song/detail?ids=${idStr}`;
-  
+
   const data = await fetchWithFallback(endpoint);
   return data.songs || [];
 }
@@ -216,19 +216,19 @@ export async function getSongDetail(ids: number | number[]): Promise<NeteaseTrac
 /**
  * 获取歌曲播放 URL
  */
-export async function getSongUrl(
+async function getSongUrl(
   id: number,
   quality: 'standard' | 'higher' | 'exhigh' | 'lossless' = 'higher'
 ): Promise<{ url: string; br: number; size: number } | null> {
   const endpoint = `/song/url?id=${id}&br=${getBitrate(quality)}`;
-  
+
   const data = await fetchWithFallback(endpoint);
   const urlData = data.data?.[0];
-  
+
   if (!urlData || !urlData.url) {
     return null;
   }
-  
+
   return {
     url: urlData.url,
     br: urlData.br,
@@ -249,7 +249,7 @@ function getBitrate(quality: string): number {
 /**
  * 获取歌词
  */
-export async function getLyric(id: number): Promise<NeteaseLyric> {
+async function getLyric(id: number): Promise<NeteaseLyric> {
   const endpoint = `/lyric?id=${id}`;
   const data = await fetchWithFallback(endpoint);
   return data;
@@ -260,13 +260,13 @@ export async function getLyric(id: number): Promise<NeteaseLyric> {
 /**
  * 获取歌单详情
  */
-export async function getPlaylistDetail(id: number): Promise<{
+async function getPlaylistDetail(id: number): Promise<{
   playlist: NeteasePlaylist;
   tracks: NeteaseTrack[];
 }> {
   const endpoint = `/playlist/detail?id=${id}`;
   const data = await fetchWithFallback(endpoint);
-  
+
   return {
     playlist: data.playlist,
     tracks: data.playlist?.tracks || []
@@ -276,7 +276,7 @@ export async function getPlaylistDetail(id: number): Promise<{
 /**
  * 获取推荐歌单
  */
-export async function getRecommendPlaylists(limit: number = 30): Promise<NeteasePlaylist[]> {
+async function getRecommendPlaylists(limit: number = 30): Promise<NeteasePlaylist[]> {
   const endpoint = `/personalized?limit=${limit}`;
   const data = await fetchWithFallback(endpoint);
   return data.result || [];
@@ -285,13 +285,13 @@ export async function getRecommendPlaylists(limit: number = 30): Promise<Netease
 /**
  * 获取精品歌单
  */
-export async function getTopPlaylists(
+async function getTopPlaylists(
   category: string = '全部',
   options: { limit?: number; offset?: number } = {}
 ): Promise<{ playlists: NeteasePlaylist[]; total: number }> {
   const { limit = 50, offset = 0 } = options;
   const endpoint = `/top/playlist?cat=${encodeURIComponent(category)}&limit=${limit}&offset=${offset}`;
-  
+
   const data = await fetchWithFallback(endpoint);
   return {
     playlists: data.playlists || [],
@@ -304,13 +304,13 @@ export async function getTopPlaylists(
 /**
  * 获取专辑详情
  */
-export async function getAlbumDetail(id: number): Promise<{
+async function getAlbumDetail(id: number): Promise<{
   album: NeteaseAlbum;
   songs: NeteaseTrack[];
 }> {
   const endpoint = `/album?id=${id}`;
   const data = await fetchWithFallback(endpoint);
-  
+
   return {
     album: data.album,
     songs: data.songs || []
@@ -320,12 +320,12 @@ export async function getAlbumDetail(id: number): Promise<{
 /**
  * 获取最新专辑
  */
-export async function getNewAlbums(
+async function getNewAlbums(
   options: { limit?: number; offset?: number; area?: string } = {}
 ): Promise<NeteaseAlbum[]> {
   const { limit = 30, offset = 0, area = 'ALL' } = options;
   const endpoint = `/album/new?limit=${limit}&offset=${offset}&area=${area}`;
-  
+
   const data = await fetchWithFallback(endpoint);
   return data.albums || [];
 }
@@ -335,7 +335,7 @@ export async function getNewAlbums(
 /**
  * 获取歌手详情
  */
-export async function getArtistDetail(id: number): Promise<NeteaseArtist> {
+async function getArtistDetail(id: number): Promise<NeteaseArtist> {
   const endpoint = `/artist/detail?id=${id}`;
   const data = await fetchWithFallback(endpoint);
   return data.data?.artist || {};
@@ -344,7 +344,7 @@ export async function getArtistDetail(id: number): Promise<NeteaseArtist> {
 /**
  * 获取歌手热门歌曲
  */
-export async function getArtistTopSongs(id: number): Promise<NeteaseTrack[]> {
+async function getArtistTopSongs(id: number): Promise<NeteaseTrack[]> {
   const endpoint = `/artist/top/song?id=${id}`;
   const data = await fetchWithFallback(endpoint);
   return data.songs || [];
@@ -353,13 +353,13 @@ export async function getArtistTopSongs(id: number): Promise<NeteaseTrack[]> {
 /**
  * 获取歌手专辑
  */
-export async function getArtistAlbums(
+async function getArtistAlbums(
   id: number,
   options: { limit?: number; offset?: number } = {}
 ): Promise<{ albums: NeteaseAlbum[]; more: boolean }> {
   const { limit = 30, offset = 0 } = options;
   const endpoint = `/artist/album?id=${id}&limit=${limit}&offset=${offset}`;
-  
+
   const data = await fetchWithFallback(endpoint);
   return {
     albums: data.hotAlbums || [],
@@ -372,7 +372,7 @@ export async function getArtistAlbums(
 /**
  * 获取所有排行榜
  */
-export async function getToplistDetail(): Promise<any[]> {
+async function getToplistDetail(): Promise<any[]> {
   const endpoint = `/toplist/detail`;
   const data = await fetchWithFallback(endpoint);
   return data.list || [];
@@ -381,13 +381,13 @@ export async function getToplistDetail(): Promise<any[]> {
 /**
  * 获取指定排行榜
  */
-export async function getToplist(id: number): Promise<{
+async function getToplist(id: number): Promise<{
   playlist: NeteasePlaylist;
   tracks: NeteaseTrack[];
 }> {
   const endpoint = `/playlist/detail?id=${id}`;
   const data = await fetchWithFallback(endpoint);
-  
+
   return {
     playlist: data.playlist,
     tracks: data.playlist?.tracks || []
@@ -399,13 +399,13 @@ export async function getToplist(id: number): Promise<{
 /**
  * 获取歌曲评论
  */
-export async function getSongComments(
+async function getSongComments(
   id: number,
   options: { limit?: number; offset?: number; type?: 'hot' | 'new' } = {}
 ): Promise<{ comments: NeteaseComment[]; total: number; hotComments: NeteaseComment[] }> {
   const { limit = 20, offset = 0, type = 'new' } = options;
   const endpoint = `/comment/music?id=${id}&limit=${limit}&offset=${offset}&type=${type === 'hot' ? 1 : 2}`;
-  
+
   const data = await fetchWithFallback(endpoint);
   return {
     comments: data.comments || [],
@@ -419,7 +419,7 @@ export async function getSongComments(
 /**
  * 获取每日推荐歌曲（需要登录）
  */
-export async function getDailyRecommendSongs(): Promise<NeteaseTrack[]> {
+async function getDailyRecommendSongs(): Promise<NeteaseTrack[]> {
   const endpoint = `/recommend/songs`;
   const data = await fetchWithFallback(endpoint);
   return data.data?.dailySongs || [];
@@ -428,7 +428,7 @@ export async function getDailyRecommendSongs(): Promise<NeteaseTrack[]> {
 /**
  * 获取相似歌曲
  */
-export async function getSimilarSongs(
+async function getSimilarSongs(
   id: number,
   limit: number = 50
 ): Promise<NeteaseTrack[]> {
@@ -440,7 +440,7 @@ export async function getSimilarSongs(
 /**
  * 获取相似歌单
  */
-export async function getSimilarPlaylists(
+async function getSimilarPlaylists(
   id: number,
   limit: number = 50
 ): Promise<NeteasePlaylist[]> {
@@ -454,7 +454,7 @@ export async function getSimilarPlaylists(
 /**
  * 获取热搜列表
  */
-export async function getHotSearchList(): Promise<Array<{ searchWord: string; score: number }>> {
+async function getHotSearchList(): Promise<Array<{ searchWord: string; score: number }>> {
   const endpoint = `/search/hot/detail`;
   const data = await fetchWithFallback(endpoint);
   return data.data || [];
@@ -463,7 +463,7 @@ export async function getHotSearchList(): Promise<Array<{ searchWord: string; sc
 /**
  * 获取搜索建议
  */
-export async function getSearchSuggest(keyword: string): Promise<{
+async function getSearchSuggest(keyword: string): Promise<{
   songs?: NeteaseTrack[];
   artists?: NeteaseArtist[];
   albums?: NeteaseAlbum[];
@@ -477,7 +477,7 @@ export async function getSearchSuggest(keyword: string): Promise<{
 /**
  * 检查音乐是否可用
  */
-export async function checkMusicAvailable(id: number): Promise<{
+async function checkMusicAvailable(id: number): Promise<{
   success: boolean;
   message: string;
 }> {
@@ -491,7 +491,7 @@ export async function checkMusicAvailable(id: number): Promise<{
 /**
  * 快速搜索并获取第一首歌曲
  */
-export async function quickSearchSong(keyword: string): Promise<NeteaseTrack | null> {
+async function quickSearchSong(keyword: string): Promise<NeteaseTrack | null> {
   const { songs } = await searchSongs(keyword, { limit: 1 });
   return songs[0] || null;
 }
@@ -499,7 +499,7 @@ export async function quickSearchSong(keyword: string): Promise<NeteaseTrack | n
 /**
  * 获取完整歌曲信息（包括播放 URL 和歌词）
  */
-export async function getCompleteSongInfo(id: number): Promise<{
+async function getCompleteSongInfo(id: number): Promise<{
   detail: NeteaseTrack;
   url: string | null;
   lyric: NeteaseLyric;
@@ -509,58 +509,10 @@ export async function getCompleteSongInfo(id: number): Promise<{
     getSongUrl(id),
     getLyric(id)
   ]);
-  
+
   return {
     detail: details[0],
     url: urlData?.url || null,
     lyric
   };
 }
-
-export default {
-  // 搜索
-  searchSongs,
-  searchPlaylists,
-  searchAlbums,
-  searchArtists,
-  
-  // 歌曲
-  getSongDetail,
-  getSongUrl,
-  getLyric,
-  
-  // 歌单
-  getPlaylistDetail,
-  getRecommendPlaylists,
-  getTopPlaylists,
-  
-  // 专辑
-  getAlbumDetail,
-  getNewAlbums,
-  
-  // 歌手
-  getArtistDetail,
-  getArtistTopSongs,
-  getArtistAlbums,
-  
-  // 排行榜
-  getToplistDetail,
-  getToplist,
-  
-  // 评论
-  getSongComments,
-  
-  // 推荐
-  getDailyRecommendSongs,
-  getSimilarSongs,
-  getSimilarPlaylists,
-  
-  // 其他
-  getHotSearchList,
-  getSearchSuggest,
-  checkMusicAvailable,
-  
-  // 便捷函数
-  quickSearchSong,
-  getCompleteSongInfo
-};

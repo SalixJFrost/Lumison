@@ -2,7 +2,6 @@ import { useCallback, useState } from "react";
 import { Song } from "../types";
 import {
   extractColors,
-  parseAudioMetadata,
   parseNeteaseLink,
 } from "../services/utils";
 import {
@@ -14,9 +13,9 @@ import {
   fetchAudioFromUrl,
 } from "../services/music/audioStreamService";
 import { audioResourceCache } from "../services/cache";
-import { extractEmbeddedLyrics, findMatchingLRCFile, loadLRCFile } from "../services/lyrics/id3Parser";
+import { extractAudioTagData, findMatchingLRCFile, loadLRCFile } from "../services/lyrics/id3Parser";
 
-export interface ImportResult {
+interface ImportResult {
   success: boolean;
   message?: string;
   songs: Song[];
@@ -97,18 +96,17 @@ export const usePlaylist = () => {
         }
 
         try {
-          // 并行执行：元数据提取、LRC文件查找、内嵌歌词提取
-          const [metadata, matchedLRCFile, embeddedResult] = await Promise.all([
-            parseAudioMetadata(file),
+          // 并行执行：音频标签提取（封面/标题/艺术家/歌词）和 LRC 文件查找
+          const [tagData, matchedLRCFile] = await Promise.all([
+            extractAudioTagData(file),
             Promise.resolve(findMatchingLRCFile(file, lyricsFiles)),
-            extractEmbeddedLyrics(file),
           ]);
 
           // 处理元数据
-          if (metadata.title) title = metadata.title;
-          if (metadata.artist) artist = metadata.artist;
-          if (metadata.picture) {
-            coverUrl = metadata.picture;
+          if (tagData.title) title = tagData.title;
+          if (tagData.artist) artist = tagData.artist;
+          if (tagData.picture) {
+            coverUrl = tagData.picture;
             colors = await extractColors(coverUrl);
           }
 
@@ -121,15 +119,15 @@ export const usePlaylist = () => {
           }
 
           // 处理内嵌歌词
-          if (embeddedResult.lyrics.length > 0) {
-            embeddedLyrics = embeddedResult.lyrics;
-            console.log(`✓ Found ${embeddedResult.source} embedded lyrics for: ${title}`);
+          if (tagData.lyrics.length > 0) {
+            embeddedLyrics = tagData.lyrics;
+            console.log(`✓ Found ${tagData.source} embedded lyrics for: ${title}`);
           }
 
           // 确定初始歌词
           let initialLyrics: { time: number; text: string }[] = [];
           let needsOnlineSearch = false;
-          
+
           if (embeddedLyrics.length > 0) {
             initialLyrics = embeddedLyrics;
             needsOnlineSearch = false;
@@ -153,7 +151,7 @@ export const usePlaylist = () => {
           };
         } catch (err) {
           console.warn(`Failed to process: ${file.name}`, err);
-          
+
           return {
             id: `local-${Date.now()}-${i}`,
             title,
@@ -231,10 +229,10 @@ export const usePlaylist = () => {
       // Try Audio Stream (Internet Archive or Self-hosted)
       try {
         const { track, error } = await fetchAudioFromUrl(input);
-        
+
         if (track) {
           const colors = track.coverUrl ? await extractColors(track.coverUrl) : [];
-          
+
           const newSong: Song = {
             id: track.id,
             title: track.title,
@@ -247,11 +245,11 @@ export const usePlaylist = () => {
             isAudioStream: true,
             audioStreamSource: track.source,
           };
-          
+
           appendSongs([newSong]);
           return { success: true, songs: [newSong] };
         }
-        
+
         if (error) {
           return {
             success: false,

@@ -3,7 +3,7 @@
  * Support for stable audio sources: Internet Archive and self-hosted audio
  */
 
-export interface AudioStreamTrackInfo {
+interface AudioStreamTrackInfo {
   id: string;
   title: string;
   artist?: string;
@@ -13,7 +13,7 @@ export interface AudioStreamTrackInfo {
   source: 'internet-archive' | 'self-hosted';
 }
 
-export interface AudioStreamError {
+interface AudioStreamError {
   code: 'FETCH_FAILED' | 'INVALID_URL' | 'NETWORK_ERROR';
   message: string;
 }
@@ -22,7 +22,7 @@ export interface AudioStreamError {
  * Parse Internet Archive URL
  * Supports: https://archive.org/details/[identifier]
  */
-export const parseInternetArchiveUrl = (url: string): string | null => {
+const parseInternetArchiveUrl = (url: string): string | null => {
   try {
     const urlObj = new URL(url);
     if (urlObj.hostname.includes('archive.org')) {
@@ -40,26 +40,26 @@ export const parseInternetArchiveUrl = (url: string): string | null => {
 /**
  * Fetch Internet Archive audio metadata
  */
-export const fetchInternetArchiveAudio = async (
+const fetchInternetArchiveAudio = async (
   identifier: string
 ): Promise<AudioStreamTrackInfo | null> => {
   try {
     const metadataUrl = `https://archive.org/metadata/${identifier}`;
     const response = await fetch(metadataUrl);
-    
+
     if (!response.ok) {
       throw new Error('Failed to fetch metadata');
     }
 
     const data = await response.json();
-    
+
     if (!data.files) {
       return null;
     }
 
     // Find audio file (prefer MP3, then OGG, then other formats)
-    const audioFile = data.files.find((file: any) => 
-      file.format === 'VBR MP3' || 
+    const audioFile = data.files.find((file: any) =>
+      file.format === 'VBR MP3' ||
       file.format === 'MP3' ||
       file.format === 'Ogg Vorbis' ||
       file.format === '128Kbps MP3'
@@ -72,11 +72,11 @@ export const fetchInternetArchiveAudio = async (
     const metadata = data.metadata || {};
     const title = metadata.title || identifier;
     const artist = metadata.creator || metadata.artist || 'Unknown Artist';
-    
+
     // Get cover image
     let coverUrl: string | undefined;
-    const imageFile = data.files.find((file: any) => 
-      file.format === 'JPEG' || 
+    const imageFile = data.files.find((file: any) =>
+      file.format === 'JPEG' ||
       file.format === 'PNG' ||
       file.name.includes('thumb')
     );
@@ -106,7 +106,7 @@ export const fetchInternetArchiveAudio = async (
  * Validate self-hosted audio URL
  * Checks if URL is a direct audio file
  */
-export const validateSelfHostedAudio = async (
+const validateSelfHostedAudio = async (
   url: string
 ): Promise<AudioStreamTrackInfo | null> => {
   try {
@@ -118,20 +118,20 @@ export const validateSelfHostedAudio = async (
       console.log('Invalid URL format:', url);
       return null;
     }
-    
+
     const pathname = urlObj.pathname.toLowerCase();
-    
+
     // Check if URL ends with audio extension
     const audioExtensions = ['.mp3', '.ogg', '.wav', '.m4a', '.flac', '.aac', '.opus'];
     const hasAudioExtension = audioExtensions.some(ext => pathname.endsWith(ext));
-    
+
     if (!hasAudioExtension) {
       return null;
     }
 
     // Try to fetch headers to verify it's accessible
     const response = await fetch(url, { method: 'HEAD' });
-    
+
     if (!response.ok) {
       return null;
     }

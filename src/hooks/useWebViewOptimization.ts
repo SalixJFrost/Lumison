@@ -1,60 +1,21 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { PERFORMANCE_CONFIG } from '../config/performance';
+
+const HW_ACCEL_STYLE_ID = 'lumison-hw-accelerate-style';
+const BACKDROP_STYLE_ID = 'lumison-backdrop-optimized-style';
 
 /**
  * WebView performance optimization hook
  * Applies various optimizations to improve rendering performance in webview environments
  */
 export const useWebViewOptimization = () => {
-  const rafIdRef = useRef<number | null>(null);
-  const lastFrameTimeRef = useRef<number>(0);
-  const frameCountRef = useRef<number>(0);
-  const fpsRef = useRef<number>(60);
-
-  useEffect(() => {
-    // Monitor FPS and adjust quality dynamically
-    const measureFPS = (timestamp: number) => {
-      if (lastFrameTimeRef.current) {
-        const delta = timestamp - lastFrameTimeRef.current;
-        frameCountRef.current++;
-
-        // Calculate FPS every second
-        if (frameCountRef.current >= 60) {
-          fpsRef.current = Math.round(1000 / (delta / frameCountRef.current));
-          frameCountRef.current = 0;
-        }
-      }
-      lastFrameTimeRef.current = timestamp;
-      rafIdRef.current = requestAnimationFrame(measureFPS);
-    };
-
-    rafIdRef.current = requestAnimationFrame(measureFPS);
-
-    return () => {
-      if (rafIdRef.current) {
-        cancelAnimationFrame(rafIdRef.current);
-      }
-    };
-  }, []);
-
   useEffect(() => {
     // Apply CSS containment to improve rendering performance
     if (PERFORMANCE_CONFIG.rendering.useCSSContainment) {
+      const previousContain = document.body.style.contain;
       document.body.style.contain = 'layout style paint';
-    }
-
-    // Optimize scrolling performance
-    if (PERFORMANCE_CONFIG.webview.usePassiveListeners) {
-      const options = { passive: true };
-      const handleScroll = () => {
-        // Scroll handler with passive listener
-      };
-      window.addEventListener('scroll', handleScroll, options);
-      window.addEventListener('touchmove', handleScroll, options);
-
       return () => {
-        window.removeEventListener('scroll', handleScroll);
-        window.removeEventListener('touchmove', handleScroll);
+        document.body.style.contain = previousContain;
       };
     }
   }, []);
@@ -62,8 +23,14 @@ export const useWebViewOptimization = () => {
   useEffect(() => {
     // Reduce unnecessary repaints
     if (PERFORMANCE_CONFIG.webview.limitLayerUpdates) {
-      // Force GPU acceleration on key elements
-      const style = document.createElement('style');
+      let style = document.getElementById(HW_ACCEL_STYLE_ID) as HTMLStyleElement | null;
+      const created = !style;
+
+      if (!style) {
+        style = document.createElement('style');
+        style.id = HW_ACCEL_STYLE_ID;
+      }
+
       style.textContent = `
         .hw-accelerate {
           transform: translateZ(0) !important;
@@ -74,17 +41,22 @@ export const useWebViewOptimization = () => {
           -webkit-perspective: 1000px !important;
         }
       `;
-      document.head.appendChild(style);
+
+      if (created) {
+        document.head.appendChild(style);
+      }
 
       return () => {
-        document.head.removeChild(style);
+        if (created && style.parentNode) {
+          style.parentNode.removeChild(style);
+        }
       };
     }
   }, []);
 
   return {
-    currentFPS: fpsRef.current,
-    isPerformanceGood: fpsRef.current >= 50,
+    currentFPS: 60,
+    isPerformanceGood: true,
   };
 };
 
@@ -97,19 +69,31 @@ export const useOptimizedBackdropFilter = (enabled: boolean = true) => {
 
     // Reduce backdrop filter quality on low-end devices
     const isLowEnd = 'deviceMemory' in navigator && (navigator as any).deviceMemory < 4;
-    
+
     if (isLowEnd) {
-      const style = document.createElement('style');
+      let style = document.getElementById(BACKDROP_STYLE_ID) as HTMLStyleElement | null;
+      const created = !style;
+
+      if (!style) {
+        style = document.createElement('style');
+        style.id = BACKDROP_STYLE_ID;
+      }
+
       style.textContent = `
         .backdrop-blur-optimized {
           backdrop-filter: blur(10px) !important;
           -webkit-backdrop-filter: blur(10px) !important;
         }
       `;
-      document.head.appendChild(style);
+
+      if (created) {
+        document.head.appendChild(style);
+      }
 
       return () => {
-        document.head.removeChild(style);
+        if (created && style.parentNode) {
+          style.parentNode.removeChild(style);
+        }
       };
     }
   }, [enabled]);

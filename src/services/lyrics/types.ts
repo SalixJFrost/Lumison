@@ -4,30 +4,9 @@ import { LyricLine, LyricWord } from "../../types";
 export type { LyricLine, LyricWord };
 
 /**
- * Internal representation of a parsed lyric line during processing.
- * Contains additional metadata used for sorting and merging.
- */
-export interface ParsedLineData {
-  time: number;
-  text: string;
-  words: LyricWord[];
-  tagCount: number; // Priority indicator: higher = more precise timing data
-  originalIndex: number; // For stable sorting
-  isMetadata?: boolean; // Whether this line is metadata (artist info, etc.)
-}
-
-/**
- * Result from parsing a single lyrics format (before translation merge).
- */
-export interface ParsedLyricsResult {
-  lines: LyricLine[];
-  hasWordTiming: boolean; // Whether the lyrics contain word-level timing
-}
-
-/**
  * Metadata indicators for filtering out non-lyric content.
  */
-export const METADATA_INDICATORS = [
+const METADATA_INDICATORS = [
   "by:", // Common LRC metadata
   "offset:",
 ];
@@ -35,7 +14,7 @@ export const METADATA_INDICATORS = [
 /**
  * Chinese metadata indicators (NetEase style).
  */
-export const CHINESE_METADATA_INDICATORS = [
+const CHINESE_METADATA_INDICATORS = [
   "歌词贡献者",
   "翻译贡献者",
   "作词",

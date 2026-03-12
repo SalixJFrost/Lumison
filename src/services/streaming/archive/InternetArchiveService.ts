@@ -51,10 +51,10 @@ export async function searchArchive(options: ArchiveSearchOptions): Promise<Arch
   } = options;
 
   const searchUrl = new URL('https://archive.org/advancedsearch.php');
-  
+
   // Build search query
   const searchQuery = `collection:(${collection}) AND format:(${format}) AND (title:(${query}) OR creator:(${query}))`;
-  
+
   searchUrl.searchParams.set('q', searchQuery);
   searchUrl.searchParams.set('fl[]', 'identifier,title,creator,description,date,subject');
   searchUrl.searchParams.set('rows', limit.toString());
@@ -62,7 +62,7 @@ export async function searchArchive(options: ArchiveSearchOptions): Promise<Arch
   searchUrl.searchParams.set('output', 'json');
 
   const response = await fetch(searchUrl.toString());
-  
+
   if (!response.ok) {
     throw new Error(`Archive search failed: ${response.statusText}`);
   }
@@ -87,21 +87,21 @@ export async function fetchArchiveMetadata(identifier: string): Promise<ArchiveM
   try {
     const metadataUrl = `https://archive.org/metadata/${identifier}`;
     const response = await fetch(metadataUrl);
-    
+
     if (!response.ok) {
       return null;
     }
 
     const data = await response.json();
-    
+
     if (!data.files) {
       return null;
     }
 
     // Extract audio files
     const audioFiles: ArchiveAudioFile[] = data.files
-      .filter((file: any) => 
-        file.format === 'VBR MP3' || 
+      .filter((file: any) =>
+        file.format === 'VBR MP3' ||
         file.format === 'MP3' ||
         file.format === '128Kbps MP3' ||
         file.format === 'Ogg Vorbis' ||
@@ -117,13 +117,13 @@ export async function fetchArchiveMetadata(identifier: string): Promise<ArchiveM
 
     // Find cover image
     let coverImage: string | undefined;
-    const imageFile = data.files.find((file: any) => 
-      file.format === 'JPEG' || 
+    const imageFile = data.files.find((file: any) =>
+      file.format === 'JPEG' ||
       file.format === 'PNG' ||
       file.name.includes('thumb') ||
       file.name.includes('cover')
     );
-    
+
     if (imageFile) {
       coverImage = `https://archive.org/download/${identifier}/${encodeURIComponent(imageFile.name)}`;
     }
@@ -151,14 +151,14 @@ export async function fetchArchiveMetadata(identifier: string): Promise<ArchiveM
  */
 export function getBestAudioFile(metadata: ArchiveMetadata): ArchiveAudioFile | null {
   const { audioFiles } = metadata;
-  
+
   if (audioFiles.length === 0) {
     return null;
   }
 
   // Priority order
   const formatPriority = ['VBR MP3', 'MP3', '128Kbps MP3', 'Ogg Vorbis', 'FLAC'];
-  
+
   for (const format of formatPriority) {
     const file = audioFiles.find(f => f.format === format);
     if (file) {
@@ -173,7 +173,7 @@ export function getBestAudioFile(metadata: ArchiveMetadata): ArchiveAudioFile | 
 /**
  * Parse Internet Archive URL to extract identifier
  */
-export function parseArchiveUrl(url: string): string | null {
+function parseArchiveUrl(url: string): string | null {
   try {
     const urlObj = new URL(url);
     if (urlObj.hostname.includes('archive.org')) {
@@ -191,7 +191,7 @@ export function parseArchiveUrl(url: string): string | null {
 /**
  * Get popular audio collections on Internet Archive
  */
-export const POPULAR_COLLECTIONS = [
+const POPULAR_COLLECTIONS = [
   { id: 'opensource_audio', name: 'Open Source Audio' },
   { id: 'audio_music', name: 'Music & Arts' },
   { id: 'etree', name: 'Live Music Archive' },

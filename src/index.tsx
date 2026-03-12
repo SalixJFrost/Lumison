@@ -9,12 +9,17 @@ import { I18nProvider } from './contexts/I18nContext';
 // Performance optimizations for music player
 // 1. Disable React DevTools in production
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-  if (typeof window.__REACT_DEVTOOLS_GLOBAL_HOOK__ === 'object') {
-    for (const prop in window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
+  const win = window as Window & {
+    __REACT_DEVTOOLS_GLOBAL_HOOK__?: Record<string, unknown>;
+  };
+
+  if (typeof win.__REACT_DEVTOOLS_GLOBAL_HOOK__ === 'object' && win.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
+    for (const prop in win.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
       if (prop === 'renderers') {
-        window.__REACT_DEVTOOLS_GLOBAL_HOOK__[prop] = new Map();
+        win.__REACT_DEVTOOLS_GLOBAL_HOOK__[prop] = new Map();
       } else {
-        window.__REACT_DEVTOOLS_GLOBAL_HOOK__[prop] = typeof window.__REACT_DEVTOOLS_GLOBAL_HOOK__[prop] === 'function' ? () => {} : null;
+        win.__REACT_DEVTOOLS_GLOBAL_HOOK__[prop] =
+          typeof win.__REACT_DEVTOOLS_GLOBAL_HOOK__[prop] === 'function' ? () => { } : null;
       }
     }
   }

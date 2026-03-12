@@ -88,6 +88,23 @@ export const usePlayer = ({
     audioRef.current.currentTime = 0;
   }, []);
 
+  const tryPlayAudio = useCallback((errorPrefix: string = "Play failed") => {
+    if (!audioRef.current) return;
+    audioRef.current
+      .play()
+      .catch((err) => console.error(errorPrefix, err));
+  }, []);
+
+  const switchToIndexAndPlay = useCallback(
+    (index: number) => {
+      pauseAndResetCurrentAudio();
+      setCurrentIndex(index);
+      setPlayState(PlayState.PLAYING);
+      setMatchStatus("idle");
+    },
+    [pauseAndResetCurrentAudio],
+  );
+
   const currentSong = queue[currentIndex] ?? null;
   const accentColor = currentSong?.colors?.[0] || "#a855f7";
 
@@ -143,18 +160,15 @@ export const usePlayer = ({
         audioRef.current.currentTime = 0;
         setCurrentTime(0);
       }
-      audioRef.current.play().catch((err) => console.error("Play failed", err));
+      tryPlayAudio();
       setPlayState(PlayState.PLAYING);
     }
-  }, [playState]);
+  }, [playState, tryPlayAudio]);
 
   const play = useCallback(() => {
-    if (!audioRef.current) return;
-    audioRef.current
-      .play()
-      .catch((err) => console.error("Play failed", err));
+    tryPlayAudio();
     setPlayState(PlayState.PLAYING);
-  }, []);
+  }, [tryPlayAudio]);
 
   const pause = useCallback(() => {
     if (!audioRef.current) return;
@@ -180,14 +194,12 @@ export const usePlayer = ({
         setCurrentTime(time);
         isSeekingRef.current = false;
         if (playImmediately) {
-          audioRef.current
-            .play()
-            .catch((err) => console.error("Play failed", err));
+          tryPlayAudio();
           setPlayState(PlayState.PLAYING);
         }
       }
     },
-    [],
+    [tryPlayAudio],
   );
 
   const handleTimeUpdate = useCallback(() => {
@@ -201,11 +213,9 @@ export const usePlayer = ({
     const value = audioRef.current.duration;
     setDuration(Number.isFinite(value) ? value : 0);
     if (playState === PlayState.PLAYING) {
-      audioRef.current
-        .play()
-        .catch((err) => console.error("Auto-play failed", err));
+      tryPlayAudio("Auto-play failed");
     }
-  }, [playState]);
+  }, [playState, tryPlayAudio]);
 
   const playNext = useCallback(() => {
     if (queue.length === 0) return;
@@ -213,45 +223,34 @@ export const usePlayer = ({
     if (playMode === PlayMode.LOOP_ONE) {
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
-        audioRef.current.play();
+        tryPlayAudio();
       }
       return;
     }
 
-    pauseAndResetCurrentAudio();
     const next = (currentIndex + 1) % queue.length;
-    setCurrentIndex(next);
-    setMatchStatus("idle");
-    setPlayState(PlayState.PLAYING);
-  }, [queue.length, playMode, currentIndex, pauseAndResetCurrentAudio]);
+    switchToIndexAndPlay(next);
+  }, [queue.length, playMode, currentIndex, switchToIndexAndPlay, tryPlayAudio]);
 
   const playPrev = useCallback(() => {
     if (queue.length === 0) return;
-    pauseAndResetCurrentAudio();
     const prev = (currentIndex - 1 + queue.length) % queue.length;
-    setCurrentIndex(prev);
-    setMatchStatus("idle");
-    setPlayState(PlayState.PLAYING);
-  }, [queue.length, currentIndex, pauseAndResetCurrentAudio]);
+    switchToIndexAndPlay(prev);
+  }, [queue.length, currentIndex, switchToIndexAndPlay]);
 
   const playIndex = useCallback(
     (index: number) => {
       if (index < 0 || index >= queue.length) return;
-      pauseAndResetCurrentAudio();
-      setCurrentIndex(index);
-      setPlayState(PlayState.PLAYING);
-      setMatchStatus("idle");
+      switchToIndexAndPlay(index);
     },
-    [queue.length, pauseAndResetCurrentAudio],
+    [queue.length, switchToIndexAndPlay],
   );
 
   const handleAudioEnded = useCallback(() => {
     if (playMode === PlayMode.LOOP_ONE) {
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
-        audioRef.current
-          .play()
-          .catch((err) => console.error("Play failed", err));
+        tryPlayAudio();
       }
       setPlayState(PlayState.PLAYING);
       return;
@@ -263,7 +262,7 @@ export const usePlayer = ({
     }
 
     playNext();
-  }, [playMode, queue.length, playNext]);
+  }, [playMode, queue.length, playNext, tryPlayAudio]);
 
   const addSongAndPlay = useCallback(
     (song: Song) => {
@@ -530,7 +529,7 @@ export const usePlayer = ({
 
         // Show user-friendly toast notification
         if (toastMessage && error.code !== MediaError.MEDIA_ERR_ABORTED) {
-          showToast(toastMessage, 'error');
+          console.warn(`Audio playback warning: ${toastMessage}`);
         }
       }
 
