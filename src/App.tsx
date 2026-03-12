@@ -23,6 +23,7 @@ import { UpdateService } from "./services/updateService";
 import { getPlatformConfig } from "./services/music/multiPlatformLyrics";
 import { PlayState, Song } from "./types";
 import { useWebViewOptimization, useOptimizedBackdropFilter } from "./hooks/useWebViewOptimization";
+import { buildSongLookupIndexMap, getSongLookupKey } from "./utils/songLookup";
 
 const App: React.FC = () => {
   const { toast } = useToast();
@@ -147,6 +148,10 @@ const App: React.FC = () => {
 
   // Track if user has ever played (to keep layout split after first play)
   const [hasEverPlayed, setHasEverPlayed] = useState(false);
+  const queueLookupIndexMap = useMemo(
+    () => buildSongLookupIndexMap(playlist.queue),
+    [playlist.queue],
+  );
 
   // Update hasEverPlayed when playing starts with lyrics
   useEffect(() => {
@@ -337,13 +342,7 @@ const App: React.FC = () => {
   };
 
   const handleImportAndPlay = (song: Song) => {
-    // Check if song already exists in queue (by neteaseId for cloud songs, or by id)
-    const existingIndex = playlist.queue.findIndex((s) => {
-      if (song.isNetease && s.isNetease) {
-        return s.neteaseId === song.neteaseId;
-      }
-      return s.id === song.id;
-    });
+    const existingIndex = queueLookupIndexMap.get(getSongLookupKey(song)) ?? -1;
 
     if (existingIndex !== -1) {
       // Song already in queue, just play it
@@ -355,6 +354,10 @@ const App: React.FC = () => {
   };
 
   const handleAddToQueue = (song: Song) => {
+    if (queueLookupIndexMap.has(getSongLookupKey(song))) {
+      return;
+    }
+
     playlist.setQueue((prev) => [...prev, song]);
     playlist.setOriginalQueue((prev) => [...prev, song]);
   };

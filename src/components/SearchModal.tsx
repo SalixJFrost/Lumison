@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { SearchIcon, PlayIcon, PlusIcon, MoreVerticalIcon, NextIcon } from "./Icons";
 import SmartImage from "./SmartImage";
@@ -11,6 +11,7 @@ import { StreamingTrack } from "../services/streaming/types";
 import { useKeyboardScope } from "../hooks/useKeyboardScope";
 import { useSearchModal } from "../hooks/useSearchModal";
 import { useI18n } from "../contexts/I18nContext";
+import { buildSongIdIndexMap } from "../utils/songLookup";
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -88,6 +89,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
   const [isClosing, setIsClosing] = useState(false);
   const [menuTrackId, setMenuTrackId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
+  const queueIndexMap = useMemo(() => buildSongIdIndexMap(queue), [queue]);
 
   // Refs
   const listRef = useRef<HTMLDivElement>(null);
@@ -215,13 +217,13 @@ const SearchModal: React.FC<SearchModalProps> = ({
         onClose();
       }
     } else if (search.activeTab === "netease") {
-      const track = search.neteaseProvider.results[index];
+      const track = search.neteaseResults[index];
       if (track) {
         playNeteaseTrack(track);
         onClose();
       }
     } else if (search.activeTab === "archive") {
-      const track = search.archiveProvider.results[index];
+      const track = search.archiveResults[index];
       if (track) {
         playArchiveTrack(track);
         onClose();
@@ -234,7 +236,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
       id: track.id,
       title: track.title,
       artist: track.artist,
-      coverUrl: track.coverUrl.replace("http:", "https:"),
+      coverUrl: track.coverUrl?.replace("http:", "https:"),
       fileUrl: getNeteaseAudioUrl(track.id),
       isNetease: true,
       neteaseId: track.neteaseId,
@@ -246,11 +248,15 @@ const SearchModal: React.FC<SearchModalProps> = ({
   };
 
   const addNeteaseToQueue = (track: NeteaseTrackInfo) => {
+    if (search.isResultInQueue(track)) {
+      return;
+    }
+
     const song: Song = {
       id: track.id,
       title: track.title,
       artist: track.artist,
-      coverUrl: track.coverUrl.replace("http:", "https:"),
+      coverUrl: track.coverUrl?.replace("http:", "https:"),
       fileUrl: getNeteaseAudioUrl(track.id),
       isNetease: true,
       neteaseId: track.neteaseId,
@@ -278,6 +284,10 @@ const SearchModal: React.FC<SearchModalProps> = ({
   };
 
   const addArchiveToQueue = (track: StreamingTrack) => {
+    if (search.isResultInQueue(track)) {
+      return;
+    }
+
     const song: Song = {
       id: track.id,
       title: track.title,
@@ -306,6 +316,16 @@ const SearchModal: React.FC<SearchModalProps> = ({
     setMenuTrackId(null);
     setMenuPosition(null);
   };
+
+  const activeMenuTrack = useMemo(() => {
+    if (!menuTrackId) {
+      return null;
+    }
+
+    return search.activeTab === "netease"
+      ? search.neteaseResultMap.get(menuTrackId) ?? null
+      : search.archiveResultMap.get(menuTrackId) ?? null;
+  }, [menuTrackId, search.activeTab, search.neteaseResultMap, search.archiveResultMap]);
 
   // Reset refs
 
@@ -568,7 +588,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
               )}
 
               {/* Results list */}
-              {search.neteaseProvider.results.length > 0 && (
+              {search.neteaseResults.length > 0 && (
                 <>
                   {/* Floating Selection Background */}
                   {search.selectedIndex >= 0 && search.itemRefs.current[search.selectedIndex] && (
@@ -582,11 +602,12 @@ const SearchModal: React.FC<SearchModalProps> = ({
                     />
                   )}
 
-                  {search.neteaseProvider.results.map((track, idx) => {
+                  {search.neteaseResults.map((track, idx) => {
                     const nowPlaying = search.isNowPlaying(track);
+                    const trackKey = search.getResultKey(track);
                     return (
                       <div
-                        key={`${track.id}-${idx}`}
+                        key={trackKey}
                         ref={(el) => {
                           search.itemRefs.current[idx] = el;
                         }}
@@ -651,12 +672,11 @@ const SearchModal: React.FC<SearchModalProps> = ({
                         </div>
                         <div className="flex items-center gap-1">
                           <button
-                            onClick={(e) => handleMenuClick(e, track.id)}
-                            className={`track-menu w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
-                              menuTrackId === track.id
-                                ? "bg-white/20 text-white"
-                                : "text-white/40 hover:bg-white/10 hover:text-white/70"
-                            }`}
+                            onClick={(e) => handleMenuClick(e, trackKey)}
+                            className={`track-menu w-7 h-7 rounded-lg flex items-center justify-center transition-all ${menuTrackId === trackKey
+                              ? "bg-white/20 text-white"
+                              : "text-white/40 hover:bg-white/10 hover:text-white/70"
+                              }`}
                             title={t("search.moreOptions")}
                           >
                             <MoreVerticalIcon className="w-4 h-4" />
@@ -715,7 +735,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
                   <span className="text-base font-medium">{t("search.searchInternetArchive")}</span>
                 </div>
               )}
-              {search.archiveProvider.results.length > 0 && (
+              {search.archiveResults.length > 0 && (
                 <>
                   {search.selectedIndex >= 0 && search.itemRefs.current[search.selectedIndex] && (
                     <div
@@ -727,11 +747,12 @@ const SearchModal: React.FC<SearchModalProps> = ({
                       }}
                     />
                   )}
-                  {search.archiveProvider.results.map((track, idx) => {
+                  {search.archiveResults.map((track, idx) => {
                     const nowPlaying = search.isNowPlaying(track);
+                    const trackKey = search.getResultKey(track);
                     return (
                       <div
-                        key={`${track.id}-${idx}`}
+                        key={trackKey}
                         ref={(el) => {
                           search.itemRefs.current[idx] = el;
                         }}
@@ -788,12 +809,11 @@ const SearchModal: React.FC<SearchModalProps> = ({
                         </div>
                         <div className="flex items-center gap-1">
                           <button
-                            onClick={(e) => handleMenuClick(e, track.id)}
-                            className={`track-menu w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
-                              menuTrackId === track.id
-                                ? "bg-white/20 text-white"
-                                : "text-white/40 hover:bg-white/10 hover:text-white/70"
-                            }`}
+                            onClick={(e) => handleMenuClick(e, trackKey)}
+                            className={`track-menu w-7 h-7 rounded-lg flex items-center justify-center transition-all ${menuTrackId === trackKey
+                              ? "bg-white/20 text-white"
+                              : "text-white/40 hover:bg-white/10 hover:text-white/70"
+                              }`}
                             title={t("search.moreOptions")}
                           >
                             <MoreVerticalIcon className="w-4 h-4" />
@@ -833,7 +853,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
                   e.stopPropagation();
                   if (search.contextMenu!.type === "queue") {
                     const qItem = search.contextMenu!.track as Song;
-                    const idx = queue.findIndex((s) => s.id === qItem.id);
+                    const idx = queueIndexMap.get(qItem.id) ?? -1;
                     onPlayQueueIndex(idx);
                   } else if (search.contextMenu!.type === "netease") {
                     playNeteaseTrack(
@@ -862,7 +882,8 @@ const SearchModal: React.FC<SearchModalProps> = ({
                     );
                     search.closeContextMenu();
                   }}
-                  className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
+                  disabled={search.isResultInQueue(search.contextMenu.track)}
+                  className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                 >
                   <PlusIcon className="w-4 h-4" />
                   {t("search.addToQueue")}
@@ -877,7 +898,8 @@ const SearchModal: React.FC<SearchModalProps> = ({
                     );
                     search.closeContextMenu();
                   }}
-                  className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
+                  disabled={search.isResultInQueue(search.contextMenu.track)}
+                  className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                 >
                   <PlusIcon className="w-4 h-4" />
                   {t("search.addToQueue")}
@@ -899,9 +921,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  const track = search.activeTab === "netease" 
-                    ? search.neteaseProvider.results.find(t => t.id === menuTrackId)
-                    : search.archiveProvider.results.find(t => t.id === menuTrackId);
+                  const track = activeMenuTrack;
                   if (track) {
                     if (search.activeTab === "netease") {
                       playNeteaseTrack(track as NeteaseTrackInfo);
@@ -921,11 +941,8 @@ const SearchModal: React.FC<SearchModalProps> = ({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  const track = search.activeTab === "netease" 
-                    ? search.neteaseProvider.results.find(t => t.id === menuTrackId)
-                    : search.archiveProvider.results.find(t => t.id === menuTrackId);
+                  const track = activeMenuTrack;
                   if (track) {
-                    // Add to queue (play next functionality)
                     if (search.activeTab === "netease") {
                       addNeteaseToQueue(track as NeteaseTrackInfo);
                     } else {
@@ -934,7 +951,8 @@ const SearchModal: React.FC<SearchModalProps> = ({
                     closeMenu();
                   }
                 }}
-                className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
+                disabled={!!activeMenuTrack && search.isResultInQueue(activeMenuTrack)}
+                className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 <NextIcon className="w-4 h-4" />
                 {t("search.playNext")}
@@ -943,9 +961,7 @@ const SearchModal: React.FC<SearchModalProps> = ({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  const track = search.activeTab === "netease" 
-                    ? search.neteaseProvider.results.find(t => t.id === menuTrackId)
-                    : search.archiveProvider.results.find(t => t.id === menuTrackId);
+                  const track = activeMenuTrack;
                   if (track) {
                     if (search.activeTab === "netease") {
                       addNeteaseToQueue(track as NeteaseTrackInfo);
@@ -955,7 +971,8 @@ const SearchModal: React.FC<SearchModalProps> = ({
                     closeMenu();
                   }
                 }}
-                className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
+                disabled={!!activeMenuTrack && search.isResultInQueue(activeMenuTrack)}
+                className="flex items-center gap-3 px-3 py-2 text-left text-[13px] text-white/90 hover:bg-blue-500 hover:text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 <PlusIcon className="w-4 h-4" />
                 {t("search.addToQueue")}

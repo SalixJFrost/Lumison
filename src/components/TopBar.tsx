@@ -296,40 +296,6 @@ const TopBar: React.FC<TopBarProps> = ({
     onBackgroundTypeChange(type);
   }, [isPlaying, onBackgroundTypeChange]);
 
-  // Close settings popup when clicking outside
-  useEffect(() => {
-    if (!isSettingsOpen) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        settingsContainerRef.current &&
-        !settingsContainerRef.current.contains(event.target as Node)
-      ) {
-        setIsSettingsOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isSettingsOpen]);
-
-  // Close lab popup when clicking outside
-  useEffect(() => {
-    if (!isLabOpen) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        labContainerRef.current &&
-        !labContainerRef.current.contains(event.target as Node)
-      ) {
-        setIsLabOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isLabOpen]);
-
   // 使用 useMemo 缓存样式类
   const transitionClasses = useMemo(() => {
     // 非全屏且非歌词模式：始终显示

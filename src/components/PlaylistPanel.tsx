@@ -7,6 +7,7 @@ import { useKeyboardScope } from '../hooks/useKeyboardScope';
 import ImportMusicDialog from './ImportMusicDialog';
 import SmartImage from './SmartImage';
 import { useI18n } from '../contexts/I18nContext';
+import { buildSongIdIndexMap } from '../utils/songLookup';
 
 const IOS_SCROLLBAR_STYLES = `
   .playlist-scrollbar {
@@ -74,6 +75,8 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
     // Virtualization Constants
     const ITEM_HEIGHT = 74; // Approx height of each item (including margin)
     const OVERSCAN = 5;
+    const queueIndexMap = useMemo(() => buildSongIdIndexMap(queue), [queue]);
+    const currentSongIndex = currentSongId ? (queueIndexMap.get(currentSongId) ?? -1) : -1;
 
     // ESC key support using keyboard scope
     useKeyboardScope(
@@ -106,7 +109,7 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
     // Scroll to current song when opening
     useEffect(() => {
         if (isOpen && listRef.current) {
-            const index = queue.findIndex(s => s.id === currentSongId);
+            const index = currentSongIndex;
             if (index !== -1) {
                 const containerHeight = listRef.current.clientHeight;
                 const targetScroll = (index * ITEM_HEIGHT) - (containerHeight / 2) + (ITEM_HEIGHT / 2);
@@ -118,7 +121,7 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOpen]);
+    }, [isOpen, currentSongIndex]);
 
     // Close on click outside
     useEffect(() => {
@@ -351,7 +354,7 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                                             )}
 
                                             {/* Cover & Indicator */}
-                                            <div 
+                                            <div
                                                 onClick={() => {
                                                     if (isEditing) toggleSelection(song.id);
                                                     else onPlay(index);
@@ -367,7 +370,7 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                                                     />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center bg-gray-700 text-white/20 text-[10px]">♪</div>
-                                               )}
+                                                )}
 
                                                 {/* Redesigned Now Playing Indicator (Equalizer) */}
                                                 {isCurrent && !isEditing && (
@@ -386,7 +389,7 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                                             </div>
 
                                             {/* Text */}
-                                            <div 
+                                            <div
                                                 onClick={() => {
                                                     if (isEditing) toggleSelection(song.id);
                                                     else onPlay(index);
@@ -418,7 +421,7 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
 
                                             {/* Info Popup */}
                                             {showInfoId === song.id && !isEditing && (
-                                                <div 
+                                                <div
                                                     className="absolute right-12 top-0 z-50 w-64 bg-black/90 backdrop-blur-xl rounded-2xl p-4 shadow-2xl border border-white/10"
                                                     onClick={(e) => e.stopPropagation()}
                                                 >
@@ -439,9 +442,9 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                                                                 <div className="text-white/60 text-xs truncate">{song.artist}</div>
                                                             </div>
                                                         </div>
-                                                        
+
                                                         <div className="h-px bg-white/10" />
-                                                        
+
                                                         <div className="space-y-2 text-xs">
                                                             {song.album && (
                                                                 <div>
@@ -449,7 +452,7 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                                                                     <div className="text-white/80">{song.album}</div>
                                                                 </div>
                                                             )}
-                                                            
+
                                                             {song.lyrics && song.lyrics.length > 0 && (
                                                                 <div>
                                                                     <div className="text-white/40 mb-0.5">Lyrics</div>
@@ -461,7 +464,7 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                                                                     </div>
                                                                 </div>
                                                             )}
-                                                            
+
                                                             {(!song.lyrics || song.lyrics.length === 0) && song.localLyrics && song.localLyrics.length > 0 && (
                                                                 <div>
                                                                     <div className="text-white/40 mb-0.5">Lyrics</div>
@@ -470,21 +473,21 @@ const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                                                                     </div>
                                                                 </div>
                                                             )}
-                                                            
+
                                                             {song.isNetease && (
                                                                 <div>
                                                                     <div className="text-white/40 mb-0.5">Source</div>
                                                                     <div className="text-white/80">{t("playlist.sourceNetease")}</div>
                                                                 </div>
                                                             )}
-                                                            
+
                                                             {song.fileUrl && song.fileUrl.startsWith('blob:') && (
                                                                 <div>
                                                                     <div className="text-white/40 mb-0.5">Source</div>
                                                                     <div className="text-white/80">{t("playlist.sourceLocal")}</div>
                                                                 </div>
                                                             )}
-                                                            
+
                                                             {song.duration && (
                                                                 <div>
                                                                     <div className="text-white/40 mb-0.5">{t("playlist.duration")}</div>

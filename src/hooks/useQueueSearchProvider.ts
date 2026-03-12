@@ -9,6 +9,15 @@ interface UseQueueSearchProviderParams {
 export const useQueueSearchProvider = ({
   queue,
 }: UseQueueSearchProviderParams): SearchProvider => {
+  const indexedQueue = useMemo(
+    () =>
+      queue.map((song) => ({
+        song,
+        searchableText: `${song.title} ${song.artist}`.toLowerCase(),
+      })),
+    [queue],
+  );
+
   const provider: SearchProvider = useMemo(
     () => ({
       id: "queue",
@@ -24,14 +33,12 @@ export const useQueueSearchProvider = ({
         }
 
         const lower = query.toLowerCase();
-        return queue.filter(
-          (s) =>
-            s.title.toLowerCase().includes(lower) ||
-            s.artist.toLowerCase().includes(lower)
-        );
+        return indexedQueue
+          .filter(({ searchableText }) => searchableText.includes(lower))
+          .map(({ song }) => song);
       },
     }),
-    [queue]
+    [indexedQueue, queue]
   );
 
   return provider;

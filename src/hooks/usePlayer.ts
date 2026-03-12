@@ -3,6 +3,7 @@ import {
   SetStateAction,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -14,8 +15,21 @@ import {
   searchAndMatchLyrics,
 } from "../services/music/lyricsService";
 import { audioResourceCache } from "../services/cache";
+import { buildSongIdIndexMap, buildSongIdMap } from "../utils/songLookup";
+import {
+  createNeteaseLyricsCacheKey,
+  createSearchLyricsCacheKey,
+  getCachedMatchedLyrics,
+  seedCachedMatchedLyrics,
+} from "../services/lyrics/matchCache";
 
 type MatchStatus = "idle" | "matching" | "success" | "failed";
+type LyricsMatchPayload = {
+  lrc: string;
+  yrc?: string;
+  tLrc?: string;
+  metadata: string[];
+};
 
 interface UsePlayerParams {
   queue: Song[];
@@ -59,6 +73,14 @@ export const usePlayer = ({
   const [matchStatus, setMatchStatus] = useState<MatchStatus>("idle");
   const audioRef = useRef<HTMLAudioElement>(null);
   const isSeekingRef = useRef(false);
+  const originalQueueIndexMap = useMemo(
+    () => buildSongIdIndexMap(originalQueue),
+    [originalQueue],
+  );
+  const originalQueueById = useMemo(
+    () => buildSongIdMap(originalQueue),
+    [originalQueue],
+  );
 
   const pauseAndResetCurrentAudio = useCallback(() => {
     if (!audioRef.current) return;
@@ -75,7 +97,7 @@ export const usePlayer = ({
     const pool = originalQueue.filter((song) => song.id !== currentId);
     const shuffled = shuffleArray([...pool]);
     if (currentId) {
-      const current = originalQueue.find((song) => song.id === currentId);
+      const current = originalQueueById.get(currentId);
       if (current) {
         setQueue([current, ...shuffled]);
         setCurrentIndex(0);
@@ -84,7 +106,7 @@ export const usePlayer = ({
     }
     setQueue(shuffled);
     setCurrentIndex(0);
-  }, [currentSong, originalQueue, setQueue]);
+  }, [currentSong, originalQueue, originalQueueById, setQueue]);
 
   const toggleMode = useCallback(() => {
     let nextMode: PlayMode;
@@ -100,15 +122,13 @@ export const usePlayer = ({
     } else {
       setQueue(originalQueue);
       if (currentSong) {
-        const idx = originalQueue.findIndex(
-          (song) => song.id === currentSong.id,
-        );
+        const idx = originalQueueIndexMap.get(currentSong.id) ?? -1;
         setCurrentIndex(idx !== -1 ? idx : 0);
       } else {
         setCurrentIndex(originalQueue.length > 0 ? 0 : -1);
       }
     }
-  }, [playMode, reorderForShuffle, originalQueue, currentSong, setQueue]);
+  }, [playMode, reorderForShuffle, originalQueue, currentSong, setQueue, originalQueueIndexMap]);
 
   const togglePlay = useCallback(() => {
     if (!audioRef.current) return;
@@ -313,6 +333,12 @@ export const usePlayer = ({
     [currentSong, updateSongInQueue],
   );
 
+  const resolveMatchedLyrics = useCallback(
+    (cacheKey: string, loader: () => Promise<LyricsMatchPayload | null>) =>
+      getCachedMatchedLyrics(cacheKey, loader, mergeLyricsWithMetadata),
+    [mergeLyricsWithMetadata],
+  );
+
   useEffect(() => {
     if (!currentSong) {
       if (matchStatus !== "idle") {
@@ -329,6 +355,10 @@ export const usePlayer = ({
     const existingLyrics = currentSong.lyrics ?? [];
     const isNeteaseSong = currentSong.isNetease;
     const songNeteaseId = currentSong.neteaseId;
+    const localLyrics = currentSong.localLyrics ?? [];
+    const lyricsCacheKey = isNeteaseSong && songNeteaseId
+      ? createNeteaseLyricsCacheKey(songNeteaseId)
+      : createSearchLyricsCacheKey(songTitle, songArtist);
 
     let cancelled = false;
 
@@ -346,6 +376,7 @@ export const usePlayer = ({
     };
 
     if (existingLyrics.length > 0) {
+      seedCachedMatchedLyrics(lyricsCacheKey, existingLyrics);
       markMatchSuccess();
       return;
     }
@@ -359,65 +390,46 @@ export const usePlayer = ({
     const fetchLyrics = async () => {
       setMatchStatus("matching");
       try {
-        if (isNeteaseSong && songNeteaseId) {
-          const raw = await withTimeout(
-            fetchLyricsById(songNeteaseId),
-            MATCH_TIMEOUT_MS,
-          );
-          if (cancelled) return;
-          if (raw) {
-            updateSongInQueue(songId, {
-              lyrics: mergeLyricsWithMetadata(raw),
-              needsLyricsMatch: false,
-            });
-            markMatchSuccess();
-          } else {
-            // 网易云歌曲失败，尝试使用LRC文件作为最后备用
-            if (currentSong.localLyrics && currentSong.localLyrics.length > 0) {
-              updateSongInQueue(songId, {
-                lyrics: currentSong.localLyrics,
-                needsLyricsMatch: false,
-              });
-              markMatchSuccess();
-            } else {
-              markMatchFailed();
-            }
-          }
+        const matchedLyrics = await resolveMatchedLyrics(
+          lyricsCacheKey,
+          () =>
+            withTimeout(
+              isNeteaseSong && songNeteaseId
+                ? fetchLyricsById(songNeteaseId)
+                : searchAndMatchLyrics(songTitle, songArtist),
+              MATCH_TIMEOUT_MS,
+            ),
+        );
+
+        if (cancelled) return;
+
+        if (matchedLyrics) {
+          updateSongInQueue(songId, {
+            lyrics: matchedLyrics,
+            needsLyricsMatch: false,
+          });
+          markMatchSuccess();
         } else {
-          const result = await withTimeout(
-            searchAndMatchLyrics(songTitle, songArtist),
-            MATCH_TIMEOUT_MS,
-          );
-          if (cancelled) return;
-          if (result) {
+          console.warn("❌ Online search failed");
+          if (localLyrics.length > 0) {
+            console.log("📝 Online search failed, using LRC file as last resort fallback");
             updateSongInQueue(songId, {
-              lyrics: mergeLyricsWithMetadata(result),
+              lyrics: localLyrics,
               needsLyricsMatch: false,
             });
             markMatchSuccess();
           } else {
-            console.warn("❌ Online search failed");
-            // 在线搜索失败，使用LRC文件作为最后备用
-            if (currentSong.localLyrics && currentSong.localLyrics.length > 0) {
-              console.log("📝 Online search failed, using LRC file as last resort fallback");
-              updateSongInQueue(songId, {
-                lyrics: currentSong.localLyrics,
-                needsLyricsMatch: false,
-              });
-              markMatchSuccess();
-            } else {
-              console.log("❌ No LRC file available");
-              markMatchFailed();
-            }
+            console.log("❌ No LRC file available");
+            markMatchFailed();
           }
         }
       } catch (error) {
         console.error("💥 Lyrics matching error:", error);
         // 出错时也尝试使用LRC文件
-        if (currentSong.localLyrics && currentSong.localLyrics.length > 0) {
+        if (localLyrics.length > 0) {
           console.log("📝 Error occurred, using LRC file as last resort fallback");
           updateSongInQueue(songId, {
-            lyrics: currentSong.localLyrics,
+            lyrics: localLyrics,
             needsLyricsMatch: false,
           });
           markMatchSuccess();
@@ -432,46 +444,42 @@ export const usePlayer = ({
     return () => {
       cancelled = true;
     };
-  }, [currentSong?.id, mergeLyricsWithMetadata, updateSongInQueue]);
+  }, [currentSong?.id, resolveMatchedLyrics, updateSongInQueue]);
 
   // 预加载下一首歌的歌词
   useEffect(() => {
     if (currentIndex < 0 || currentIndex >= queue.length - 1) return;
-    
+
     const nextSong = queue[currentIndex + 1];
     if (!nextSong || !nextSong.needsLyricsMatch || (nextSong.lyrics && nextSong.lyrics.length > 0)) {
       return; // 下一首不需要匹配或已有歌词
     }
 
+    const lyricsCacheKey = nextSong.isNetease && nextSong.neteaseId
+      ? createNeteaseLyricsCacheKey(nextSong.neteaseId)
+      : createSearchLyricsCacheKey(nextSong.title, nextSong.artist);
+
     // 延迟 2 秒后开始预加载，避免影响当前歌曲的播放
     const preloadTimer = setTimeout(async () => {
       // console.log(`🔮 Preloading lyrics for next song: "${nextSong.title}"`);
-      
+
       try {
-        if (nextSong.isNetease && nextSong.neteaseId) {
-          const raw = await withTimeout(
-            fetchLyricsById(nextSong.neteaseId),
-            MATCH_TIMEOUT_MS,
-          );
-          if (raw) {
-            // console.log(`✅ Preloaded lyrics for: "${nextSong.title}"`);
-            updateSongInQueue(nextSong.id, {
-              lyrics: mergeLyricsWithMetadata(raw),
-              needsLyricsMatch: false,
-            });
-          }
-        } else {
-          const result = await withTimeout(
-            searchAndMatchLyrics(nextSong.title, nextSong.artist),
-            MATCH_TIMEOUT_MS,
-          );
-          if (result) {
-            // console.log(`✅ Preloaded lyrics for: "${nextSong.title}"`);
-            updateSongInQueue(nextSong.id, {
-              lyrics: mergeLyricsWithMetadata(result),
-              needsLyricsMatch: false,
-            });
-          }
+        const matchedLyrics = await resolveMatchedLyrics(
+          lyricsCacheKey,
+          () =>
+            withTimeout(
+              nextSong.isNetease && nextSong.neteaseId
+                ? fetchLyricsById(nextSong.neteaseId)
+                : searchAndMatchLyrics(nextSong.title, nextSong.artist),
+              MATCH_TIMEOUT_MS,
+            ),
+        );
+
+        if (matchedLyrics) {
+          updateSongInQueue(nextSong.id, {
+            lyrics: matchedLyrics,
+            needsLyricsMatch: false,
+          });
         }
       } catch (error) {
         console.warn(`⚠️ Failed to preload lyrics for: "${nextSong.title}"`, error);
@@ -479,7 +487,7 @@ export const usePlayer = ({
     }, 2000);
 
     return () => clearTimeout(preloadTimer);
-  }, [currentIndex, queue, updateSongInQueue, mergeLyricsWithMetadata]);
+  }, [currentIndex, queue, updateSongInQueue, resolveMatchedLyrics]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -488,11 +496,11 @@ export const usePlayer = ({
     const handleAudioError = (event: Event) => {
       const audioElement = event.target as HTMLAudioElement;
       const error = audioElement.error;
-      
+
       if (error && currentSong) {
         let errorMessage = "Unknown audio error";
         let toastMessage = "";
-        
+
         switch (error.code) {
           case MediaError.MEDIA_ERR_ABORTED:
             errorMessage = "Audio loading aborted";
@@ -514,18 +522,18 @@ export const usePlayer = ({
             errorMessage = "Audio playback error";
             toastMessage = "Cannot play this file";
         }
-        
+
         // Compact console logging
         const fileUrl = currentSong.fileUrl;
         const extension = fileUrl?.split('.').pop()?.toLowerCase() || 'unknown';
         console.error(`🔴 Audio Error: ${errorMessage} | File: ${currentSong.title} | Format: ${extension}`);
-        
+
         // Show user-friendly toast notification
         if (toastMessage && error.code !== MediaError.MEDIA_ERR_ABORTED) {
           showToast(toastMessage, 'error');
         }
       }
-      
+
       audio.pause();
       audio.currentTime = 0;
       setPlayState(PlayState.PAUSED);
@@ -631,40 +639,40 @@ export const usePlayer = ({
   // Performance optimization: use requestAnimationFrame for smooth rate changes
   useEffect(() => {
     if (!audioRef.current) return;
-    
+
     const audio = audioRef.current;
     const targetSpeed = speed;
     const targetPreservesPitch = preservesPitch;
-    
+
     // For high speed changes (>0.3 difference), apply immediately for better responsiveness
     if (Math.abs(targetSpeed - audio.playbackRate) > 0.3) {
       audio.preservesPitch = targetPreservesPitch;
       audio.playbackRate = targetSpeed;
       return;
     }
-    
+
     // For small changes, smooth transition
     let animationId: number;
     const smoothTransition = () => {
       if (!audio) return;
-      
+
       const currentRate = audio.playbackRate;
       const diff = targetSpeed - currentRate;
-      
+
       if (Math.abs(diff) < 0.001) {
         audio.playbackRate = targetSpeed;
         audio.preservesPitch = targetPreservesPitch;
         return;
       }
-      
+
       // Smooth interpolation with faster convergence
       audio.playbackRate = currentRate + diff * 0.25;
       audio.preservesPitch = targetPreservesPitch;
       animationId = requestAnimationFrame(smoothTransition);
     };
-    
+
     animationId = requestAnimationFrame(smoothTransition);
-    
+
     return () => {
       if (animationId) cancelAnimationFrame(animationId);
     };

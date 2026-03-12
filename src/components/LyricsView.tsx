@@ -1,5 +1,9 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useMemo } from "react";
 import { LyricLine as LyricLineType } from "../types";
+import {
+  findActiveLyricLineIndex,
+  findActiveLyricWordIndex,
+} from "../utils/lyricsLookup";
 
 interface LyricsViewProps {
   lyrics: LyricLineType[];
@@ -21,39 +25,26 @@ const LyricsView: React.FC<LyricsViewProps> = ({
   accentColor = "#ffffff",
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [activeIndex, setActiveIndex] = useState(-1);
-
-  // Find active lyric line
-  useEffect(() => {
+  const activeIndex = useMemo(() => {
     if (!lyrics.length) {
-      setActiveIndex(-1);
-      return;
+      return -1;
     }
 
-    let index = -1;
-    for (let i = lyrics.length - 1; i >= 0; i--) {
-      if (currentTime >= lyrics[i].time) {
-        index = i;
-        break;
-      }
-    }
-    setActiveIndex(index);
+    return findActiveLyricLineIndex(lyrics, currentTime);
   }, [currentTime, lyrics]);
 
-  // Find current word in active line for word-by-word highlighting
-  const getCurrentWordIndex = (lineIndex: number) => {
-    if (lineIndex < 0 || !lyrics[lineIndex]?.words) return -1;
-
-    const line = lyrics[lineIndex];
-    const words = line.words || [];
-
-    for (let i = words.length - 1; i >= 0; i--) {
-      if (currentTime >= words[i].startTime) {
-        return i;
-      }
+  const activeWordIndex = useMemo(() => {
+    if (activeIndex < 0) {
+      return -1;
     }
-    return -1;
-  };
+
+    const activeWords = lyrics[activeIndex]?.words;
+    if (!activeWords?.length) {
+      return -1;
+    }
+
+    return findActiveLyricWordIndex(activeWords, currentTime);
+  }, [activeIndex, currentTime, lyrics]);
 
   // Auto-scroll to active line
   useEffect(() => {
@@ -149,8 +140,7 @@ const LyricsView: React.FC<LyricsViewProps> = ({
                     // Word-by-word rendering
                     <div className="font-bold transition-all duration-300 flex flex-wrap gap-x-2">
                       {line.words.map((word, wordIndex) => {
-                        const currentWordIndex = isActive ? getCurrentWordIndex(index) : -1;
-                        const isWordActive = isActive && wordIndex <= currentWordIndex;
+                        const isWordActive = isActive && wordIndex <= activeWordIndex;
 
                         return (
                           <span

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Song } from "../types";
 import { NeteaseTrackInfo } from "../services/music/lyricsService";
 import { useQueueSearchProvider } from "./useQueueSearchProvider";
@@ -8,6 +8,13 @@ import {
 } from "./useNeteaseSearchProvider";
 import { useInternetArchiveSearch } from "./useInternetArchiveSearch";
 import { StreamingTrack } from "../services/streaming/types";
+import { buildSongIdIndexMap } from "../utils/songLookup";
+import {
+  buildSearchResultKeySet,
+  buildSearchResultMap,
+  dedupeSearchResults,
+  getSearchResultKey,
+} from "../utils/searchResultLookup";
 
 export type SearchSource = "queue" | "netease" | "archive";
 export type SearchResultItem = Song | NeteaseTrackInfo | StreamingTrack;
@@ -56,24 +63,45 @@ export const useSearchModal = ({
 
   // Offset for Netease pagination
   const [neteaseOffset, setNeteaseOffset] = useState(0);
-  
+
   // Archive search state
   const [archiveHasSearched, setArchiveHasSearched] = useState(false);
-  
+
   const LIMIT = 30;
+  const queueIndexMap = useMemo(() => buildSongIdIndexMap(queue), [queue]);
+  const queueResultKeySet = useMemo(
+    () => buildSearchResultKeySet(queue),
+    [queue],
+  );
+  const neteaseResults = useMemo(
+    () => dedupeSearchResults(neteaseProvider.results),
+    [neteaseProvider.results],
+  );
+  const archiveResults = useMemo(
+    () => dedupeSearchResults(archiveProvider.results),
+    [archiveProvider.results],
+  );
+  const neteaseResultMap = useMemo(
+    () => buildSearchResultMap(neteaseResults),
+    [neteaseResults],
+  );
+  const archiveResultMap = useMemo(
+    () => buildSearchResultMap(archiveResults),
+    [archiveResults],
+  );
 
   // Update queue results in real-time
   useEffect(() => {
     if (activeTab === "queue") {
       queueProvider.search(query).then((results) => {
         const mappedResults = (results as Song[]).map((s) => {
-          const originalIndex = queue.findIndex((qs) => qs.id === s.id);
+          const originalIndex = queueIndexMap.get(s.id) ?? -1;
           return { s, i: originalIndex };
         });
         setQueueResults(mappedResults);
       });
     }
-  }, [query, activeTab, queue]);
+  }, [query, activeTab, queueProvider, queueIndexMap]);
 
   // Auto-search for Netease when query changes (with debounce)
   useEffect(() => {
@@ -156,11 +184,11 @@ export const useSearchModal = ({
     if (activeTab === "queue") {
       listLength = queueResults.length;
     } else if (activeTab === "netease") {
-      listLength = neteaseProvider.results.length;
+      listLength = neteaseResults.length;
     } else if (activeTab === "archive") {
-      listLength = archiveProvider.results.length;
+      listLength = archiveResults.length;
     }
-    
+
     if (listLength === 0) return;
 
     const next = Math.min(selectedIndex + 1, listLength - 1);
@@ -170,8 +198,8 @@ export const useSearchModal = ({
     activeTab,
     selectedIndex,
     queueResults.length,
-    neteaseProvider.results.length,
-    archiveProvider.results.length,
+    neteaseResults.length,
+    archiveResults.length,
     scrollToItem,
   ]);
 
@@ -230,6 +258,11 @@ export const useSearchModal = ({
     [currentSong],
   );
 
+  const isResultInQueue = useCallback(
+    (item: SearchResultItem) => queueResultKeySet.has(getSearchResultKey(item)),
+    [queueResultKeySet],
+  );
+
   // Determine what to show in results area
   const showNeteasePrompt =
     activeTab === "netease" &&
@@ -239,13 +272,13 @@ export const useSearchModal = ({
   const showNeteaseEmpty =
     activeTab === "netease" &&
     neteaseProvider.hasSearched &&
-    neteaseProvider.results.length === 0 &&
+    neteaseResults.length === 0 &&
     !neteaseProvider.isLoading;
 
   const showNeteaseLoading =
     activeTab === "netease" &&
     neteaseProvider.isLoading &&
-    neteaseProvider.results.length === 0;
+    neteaseResults.length === 0;
 
   const showNeteaseInitial =
     activeTab === "netease" &&
@@ -260,13 +293,13 @@ export const useSearchModal = ({
   const showArchiveEmpty =
     activeTab === "archive" &&
     archiveHasSearched &&
-    archiveProvider.results.length === 0 &&
+    archiveResults.length === 0 &&
     !archiveProvider.isLoading;
 
   const showArchiveLoading =
     activeTab === "archive" &&
     archiveProvider.isLoading &&
-    archiveProvider.results.length === 0;
+    archiveResults.length === 0;
 
   const showArchiveInitial =
     activeTab === "archive" &&
@@ -286,6 +319,10 @@ export const useSearchModal = ({
     queueProvider,
     neteaseProvider,
     archiveProvider,
+    neteaseResults,
+    archiveResults,
+    neteaseResultMap,
+    archiveResultMap,
 
     // Results
     queueResults,
@@ -311,6 +348,8 @@ export const useSearchModal = ({
 
     // Helpers
     isNowPlaying,
+    isResultInQueue,
+    getResultKey: getSearchResultKey,
 
     // Display flags
     showNeteasePrompt,
