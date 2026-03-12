@@ -1,11 +1,10 @@
 /**
- * 网易云音乐 API 扩展服务
- * Extended Netease Cloud Music API Service
+ * Extended Netease Cloud Music API service.
  */
 
 import { fetchViaProxy } from "../utils";
 
-// API 基础地址
+// API base endpoints
 const API_ENDPOINTS = {
   primary: "https://163api.qijieya.cn",
   backup: [
@@ -14,20 +13,27 @@ const API_ENDPOINTS = {
   ]
 };
 
-// API 请求配置
+// API request config
 interface ApiRequestConfig {
   timeout?: number;
   retries?: number;
 }
 
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+};
+
 /**
- * 带重试和备用 API 的请求函数
+ * Fetch with retries and fallback endpoints.
  */
 async function fetchWithFallback(
   endpoint: string,
   config: ApiRequestConfig = {}
 ): Promise<any> {
-  const { timeout = 12000, retries = 1 } = config; // 增加超时时间，减少重试次数
+  const { timeout = 12000, retries = 1 } = config;
   const apis = [API_ENDPOINTS.primary, ...API_ENDPOINTS.backup];
 
   for (const baseUrl of apis) {
@@ -48,9 +54,9 @@ async function fetchWithFallback(
           throw fetchError;
         }
       } catch (error) {
-        console.warn(`API ${baseUrl} failed: ${error}`);
-        if (attempt === retries) continue; // 尝试下一个 API
-        await new Promise(resolve => setTimeout(resolve, 500)); // 减少等待时间
+        console.warn(`API ${baseUrl} failed: ${getErrorMessage(error)}`);
+        if (attempt === retries) continue; // Move to next API endpoint.
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
   }

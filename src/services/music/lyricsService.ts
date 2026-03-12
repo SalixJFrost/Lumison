@@ -17,7 +17,7 @@ const BACKUP_APIS = [
 // Fetch with fallback to backup APIs
 const fetchWithFallback = async (endpoint: string): Promise<any> => {
   const apis = [NETEASECLOUD_API_BASE, ...BACKUP_APIS.filter(api => api !== NETEASECLOUD_API_BASE)];
-  
+
   for (const baseUrl of apis) {
     try {
       const url = endpoint.replace(NETEASECLOUD_API_BASE, baseUrl);
@@ -29,7 +29,7 @@ const fetchWithFallback = async (endpoint: string): Promise<any> => {
       continue;
     }
   }
-  
+
   throw new Error("All API endpoints failed");
 };
 
@@ -168,147 +168,6 @@ const parseJsonMetadata = (line: string) => {
   return line.trim();
 };
 
-// 专门的歌词API列表（按可靠性排序）
-const DEDICATED_LYRICS_APIS = [
-  {
-    name: "LrcLib",
-    search: async (title: string, artist: string) => {
-      const url = `https://lrclib.net/api/search?track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artist)}`;
-      const response = await fetchViaProxy(url);
-      if (Array.isArray(response) && response.length > 0) {
-        const result = response[0];
-        return {
-          lrc: result.syncedLyrics || result.plainLyrics,
-          source: "LrcLib",
-        };
-      }
-      return null;
-    },
-  },
-  {
-    name: "Lyrics.ovh",
-    search: async (title: string, artist: string) => {
-      const url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
-      const response = await fetchViaProxy(url);
-      if (response && response.lyrics) {
-        // Convert plain text to LRC format with simple timestamps
-        const lines = response.lyrics.split('\n').filter((line: string) => line.trim());
-        const lrc = lines.map((line: string, index: number) => {
-          const time = index * 3; // 3 seconds per line as placeholder
-          const minutes = Math.floor(time / 60);
-          const seconds = time % 60;
-          return `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.00]${line}`;
-        }).join('\n');
-        return {
-          lrc,
-          source: "Lyrics.ovh",
-        };
-      }
-      return null;
-    },
-  },
-  {
-    name: "LRCAPI",
-    search: async (title: string, artist: string) => {
-      const url = `https://lrc.xms.mx/search?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`;
-      const response = await fetchViaProxy(url);
-      if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
-        const result = response.data[0];
-        if (result.lrc) {
-          return {
-            lrc: result.lrc,
-            source: "LRCAPI",
-          };
-        }
-      }
-      return null;
-    },
-  },
-  {
-    name: "Syair.info",
-    search: async (title: string, artist: string) => {
-      try {
-        const url = `https://api.syair.info/lyrics/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
-        const response = await fetchViaProxy(url);
-        if (response && response.lyrics) {
-          // Convert to LRC format
-          const lines = response.lyrics.split('\n').filter((line: string) => line.trim());
-          const lrc = lines.map((line: string, index: number) => {
-            const time = index * 3;
-            const minutes = Math.floor(time / 60);
-            const seconds = time % 60;
-            return `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.00]${line}`;
-          }).join('\n');
-          return {
-            lrc,
-            source: "Syair.info",
-          };
-        }
-      } catch (error) {
-        // Silently fail
-      }
-      return null;
-    },
-  },
-  {
-    name: "Genius (via API)",
-    search: async (title: string, artist: string) => {
-      try {
-        // Note: This is a simplified version, real Genius API requires authentication
-        const searchQuery = `${artist} ${title}`;
-        const url = `https://genius.com/api/search/multi?q=${encodeURIComponent(searchQuery)}`;
-        const response = await fetchViaProxy(url);
-        if (response && response.response && response.response.sections) {
-          const songs = response.response.sections.find((s: any) => s.type === 'song');
-          if (songs && songs.hits && songs.hits.length > 0) {
-            // Note: Genius doesn't provide LRC format directly
-            // This is a placeholder - would need additional processing
-            return null;
-          }
-        }
-      } catch (error) {
-        // Silently fail
-      }
-      return null;
-    },
-  },
-];
-
-// 搜索专门的歌词API
-const searchDedicatedLyricsAPIs = async (
-  title: string,
-  artist: string,
-): Promise<{ lrc: string; metadata: string[]; source: string } | null> => {
-  // 并发请求所有API
-  const promises = DEDICATED_LYRICS_APIS.map(async (api) => {
-    try {
-      console.log(`Trying ${api.name}...`);
-      const result = await api.search(title, artist);
-      if (result && result.lrc) {
-        return {
-          lrc: result.lrc,
-          metadata: [],
-          source: result.source,
-        };
-      }
-    } catch (error) {
-      console.warn(`${api.name} failed:`, error);
-    }
-    return null;
-  });
-
-  const results = await Promise.allSettled(promises);
-  
-  // 返回第一个成功的结果
-  for (const result of results) {
-    if (result.status === 'fulfilled' && result.value) {
-      return result.value;
-    }
-  }
-
-  return null;
-};
-
 const extractMetadataLines = (content: string) => {
   const metadataSet = new Set<string>();
   const bodyLines: string[] = [];
@@ -366,8 +225,7 @@ export const fetchNeteasePlaylist = async (
   playlistId: string,
 ): Promise<NeteaseTrackInfo[]> => {
   try {
-    // 使用網易雲音樂 API 獲取歌單所有歌曲
-    // 由於接口限制，需要分頁獲取，每次獲取 50 首
+    // Fetch all playlist tracks through paginated API calls.
     const allTracks: NeteaseTrackInfo[] = [];
     const limit = 50;
     let offset = 0;
@@ -425,12 +283,10 @@ export const searchAndMatchLyrics = async (
   artist: string,
 ): Promise<{ lrc: string; yrc?: string; tLrc?: string; metadata: string[] } | null> => {
   try {
-    // 使用多平台并行搜索
-    // 策略：网易云音乐和第三方API同时搜索，优先使用网易云的逐字歌词
-    // 适合网易云没有版权的歌曲（如周杰伦）
+    // Use parallel multi-platform search with Netease-first strategy.
     console.log("Using multi-platform lyrics search...");
     const multiPlatformResult = await multiPlatformSearch(title, artist);
-    
+
     if (multiPlatformResult) {
       console.log(`✓ Found lyrics from ${multiPlatformResult.source}`);
       const sourceMap: Record<string, string> = {
@@ -471,7 +327,7 @@ export const fetchLyricsById = async (
   songId: string,
 ): Promise<{ lrc: string; yrc?: string; tLrc?: string; metadata: string[] } | null> => {
   try {
-    // 使用網易雲音樂 API 獲取歌詞
+    // Fetch lyrics by song ID from the Netease lyrics endpoint.
     const lyricUrl = `${NETEASECLOUD_API_BASE}/lyric/new?id=${songId}`;
     const lyricData = await fetchWithFallback(lyricUrl);
 

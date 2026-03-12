@@ -1,30 +1,29 @@
 import { fetchViaProxy } from "../utils";
 
 /**
- * 多平台歌词服务
- * 策略：优先从网易云音乐获取歌词（支持逐字歌词和翻译）
- * 只有在网易云失败时才尝试第三方API
- * 第三方API包含多个源，适合网易云没有版权的歌曲（如周杰伦）
+ * Multi-platform lyrics service.
+ * Strategy: prioritize Netease (word-level + translated lyrics support),
+ * then fallback to third-party providers when Netease has no result.
  */
 
-// 平台启用配置
+// Provider enablement flags
 const PLATFORM_CONFIG = {
-  netease: true,      // 网易云音乐 - 最稳定，支持逐字歌词
-  thirdParty: true,   // 第三方歌词 API
+  netease: true,      // Most stable; supports word-level lyrics.
+  thirdParty: true,   // Third-party lyric providers.
 };
 
-// 第三方 API 黑名单（失败的源会被临时禁用）
+// Temporary blacklist for failing third-party sources.
 const failedSources = new Set<string>();
-const BLACKLIST_DURATION = 5 * 60 * 1000; // 5 分钟
+const BLACKLIST_DURATION = 5 * 60 * 1000; // 5 minutes
 
 /**
- * 标记源为失败
+ * Add a source to the temporary blacklist.
  */
 const markSourceFailed = (source: string) => {
   if (!failedSources.has(source)) {
     console.warn(`⚠️ Blacklisting source: ${source} for ${BLACKLIST_DURATION / 1000}s`);
     failedSources.add(source);
-    // 5 分钟后移除黑名单
+    // Automatically unblacklist after the cooldown window.
     setTimeout(() => {
       failedSources.delete(source);
       console.log(`✓ Removed ${source} from blacklist`);
@@ -33,35 +32,35 @@ const markSourceFailed = (source: string) => {
 };
 
 /**
- * 检查源是否被禁用
+ * Check whether a source is currently blacklisted.
  */
 const isSourceBlacklisted = (source: string): boolean => {
   return failedSources.has(source);
 };
 
-// API 端点配置
+// API endpoint configuration
 const API_ENDPOINTS = {
-  // 网易云音乐 API（多个镜像，自动选择最快的）
+  // Netease API mirrors. Runtime scoring selects the fastest endpoint.
   netease: [
-    // 官方社区 API 镜像（优先）
+    // Preferred community mirrors
     "https://163api.qijieya.cn",
     "https://netease-cloud-music-api-psi-ten.vercel.app",
     "https://music-api.heheda.top",
     "https://netease-api.fe-mm.com",
 
-    // 第三方聚合 API（备用）
+    // Fallback aggregators
     "https://api.no0a.cn/api/cloudmusic",
     "https://api.injahow.cn/netease",
     "https://api.uomg.com/api/rand.music",
 
-    // 更多社区部署的镜像
+    // Additional mirrors
     "https://netease-music-api.vercel.app",
     "https://music.ghxi.com",
     "https://api.mlwei.com/music",
   ],
 };
 
-// 网易云 API 性能统计
+// Performance stats for Netease mirrors
 const neteaseApiStats = API_ENDPOINTS.netease.map(url => ({
   url,
   responseTimes: [] as number[],
@@ -69,10 +68,10 @@ const neteaseApiStats = API_ENDPOINTS.netease.map(url => ({
 }));
 
 /**
- * 获取最快的网易云 API
+ * Pick the fastest Netease API mirror based on rolling response stats.
  */
 const getFastestNeteaseApi = (): string => {
-  // 计算每个 API 的平均响应时间
+  // Compute average response time and penalize failures.
   const sorted = [...neteaseApiStats].sort((a, b) => {
     const avgA = a.responseTimes.length > 0
       ? a.responseTimes.reduce((sum, t) => sum + t, 0) / a.responseTimes.length
@@ -81,7 +80,7 @@ const getFastestNeteaseApi = (): string => {
       ? b.responseTimes.reduce((sum, t) => sum + t, 0) / b.responseTimes.length
       : Infinity;
 
-    // 失败次数也作为参考
+    // Failure count is also included in ranking.
     return (avgA + a.failCount * 1000) - (avgB + b.failCount * 1000);
   });
 
@@ -89,7 +88,7 @@ const getFastestNeteaseApi = (): string => {
 };
 
 /**
- * 记录网易云 API 性能
+ * Record runtime performance for a Netease API mirror.
  */
 const recordNeteaseApiPerformance = (url: string, responseTime: number, success: boolean) => {
   const stat = neteaseApiStats.find(s => s.url === url);
@@ -97,7 +96,7 @@ const recordNeteaseApiPerformance = (url: string, responseTime: number, success:
 
   if (success) {
     stat.responseTimes.push(responseTime);
-    // 只保留最近 10 次记录
+    // Keep only the latest 10 samples.
     if (stat.responseTimes.length > 10) {
       stat.responseTimes.shift();
     }
@@ -112,12 +111,52 @@ interface LyricsResult {
   tLrc?: string;
   metadata: string[];
   source: "netease" | string;
-  coverUrl?: string; // 新增：封面 URL
-  responseTime?: number; // 新增：响应时间（毫秒）
+  coverUrl?: string; // Cover image URL.
+  responseTime?: number; // Response time in milliseconds.
 }
 
+interface MusixmatchSubtitleLine {
+  time?: { total?: number };
+  text?: string;
+}
+
+const toSimpleTimedLrc = (plainLyrics: string): string => {
+  const lines = plainLyrics.split('\n').filter((line: string) => line.trim());
+  return lines.map((line: string, index: number) => {
+    const time = index * 3;
+    const minutes = Math.floor(time / 60);
+    const seconds = time % 60;
+    return `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.00]${line}`;
+  }).join('\n');
+};
+
+const toCentisecondLrcTime = (secondsValue: number): string => {
+  const minutes = Math.floor(secondsValue / 60);
+  const seconds = Math.floor(secondsValue % 60);
+  const ms = Math.floor((secondsValue % 1) * 100);
+  return `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(ms).padStart(2, '0')}]`;
+};
+
+const parseMusixmatchSubtitleBody = (subtitleBody: string): string | null => {
+  try {
+    const parsed: unknown = JSON.parse(subtitleBody);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return null;
+    }
+
+    const lrc = (parsed as MusixmatchSubtitleLine[])
+      .map((line) => `${toCentisecondLrcTime(line.time?.total || 0)}${line.text || ''}`)
+      .join('\n');
+
+    return lrc || null;
+  } catch (error) {
+    console.warn("Musixmatch subtitle parse failed:", error);
+    return null;
+  }
+};
+
 /**
- * 网易云音乐搜索（使用最快的 API）
+ * Search Netease using the currently fastest mirror.
  */
 const searchNeteaseMusic = async (keyword: string): Promise<any> => {
   const apiUrl = getFastestNeteaseApi();
@@ -138,7 +177,7 @@ const searchNeteaseMusic = async (keyword: string): Promise<any> => {
 };
 
 /**
- * 网易云音乐获取歌词和封面
+ * Fetch lyrics and cover from Netease.
  */
 const fetchNeteaseMusicLyrics = async (songId: string, coverUrl?: string): Promise<LyricsResult | null> => {
   const apiUrl = getFastestNeteaseApi();
@@ -173,7 +212,7 @@ const fetchNeteaseMusicLyrics = async (songId: string, coverUrl?: string): Promi
 };
 
 /**
- * 第三方歌词API搜索
+ * Search third-party lyric providers.
  */
 const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promise<LyricsResult | null> => {
   const startTime = Date.now();
@@ -235,14 +274,7 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
       const url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
       const response = await fetchViaProxy(url);
       if (response && response.lyrics) {
-        // 转换为 LRC 格式（简单时间戳）
-        const lines = response.lyrics.split('\n').filter((line: string) => line.trim());
-        const lrc = lines.map((line: string, index: number) => {
-          const time = index * 3;
-          const minutes = Math.floor(time / 60);
-          const seconds = time % 60;
-          return `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.00]${line}`;
-        }).join('\n');
+        const lrc = toSimpleTimedLrc(response.lyrics);
         return {
           lrc,
           metadata: [],
@@ -264,13 +296,7 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
       const url = `https://api.syair.info/lyrics/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
       const response = await fetchViaProxy(url);
       if (response && response.lyrics) {
-        const lines = response.lyrics.split('\n').filter((line: string) => line.trim());
-        const lrc = lines.map((line: string, index: number) => {
-          const time = index * 3;
-          const minutes = Math.floor(time / 60);
-          const seconds = time % 60;
-          return `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.00]${line}`;
-        }).join('\n');
+        const lrc = toSimpleTimedLrc(response.lyrics);
         return {
           lrc,
           metadata: [],
@@ -296,13 +322,7 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
         if (lyricMatch && lyricMatch[1]) {
           const lyrics = lyricMatch[1].trim();
           if (lyrics && lyrics !== 'null') {
-            const lines = lyrics.split('\n').filter((line: string) => line.trim());
-            const lrc = lines.map((line: string, index: number) => {
-              const time = index * 3;
-              const minutes = Math.floor(time / 60);
-              const seconds = time % 60;
-              return `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.00]${line}`;
-            }).join('\n');
+            const lrc = toSimpleTimedLrc(lyrics);
             return {
               lrc,
               metadata: [],
@@ -326,30 +346,27 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
       const url = `https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get?q_track=${encodeURIComponent(title)}&q_artist=${encodeURIComponent(artist)}&format=json&namespace=lyrics_synched`;
       const response = await fetchViaProxy(url);
 
-      if (response?.message?.body?.macro_calls) {
-        const subtitles = response.message.body.macro_calls['track.subtitles.get']?.message?.body?.subtitle_list;
-        if (subtitles && subtitles.length > 0) {
-          const subtitle = subtitles[0].subtitle;
-          if (subtitle?.subtitle_body) {
-            const lrcLines = JSON.parse(subtitle.subtitle_body);
-            if (Array.isArray(lrcLines)) {
-              const lrc = lrcLines.map((line: any) => {
-                const time = line.time?.total || 0;
-                const minutes = Math.floor(time / 60);
-                const seconds = Math.floor(time % 60);
-                const ms = Math.floor((time % 1) * 100);
-                return `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(ms).padStart(2, '0')}]${line.text || ''}`;
-              }).join('\n');
-              return {
-                lrc,
-                metadata: [],
-                source: "musixmatch",
-                responseTime: Date.now() - startTime,
-              };
-            }
-          }
-        }
+      const subtitles = response?.message?.body?.macro_calls?.['track.subtitles.get']?.message?.body?.subtitle_list;
+      if (!Array.isArray(subtitles) || subtitles.length === 0) {
+        return null;
       }
+
+      const subtitleBody = subtitles[0]?.subtitle?.subtitle_body;
+      if (typeof subtitleBody !== 'string' || !subtitleBody.trim()) {
+        return null;
+      }
+
+      const lrc = parseMusixmatchSubtitleBody(subtitleBody);
+      if (!lrc) {
+        return null;
+      }
+
+      return {
+        lrc,
+        metadata: [],
+        source: "musixmatch",
+        responseTime: Date.now() - startTime,
+      };
     } catch (error) {
       console.warn("Musixmatch failed:", error);
       markSourceFailed('musixmatch');
@@ -395,10 +412,8 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
     return null;
   };
 
-  // 并发请求所有第三方API，返回最快的结果
-  // 删除 LyricWiki（SSL 证书问题）和 Genius（需要后端支持）
-  // 并发请求所有第三方API，返回最快的结果
-  // 删除 LyricWiki（SSL 证书问题）、Genius（需要后端）、GitHub LRC（速率限制）
+  // Run all third-party providers concurrently.
+  // LyricWiki/Genius/GitHub LRC were removed previously due to reliability constraints.
   const promises = [
     tryLrcLib(),
     tryLRCAPI(),
@@ -409,37 +424,25 @@ const searchThirdPartyLyricsAPIs = async (title: string, artist: string): Promis
     tryOpenLyrics(),
   ];
 
-  // 使用 Promise.race 获取最快的成功结果
-  const racePromise = Promise.race(
-    promises.map(async (p) => {
-      const result = await p;
+  // Promise.any returns the first successful provider result,
+  // while ignoring early failures from other providers.
+  const fastestResult = await Promise.any(
+    promises.map(async (promise) => {
+      const result = await promise;
       if (result) return result;
       throw new Error('No result');
     })
   ).catch(() => null);
 
-  // 同时等待所有结果，以防 race 失败
-  const allResults = await Promise.allSettled(promises);
-
-  // 先尝试 race 的结果（最快的）
-  const fastestResult = await racePromise;
   if (fastestResult) {
     return fastestResult;
-  }
-
-  // 如果 race 失败，返回第一个成功的结果
-  for (const result of allResults) {
-    if (result.status === 'fulfilled' && result.value) {
-      return result.value;
-    }
   }
 
   return null;
 };
 
 /**
- * 多平台搜索并获取歌词
- * 策略：优先从网易云音乐获取歌词，只有在网易云失败时才尝试其他平台
+ * Search and fetch lyrics using the multi-platform strategy.
  */
 export const searchAndFetchLyrics = async (
   title: string,
@@ -448,7 +451,7 @@ export const searchAndFetchLyrics = async (
   const keyword = `${title} ${artist}`;
   console.log(`Searching lyrics for: ${keyword}`);
 
-  // 第一优先级：网易云音乐（支持逐字歌词和翻译）
+  // First priority: Netease (word-level + translated lyrics support).
   if (PLATFORM_CONFIG.netease) {
     try {
       console.log("🎵 Trying Netease Music (Priority)...");
@@ -467,7 +470,7 @@ export const searchAndFetchLyrics = async (
     }
   }
 
-  // 第二优先级：第三方歌词API（并行搜索多个源）
+  // Second priority: third-party providers (parallel search).
   if (PLATFORM_CONFIG.thirdParty) {
     try {
       console.log("🔍 Trying third-party lyrics APIs...");
@@ -487,8 +490,7 @@ export const searchAndFetchLyrics = async (
 };
 
 /**
- * 获取平台配置
- * 可用于检查哪些平台已启用
+ * Return provider configuration flags.
  */
 export const getPlatformConfig = () => {
   return { ...PLATFORM_CONFIG };
