@@ -45,17 +45,17 @@ const App: React.FC = () => {
   useEffect(() => {
     // Log supported audio formats
     const formats = getSupportedAudioFormats();
-    console.log('🎵 Supported Audio Formats:');
+    console.log('Supported Audio Formats:');
     Object.entries(formats).forEach(([format, supported]) => {
-      console.log(`   ${supported ? '✅' : '❌'} ${format.toUpperCase()}`);
+      console.log(`   ${supported ? '[OK]' : '[NO]'} ${format.toUpperCase()}`);
     });
 
     // Log lyrics platform configuration
     const platformConfig = getPlatformConfig();
-    console.log('\n🎵 Lyrics Platform Configuration:');
+    console.log('\nLyrics Platform Configuration:');
     console.log('   Primary sources (parallel search):');
-    console.log(`     ${platformConfig.netease ? '✅' : '❌'} Netease Music (网易云音乐) - Word-by-word lyrics`);
-    console.log(`     ${platformConfig.thirdParty ? '✅' : '❌'} Third-party APIs (7 sources)`);
+    console.log(`     ${platformConfig.netease ? '[OK]' : '[NO]'} Netease Music (网易云音乐) - Word-by-word lyrics`);
+    console.log(`     ${platformConfig.thirdParty ? '[OK]' : '[NO]'} Third-party APIs (7 sources)`);
     console.log('       • LrcLib, LRCAPI, Lyrics.ovh, Syair.info');
     console.log('       • ChartLyrics, Musixmatch, OpenLyrics');
   }, []);
@@ -140,7 +140,7 @@ const App: React.FC = () => {
     if (typeof window === "undefined") return 0;
     return window.innerWidth;
   });
-  const [lyricsFontSize, setLyricsFontSize] = useState(46);
+  const [lyricsFontSize, setLyricsFontSize] = useState(42);
 
   // Background type state
   const [backgroundType, setBackgroundType] = useState<'fluid' | 'shader1'>('fluid');
@@ -554,7 +554,7 @@ const App: React.FC = () => {
 
     return (
       <div className={`flex flex-col items-center justify-center w-full h-full z-30 relative ${hasEverPlayed ? 'pt-0' : 'pt-32'}`}>
-        <div className="relative flex flex-col items-center gap-8 w-full max-w-[360px] px-4">
+        <div className="relative flex flex-col items-center gap-8 w-full max-w-[520px] px-4">
           <Controls
             isPlaying={playState === PlayState.PLAYING}
             onPlayPause={togglePlay}
@@ -812,7 +812,12 @@ const App: React.FC = () => {
                 className="flex-none h-full"
                 style={{ width: effectivePaneWidth }}
               >
-                {controlsSection}
+                <div
+                  className={isFullscreen ? "w-full h-full transition-transform duration-300" : "w-full h-full"}
+                  style={isFullscreen ? { transform: "scale(1.5)", transformOrigin: "center center" } : undefined}
+                >
+                  {controlsSection}
+                </div>
               </div>
               <div
                 className="flex-none h-full"
@@ -854,7 +859,12 @@ const App: React.FC = () => {
               willChange: hasEverPlayed ? 'auto' : 'width',
             }}
           >
-            {controlsSection}
+            <div
+              className={isFullscreen ? 'transition-transform duration-300' : ''}
+              style={isFullscreen ? { transform: 'scale(1.5)', transformOrigin: 'center center' } : undefined}
+            >
+              {controlsSection}
+            </div>
           </div>
 
           {/* Lyrics Section - Slides in from right */}

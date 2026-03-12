@@ -4,8 +4,6 @@ import { formatTime } from "../../services/utils";
 import { SpatialAudioEngine } from "../../services/audio/SpatialAudioEngine";
 import CoverCard from "./controls/CoverCard";
 import {
-  LoopIcon,
-  LoopOneIcon,
   ShuffleIcon,
   VolumeHighFilledIcon,
   VolumeHighIcon,
@@ -327,48 +325,14 @@ const Controls: React.FC<ControlsProps> = ({
     return () => window.removeEventListener("wheel", handleWheel);
   }, [showSettingsPopup, speed, onSpeedChange]);
 
-  const getModeIcon = () => {
-    // Theme-aware colors
-    const iconClass = theme === 'light'
-      ? "w-5 h-5 text-black/60 hover:text-black transition-colors"
-      : "w-5 h-5 text-white/60 hover:text-white transition-colors";
-
-    switch (playMode) {
-      case PlayMode.LOOP_ONE:
-        return (
-          <div className="relative">
-            <LoopOneIcon className={iconClass} />
-            <span className={`absolute -top-1 -right-1 text-[8px] font-bold rounded-[2px] px-0.5 leading-none ${theme === 'light' ? 'bg-black text-white' : 'bg-white text-black'
-              }`}>
-              1
-            </span>
-          </div>
-        );
-      case PlayMode.SHUFFLE:
-        return <ShuffleIcon className={iconClass} />;
-      default: // LOOP_ALL
-        return <LoopIcon className={iconClass} />;
-    }
-  };
-
   const getVolumeButtonIcon = () => {
     if (volume === 0) {
-      return <VolumeMuteIcon className="w-5 h-5" />;
+      return <VolumeMuteIcon className="w-4 h-4" />;
     }
     if (volume < 0.5) {
-      return <VolumeLowIcon className="w-5 h-5" />;
+      return <VolumeLowIcon className="w-4 h-4" />;
     }
-    return <VolumeHighIcon className="w-5 h-5" />;
-  };
-
-  const getVolumePopupIcon = () => {
-    if (volume === 0) {
-      return <VolumeMuteFilledIcon className="w-4 h-4" />;
-    }
-    if (volume < 0.5) {
-      return <VolumeLowFilledIcon className="w-4 h-4" />;
-    }
-    return <VolumeHighFilledIcon className="w-4 h-4" />;
+    return <VolumeHighIcon className="w-4 h-4" />;
   };
 
   // Calculate buffered percentage from actual audio buffered time
@@ -380,7 +344,7 @@ const Controls: React.FC<ControlsProps> = ({
     : 0;
 
   return (
-    <div className="w-full flex flex-col items-center justify-center gap-1 theme-text-primary select-none relative">
+    <div className="w-full flex flex-col items-center justify-center gap-1 pt-3 theme-text-primary select-none relative">
 
       {/* Cover Section with 3D Effect */}
       <CoverCard
@@ -398,6 +362,11 @@ const Controls: React.FC<ControlsProps> = ({
                 style={style}
                 speed={speed}
                 onSpeedChange={onSpeedChange}
+                playMode={playMode}
+                onToggleMode={onToggleMode}
+                volume={volume}
+                onVolumeChange={onVolumeChange}
+                getVolumeButtonIcon={getVolumeButtonIcon}
               />
             ) : null
           )
@@ -407,7 +376,7 @@ const Controls: React.FC<ControlsProps> = ({
       {/* Spectrum Visualizer - Moved to bottom */}
 
       {/* Progress Bar */}
-      <div className="w-full max-w-xl flex items-center gap-3 text-sm font-medium theme-text-secondary group/bar relative">
+      <div className="w-full max-w-[520px] flex items-center gap-3 text-sm font-medium theme-text-secondary group/bar relative">
         <span className="w-12 text-right font-mono tracking-wide">
           {formatTime(displayTime)}
         </span>
@@ -494,26 +463,10 @@ const Controls: React.FC<ControlsProps> = ({
       </div>
 
       {/* Controls Row */}
-      {/* Layout: [Shuffle] [Prev] [Play] [Next] [Loop] */}
-      <div className="w-full max-w-[340px] mt-5 px-1">
-        <div className="flex items-center justify-between w-full gap-1">
-          {/* 1. Shuffle */}
-          <button
-            onClick={onToggleMode}
-            className={`p-2 rounded-full transition-all duration-150 ease-out active:scale-90 hover:bg-white/10 active:bg-white/20 ${playMode === PlayMode.SHUFFLE
-              ? theme === 'light' ? 'text-black' : 'text-white'
-              : theme === 'light' ? 'text-black/60 hover:text-black' : 'text-white/60 hover:text-white'
-              }`}
-            style={{
-              willChange: 'transform, background-color',
-            }}
-            title="Shuffle"
-            aria-label="Shuffle"
-          >
-            <ShuffleIcon className="w-5 h-5" />
-          </button>
-
-          {/* 2. Previous */}
+      {/* Layout: [Prev] [Play] [Next] */}
+      <div className="w-full max-w-[300px] mt-5 px-1">
+        <div className="flex items-center justify-center w-full gap-5">
+          {/* 1. Previous */}
           <button
             onClick={onPrev}
             className={`w-14 h-14 flex items-center justify-center rounded-full hover:bg-white/10 active:bg-white/20 transition-all duration-150 ease-out active:scale-90 hw-accelerate`}
@@ -525,7 +478,7 @@ const Controls: React.FC<ControlsProps> = ({
             <PrevIcon className="w-7 h-7" />
           </button>
 
-          {/* 3. Play/Pause (Center) - Optimized Animation */}
+          {/* 2. Play/Pause (Center) - Optimized Animation */}
           <button
             onClick={onPlayPause}
             className={`w-16 h-16 flex items-center justify-center rounded-full hover:scale-105 active:scale-95 transition-all duration-150 ease-out hw-accelerate ${theme === 'light'
@@ -567,7 +520,7 @@ const Controls: React.FC<ControlsProps> = ({
             </div>
           </button>
 
-          {/* 4. Next */}
+          {/* 3. Next */}
           <button
             onClick={onNext}
             className={`w-14 h-14 flex items-center justify-center rounded-full hover:bg-white/10 active:bg-white/20 transition-all duration-150 ease-out active:scale-90 hw-accelerate`}
@@ -579,143 +532,38 @@ const Controls: React.FC<ControlsProps> = ({
             <NextIcon className="w-7 h-7" />
           </button>
 
-          {/* 5. Loop */}
-          <button
-            onClick={onToggleMode}
-            className={`p-2 rounded-full transition-all duration-150 ease-out active:scale-90 hover:bg-white/10 active:bg-white/20 ${theme === 'light' ? 'text-black/60 hover:text-black' : 'text-white/60 hover:text-white'
-              }`}
-            style={{
-              willChange: 'transform, background-color',
-            }}
-            title="Repeat"
-            aria-label="Repeat"
-          >
-            {getModeIcon()}
-          </button>
         </div>
       </div>
 
-      {/* Volume Control Bar - Below Controls */}
-      <div className="w-full max-w-xl mt-2 px-4">
-        <div className="flex items-center gap-3">
-          {/* Volume Icon */}
-          <button
-            onClick={() => onVolumeChange(volume === 0 ? 0.5 : 0)}
-            className={`p-2 rounded-full transition-all duration-150 ease-out active:scale-90 hover:bg-white/10 active:bg-white/20 ${theme === 'light' ? 'text-black/60 hover:text-black' : 'text-white/60 hover:text-white'
-              }`}
-            title={t("player.volume")}
-          >
-            {getVolumeButtonIcon()}
-          </button>
-
-          {/* Volume Slider */}
-          <div className="relative flex-1 h-10 flex items-center cursor-pointer group">
-            {/* Background Track */}
-            <div className="absolute inset-x-0 h-1 theme-bg-overlay rounded-full group-hover:h-1.5 transition-[height] duration-200 ease-out"></div>
-
-            {/* Active Volume */}
-            <div
-              className="absolute left-0 h-1 rounded-full group-hover:h-1.5 transition-[height] duration-200 ease-out"
-              style={{
-                width: `${volume * 100}%`,
-                backgroundColor: theme === 'light' ? "rgba(0,0,0,1)" : "rgba(255,255,255,1)",
-                transition: 'background-color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1), height 0.2s ease-out',
-              }}
-            ></div>
-
-            {/* Input Range */}
-            <input
-              id="volume-range"
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={volume}
-              onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-            />
-          </div>
-
-        </div>
-      </div>
     </div>
   );
 };
 
 export default Controls;
 
-interface VolumePopupProps {
-  style: any;
-  volume: number;
-  onVolumeChange: (volume: number) => void;
-  getVolumePopupIcon: () => React.ReactNode;
-}
-
-const VolumePopup: React.FC<VolumePopupProps> = ({
-  style,
-  volume,
-  onVolumeChange,
-  getVolumePopupIcon,
-}) => {
-  const { height } = useSpring({
-    height: volume * 100,
-    config: { tension: 210, friction: 20, clamp: true },
-  });
-
-  return (
-    <animated.div
-      style={{
-        ...style,
-        bottom: 'calc(100% + 2rem)',
-      }}
-      className="absolute left-1/2 -translate-x-1/2 z-50 w-[52px] h-[150px] rounded-[26px] p-1.5 bg-black/10 backdrop-blur-optimized saturate-150 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/5 flex flex-col cursor-auto hw-accelerate"
-    >
-      <div className="relative w-full flex-1 rounded-[20px] bg-white/20 overflow-hidden backdrop-blur-optimized hw-accelerate">
-        {/* Fill */}
-        <animated.div
-          className="absolute bottom-0 w-full bg-white"
-          style={{ height: height.to((h) => `${h}%`) }}
-        />
-
-        {/* Input Overlay */}
-        <input
-          id="volume-slider"
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={volume}
-          onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
-          style={
-            {
-              writingMode: "vertical-lr",
-              direction: "rtl",
-            } as React.CSSProperties
-          }
-        />
-
-        {/* Icon Overlay (Mix Blend Mode) */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none text-white mix-blend-difference">
-          {getVolumePopupIcon()}
-        </div>
-      </div>
-    </animated.div>
-  );
-};
-
 interface SettingsPopupProps {
   style: any;
   speed: number;
   onSpeedChange: (speed: number) => void;
+  playMode: PlayMode;
+  onToggleMode: () => void;
+  volume: number;
+  onVolumeChange: (volume: number) => void;
+  getVolumeButtonIcon: () => React.ReactNode;
 }
 
 const SettingsPopup: React.FC<SettingsPopupProps> = ({
   style,
   speed,
   onSpeedChange,
+  playMode,
+  onToggleMode,
+  volume,
+  onVolumeChange,
+  getVolumeButtonIcon,
 }) => {
   const { t } = useI18n();
+  const { theme } = useTheme();
 
   // Quick speed presets
   const speedPresets = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -724,41 +572,91 @@ const SettingsPopup: React.FC<SettingsPopupProps> = ({
   return (
     <animated.div
       style={style}
-      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-8 z-50 p-3 rounded-[20px] bg-black/10 backdrop-blur-optimized saturate-150 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/5 flex items-center gap-4 cursor-auto hw-accelerate"
+      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-8 z-50 p-3 min-w-[260px] rounded-[20px] bg-black/10 backdrop-blur-optimized saturate-150 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/5 flex flex-col gap-3 cursor-auto hw-accelerate"
     >
-      {/* Speed Control */}
-      <div className="relative">
+      <div className="flex items-center gap-3">
+        {/* Speed Control */}
+        <div className="relative">
+          <button
+            onClick={() => setShowPresets(!showPresets)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+          >
+            <FastForwardIcon className="w-4 h-4 text-white" />
+            <span className="text-sm font-bold text-white">
+              {speed === 1 ? '1x' : `${speed.toFixed(2)}x`}
+            </span>
+          </button>
+
+          {/* Speed Presets Popup */}
+          {showPresets && (
+            <div className="absolute bottom-full mb-2 left-0 p-2 rounded-2xl bg-black/10 backdrop-blur-optimized saturate-150 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/5 flex flex-col gap-1 hw-accelerate">
+              {speedPresets.map((preset) => (
+                <button
+                  key={preset}
+                  onClick={() => {
+                    onSpeedChange(preset);
+                    setShowPresets(false);
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap ${Math.abs(speed - preset) < 0.01
+                    ? "bg-white text-black"
+                    : "bg-white/10 text-white hover:bg-white/20"
+                    }`}
+                >
+                  {preset}x
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <button
-          onClick={() => setShowPresets(!showPresets)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+          onClick={onToggleMode}
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${playMode === PlayMode.SHUFFLE
+            ? "bg-white text-black"
+            : "bg-white/20 text-white hover:bg-white/30"
+            }`}
+          title={t("player.shuffle")}
+          aria-label={t("player.shuffle")}
         >
-          <FastForwardIcon className="w-4 h-4 text-white" />
-          <span className="text-sm font-bold text-white">
-            {speed === 1 ? '1x' : `${speed.toFixed(2)}x`}
-          </span>
+          <ShuffleIcon className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="w-full flex items-center gap-3">
+        <button
+          onClick={() => onVolumeChange(volume === 0 ? 0.5 : 0)}
+          className={`p-2 rounded-full transition-all duration-150 ease-out active:scale-90 hover:bg-white/10 active:bg-white/20 ${theme === 'light' ? 'text-black/70 hover:text-black' : 'text-white/70 hover:text-white'}`}
+          title={t("player.volume")}
+          aria-label={t("player.volume")}
+        >
+          {getVolumeButtonIcon()}
         </button>
 
-        {/* Speed Presets Popup */}
-        {showPresets && (
-          <div className="absolute bottom-full mb-2 left-0 p-2 rounded-2xl bg-black/10 backdrop-blur-optimized saturate-150 shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/5 flex flex-col gap-1 hw-accelerate">
-            {speedPresets.map((preset) => (
-              <button
-                key={preset}
-                onClick={() => {
-                  onSpeedChange(preset);
-                  setShowPresets(false);
-                }}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap ${Math.abs(speed - preset) < 0.01
-                  ? "bg-white text-black"
-                  : "bg-white/10 text-white hover:bg-white/20"
-                  }`}
-              >
-                {preset}x
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="relative flex-1 h-8 flex items-center cursor-pointer group">
+          <div className="absolute inset-x-0 h-1 theme-bg-overlay rounded-full group-hover:h-1.5 transition-[height] duration-200 ease-out"></div>
+
+          <div
+            className="absolute left-0 h-1 rounded-full group-hover:h-1.5 transition-[height] duration-200 ease-out"
+            style={{
+              width: `${volume * 100}%`,
+              backgroundColor: theme === 'light' ? "rgba(0,0,0,1)" : "rgba(255,255,255,1)",
+              transition: 'background-color 1.2s cubic-bezier(0.25, 0.1, 0.25, 1), height 0.2s ease-out',
+            }}
+          ></div>
+
+          <input
+            id="volume-range-settings"
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={volume}
+            onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+          />
+        </div>
       </div>
     </animated.div>
   );
 };
+

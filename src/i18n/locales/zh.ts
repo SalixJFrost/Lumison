@@ -16,10 +16,10 @@ export default {
 
   // 关于对话框
   about: {
-    description: "高保真、沉浸式音乐播放器",
+    description: "沉浸式音乐播放器",
     inspiredBy: "灵感来自 Apple Music。",
     viewOnGitHub: "在 GitHub 上查看",
-    createdBy: "由 SalixJFrost 创建",
+    createdBy: "由 SalixFrost 创建",
   },
 
   // 音效
@@ -33,34 +33,6 @@ export default {
     bass: "低音",
     bassBoost: "低音增强",
     off: "关闭",
-  },
-
-  // 空间音频
-  spatialAudio: {
-    title: "3D 空间音频",
-    subtitle: "影院级沉浸感",
-    on: "开启",
-    off: "关闭",
-    active: "激活",
-    inactive: "未激活",
-    presets: "预设",
-    music: "音乐",
-    cinema: "影院",
-    vocal: "人声",
-    advanced: "高级设置",
-    equalizer: "5段均衡器",
-    spatial: "空间参数",
-    sub: "超低音",
-    bass: "低音",
-    mid: "中音",
-    highMid: "中高音",
-    treble: "高音",
-    width: "宽度",
-    depth: "深度",
-    height: "高度",
-    roomSize: "房间大小",
-    distance: "距离",
-    disclaimer: "⚠️ 这不是真正的杜比全景声。这是一个模拟的空间增强系统，用于耳机沉浸式聆听。",
   },
 
   // 播放器控制
@@ -283,13 +255,5 @@ export default {
     checkingForUpdates: "检查更新中...",
     upToDate: "已是最新版本！",
     currentVersion: "当前版本",
-  },
-
-  // 分享
-  share: {
-    title: "分享音乐",
-    noSong: "当前没有正在播放的音乐",
-    copied: "已复制到剪贴板！",
-    failed: "分享失败",
   },
 };

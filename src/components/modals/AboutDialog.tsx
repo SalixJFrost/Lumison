@@ -1,6 +1,7 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { useI18n } from "../../contexts/I18nContext";
+import { invoke } from "@tauri-apps/api/core";
 
 interface AboutDialogProps {
     isOpen: boolean;
@@ -9,6 +10,20 @@ interface AboutDialogProps {
 
 const AboutDialog: React.FC<AboutDialogProps> = ({ isOpen, onClose }) => {
     const { t } = useI18n();
+
+    const openExternalLink = async (event: React.MouseEvent<HTMLAnchorElement>, url: string) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        try {
+            await invoke("open_external_url", { url });
+        } catch {
+            const opened = window.open(url, "_blank", "noopener,noreferrer");
+            if (!opened) {
+                window.location.href = url;
+            }
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -62,7 +77,7 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ isOpen, onClose }) => {
                             href="https://github.com/SalixJFrost/Lumison"
                             target="_blank"
                             rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => openExternalLink(e, "https://github.com/SalixJFrost/Lumison")}
                             className="flex items-center justify-between px-4 py-3 rounded-2xl border border-white/15 bg-white/5 text-sm font-medium text-white/80 hover:bg-white/10 transition"
                         >
                             <span>{t("about.viewOnGitHub")}</span>
@@ -70,10 +85,10 @@ const AboutDialog: React.FC<AboutDialogProps> = ({ isOpen, onClose }) => {
                         </a>
 
                         <a
-                            href="https://github.com/SalixJFrost"
+                            href="https://github.com/salixfrost"
                             target="_blank"
                             rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => openExternalLink(e, "https://github.com/salixfrost")}
                             className="flex items-center justify-between px-4 py-3 rounded-2xl border border-white/15 bg-white/5 text-sm font-medium text-white/80 hover:bg-white/10 transition"
                         >
                             <span>{t("about.createdBy")}</span>

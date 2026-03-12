@@ -93,10 +93,19 @@ export const useSearchModal = ({
     [archiveResults],
   );
 
+  const queueSearch = queueProvider.search;
+  const neteasePerformSearch = neteaseProvider.performSearch;
+  const neteaseLoadMore = neteaseProvider.loadMore;
+  const neteaseIsLoading = neteaseProvider.isLoading;
+  const neteaseHasMore = neteaseProvider.hasMore;
+  const archiveSearch = archiveProvider.search;
+  const clearArchiveResults = archiveProvider.clear;
+
   // Update queue results in real-time
+
   useEffect(() => {
     if (activeTab === "queue") {
-      queueProvider.search(query).then((results) => {
+      queueSearch(query).then((results) => {
         const mappedResults = (results as Song[]).map((s) => {
           const originalIndex = queueIndexMap.get(s.id) ?? -1;
           return { s, i: originalIndex };
@@ -104,7 +113,7 @@ export const useSearchModal = ({
         setQueueResults(mappedResults);
       });
     }
-  }, [query, activeTab, queueProvider, queueIndexMap]);
+  }, [query, activeTab, queueSearch, queueIndexMap]);
 
   // Reset selected index when switching tabs or query changes
   useEffect(() => {
@@ -124,26 +133,40 @@ export const useSearchModal = ({
     if (!query.trim()) return;
     setNeteaseOffset(0);
     setSelectedIndex(-1);
-    await neteaseProvider.performSearch(query);
-  }, [query, neteaseProvider]);
+    await neteasePerformSearch(query);
+  }, [query, neteasePerformSearch]);
 
   const loadMoreNetease = useCallback(async () => {
-    if (neteaseProvider.isLoading || !neteaseProvider.hasMore) return;
+    if (neteaseIsLoading || !neteaseHasMore) return;
     const nextOffset = neteaseOffset + LIMIT;
-    await neteaseProvider.loadMore(query, nextOffset, LIMIT);
+    await neteaseLoadMore(query, nextOffset, LIMIT);
     setNeteaseOffset(nextOffset);
-  }, [neteaseProvider, neteaseOffset, query]);
+  }, [neteaseIsLoading, neteaseHasMore, neteaseLoadMore, neteaseOffset, query]);
 
   const performArchiveSearch = useCallback(async () => {
     if (!query.trim()) return;
     setSelectedIndex(-1);
     setArchiveHasSearched(true);
-    await archiveProvider.search(query, { limit: 20 });
-  }, [query, archiveProvider]);
+    await archiveSearch(query, { limit: 20 });
+  }, [query, archiveSearch]);
 
   // Auto-search for online providers when query changes (with debounce)
   useEffect(() => {
-    if (trimmedQuery.length === 0 || activeTab !== "online") {
+    if (activeTab !== "online") {
+      return;
+    }
+
+    // When query is cleared, reset provider states so the next search starts cleanly.
+    if (trimmedQuery.length === 0) {
+      setSelectedIndex(-1);
+      setNeteaseOffset(0);
+
+      if (onlineSource === "netease") {
+        void neteasePerformSearch("");
+      } else {
+        clearArchiveResults();
+        setArchiveHasSearched(false);
+      }
       return;
     }
 
@@ -156,7 +179,15 @@ export const useSearchModal = ({
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [activeTab, onlineSource, performArchiveSearch, performNeteaseSearch, trimmedQuery.length]);
+  }, [
+    activeTab,
+    onlineSource,
+    performArchiveSearch,
+    performNeteaseSearch,
+    trimmedQuery,
+    neteasePerformSearch,
+    clearArchiveResults,
+  ]);
 
   const handleScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {

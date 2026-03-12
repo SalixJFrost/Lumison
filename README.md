@@ -42,6 +42,13 @@ Lumison is a music player focused on playback, lyrics, and atmosphere instead of
 - Gapless playback controls have been removed from the UI
 - Playback settings are kept intentionally minimal
 
+## Recent Updates
+
+- Fluid background motion is now visible on desktop and tuned to a slower ambient flow for reduced visual fatigue.
+- Top bar now auto-hides after 10 seconds of inactivity and reappears when moving the pointer to the top area.
+- External links in About are opened via the system browser in desktop builds.
+- Search stability was improved for repeated queries and post-delete re-search flows.
+
 ## Development
 
 ### Requirements

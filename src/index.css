@@ -278,68 +278,6 @@ canvas {
   transform: translateZ(0);
 }
 
-/* TopBar button animation (adapted from provided .btn effect) */
-.topbar-btn {
-  --topbar-btn-fill: #ffffff;
-  --topbar-btn-text-hover: #000000;
-  background: none;
-  border: 2px solid rgba(255, 255, 255, 0.55);
-  cursor: pointer;
-  font-family: "Montserrat", "PingFang SC", sans-serif;
-  text-transform: uppercase;
-  transition: color 0.4s linear, border-color 0.3s ease;
-  position: relative;
-  overflow: hidden;
-  z-index: 0;
-  isolation: isolate;
-}
-
-.topbar-btn:hover {
-  color: var(--topbar-btn-text-hover);
-  border-color: transparent;
-}
-
-.topbar-btn::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--topbar-btn-fill);
-  z-index: -1;
-  transition: transform 0.5s;
-  transition-timing-function: cubic-bezier(0.5, 1.6, 0.4, 0.7);
-}
-
-.topbar-btn-fill-x::before {
-  transform: scaleX(0);
-  transform-origin: 0 0;
-}
-
-.topbar-btn-fill-y::before {
-  transform: scaleY(0);
-  transform-origin: 0 0;
-}
-
-.topbar-btn-fill-x:hover::before {
-  transform: scaleX(1);
-}
-
-.topbar-btn-fill-y:hover::before {
-  transform: scaleY(1);
-}
-
-.topbar-btn>* {
-  position: relative;
-  z-index: 1;
-}
-
-.topbar-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 /* Optimized Play Button Animation */
 @keyframes playButtonPulse {
 

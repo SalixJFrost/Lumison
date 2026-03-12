@@ -29,7 +29,6 @@ const CoverCard: React.FC<CoverCardProps> = ({
   const { t } = useI18n();
   const { theme } = useTheme();
   const settingsContainerRef = useRef<HTMLDivElement>(null);
-  const [isFavorite, setIsFavorite] = React.useState(false);
 
   const displayCover = coverUrl;
 
@@ -53,7 +52,7 @@ const CoverCard: React.FC<CoverCardProps> = ({
     <div className="mb-3 w-full max-w-xl">
       {/* Only show cover when coverUrl exists */}
       {displayCover && (
-        <div className="relative aspect-square w-52 md:w-56 lg:w-60 mx-auto rounded-[4px] bg-black overflow-hidden shadow-lg">
+        <div className="relative aspect-square w-56 md:w-60 lg:w-64 mx-auto rounded-[4px] bg-black overflow-hidden shadow-lg">
           <SmartImage
             src={displayCover}
             alt="Album Art"
@@ -65,7 +64,7 @@ const CoverCard: React.FC<CoverCardProps> = ({
       )}
 
       {/* Song Info and Actions Row - Below Cover */}
-      <div className="w-52 md:w-56 lg:w-60 mx-auto mt-3 flex items-center justify-between gap-3">
+      <div className="w-56 md:w-60 lg:w-64 mx-auto mt-3 flex items-center justify-between gap-3">
         {/* Song Info - Center */}
         <div className="flex-1 min-w-0 text-left">
           <h3 className="text-lg font-bold tracking-tight truncate leading-tight theme-text-primary">
@@ -76,24 +75,8 @@ const CoverCard: React.FC<CoverCardProps> = ({
           </p>
         </div>
 
-        {/* Favorite + More */}
+        {/* More */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={() => setIsFavorite((prev) => !prev)}
-            className={`p-2 rounded-full backdrop-blur-md transition-all duration-200 ${isFavorite
-              ? 'bg-white/20 text-white'
-              : theme === 'light'
-                ? 'bg-black/5 text-black/60 hover:text-black hover:bg-black/10'
-                : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'
-              }`}
-            title="Favorite"
-            aria-label="Favorite"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-            </svg>
-          </button>
-
           {setShowSettingsPopup && (
             <div className="relative" ref={settingsContainerRef}>
               <button

@@ -8,6 +8,34 @@ const desktopGradientDefaults = [
   "rgb(90, 30, 60)",
 ];
 
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+
+const toRgba = (color: string, alpha: number) => {
+  const rgbMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/i);
+  if (rgbMatch) {
+    return `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${alpha})`;
+  }
+
+  const rgbaMatch = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*[\d.]+\)/i);
+  if (rgbaMatch) {
+    return `rgba(${rgbaMatch[1]}, ${rgbaMatch[2]}, ${rgbaMatch[3]}, ${alpha})`;
+  }
+
+  const hexMatch = color.match(/^#([\da-f]{3}|[\da-f]{6})$/i);
+  if (hexMatch) {
+    const raw = hexMatch[1];
+    const normalized = raw.length === 3
+      ? raw.split("").map((ch) => ch + ch).join("")
+      : raw;
+    const r = parseInt(normalized.slice(0, 2), 16);
+    const g = parseInt(normalized.slice(2, 4), 16);
+    const b = parseInt(normalized.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  return color;
+};
+
 const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
 
 const calculateTransform = (layer: FlowingLayer, elapsed: number) => {
@@ -130,23 +158,42 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
     [],
   );
 
-  const renderGradientFrame = useCallback((ctx: CanvasRenderingContext2D) => {
+  const renderGradientFrame = useCallback((ctx: CanvasRenderingContext2D, currentTime: number) => {
     const width = ctx.canvas.width;
     const height = ctx.canvas.height;
+    let elapsed = currentTime;
+
+    if (!isPlayingRef.current) {
+      lastPausedTimeRef.current = currentTime;
+      elapsed = startTimeOffsetRef.current;
+    } else if (lastPausedTimeRef.current > 0) {
+      startTimeOffsetRef.current = elapsed;
+      lastPausedTimeRef.current = 0;
+    }
+
+    const t = elapsed / 1000;
+    const motionT = t * 0.18;
     const palette = colorsRef.current && colorsRef.current.length > 0
       ? colorsRef.current
       : desktopGradientDefaults;
 
-    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    const x1 = width * (0.5 + Math.sin(motionT * 0.55) * 0.42);
+    const y1 = height * (0.5 + Math.cos(motionT * 0.45) * 0.38);
+    const x2 = width * (0.5 + Math.cos(motionT * 0.6 + 1.2) * 0.42);
+    const y2 = height * (0.5 + Math.sin(motionT * 0.5 + 0.8) * 0.38);
 
-    // 让第一个颜色（最主要的）占更大比例
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, width, height);
+
+    const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+    const stopOffset = Math.sin(motionT * 0.35) * 0.12;
+
     if (palette.length >= 3) {
       gradient.addColorStop(0, palette[0]);
-      gradient.addColorStop(0.5, palette[0]); // 主色占到 50%
-      gradient.addColorStop(0.75, palette[1]); // 第二色占 25%
-      gradient.addColorStop(1, palette[2]); // 第三色占 25%
+      gradient.addColorStop(clamp(0.42 + stopOffset, 0.22, 0.64), palette[0]);
+      gradient.addColorStop(clamp(0.68 + stopOffset * 0.65, 0.5, 0.88), palette[1]);
+      gradient.addColorStop(1, palette[2]);
     } else {
-      // 如果颜色少于3个，使用均匀分布
       palette.forEach((color, index) => {
         gradient.addColorStop(index / Math.max(1, palette.length - 1), color);
       });
@@ -154,6 +201,22 @@ const FluidBackground: React.FC<FluidBackgroundProps> = ({
 
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
+
+    ctx.globalCompositeOperation = "screen";
+    for (let i = 0; i < 3; i++) {
+      const color = palette[i % palette.length] ?? desktopGradientDefaults[i % desktopGradientDefaults.length];
+      const bx = width * (0.5 + Math.sin(motionT * (0.48 + i * 0.12) + i * 1.7) * (0.28 + i * 0.08));
+      const by = height * (0.5 + Math.cos(motionT * (0.42 + i * 0.1) + i * 1.2) * (0.24 + i * 0.06));
+      const radius = Math.max(width, height) * (0.34 + 0.08 * Math.sin(motionT * (0.55 + i * 0.08) + i));
+
+      const glow = ctx.createRadialGradient(bx, by, 0, bx, by, radius);
+      glow.addColorStop(0, toRgba(color, 0.3));
+      glow.addColorStop(1, toRgba(color, 0));
+
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, width, height);
+    }
+    ctx.globalCompositeOperation = "source-over";
   }, []);
 
   useEffect(() => {
